@@ -1,0 +1,195 @@
+<div class="oem-traceability-dashboard">
+  <!-- Search Section -->
+  <mat-card class="search-card">
+    <mat-card-header>
+      <mat-card-title>OEM間トレーサビリティ検索</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="search-form">
+        <mat-form-field appearance="outline">
+          <mat-label>エンティティID</mat-label>
+          <input matInput [(ngModel)]="entityId" placeholder="エンティティIDを入力">
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline">
+          <mat-label>エンティティタイプ</mat-label>
+          <mat-select [(ngModel)]="entityType">
+            <mat-option *ngFor="let type of entityTypes" [value]="type">
+              {{ type }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <button mat-raised-button color="primary" 
+                (click)="searchTraceability()" 
+                [disabled]="loading">
+          <mat-icon>search</mat-icon>
+          検索
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>トレーサビリティを取得中...</p>
+  </div>
+
+  <!-- Results Section -->
+  <div *ngIf="traceabilityResult && !loading" class="results-section">
+    <mat-tab-group>
+      <!-- OEM Usage Tab -->
+      <mat-tab label="OEM使用状況">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>OEM別使用情報</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table mat-table [dataSource]="traceabilityResult.oemUsages" class="usage-table">
+              <ng-container matColumnDef="oemCode">
+                <th mat-header-cell *matHeaderCellDef>OEMコード</th>
+                <td mat-cell *matCellDef="let usage">{{ usage.oemCode }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="usageCount">
+                <th mat-header-cell *matHeaderCellDef>使用回数</th>
+                <td mat-cell *matCellDef="let usage">{{ usage.usageCount }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="vehicles">
+                <th mat-header-cell *matHeaderCellDef>車両</th>
+                <td mat-cell *matCellDef="let usage">
+                  {{ formatVehicleList(usage.vehicles) }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="customizations">
+                <th mat-header-cell *matHeaderCellDef>カスタマイズ</th>
+                <td mat-cell *matCellDef="let usage">
+                  {{ usage.customizationHistory.length }}件
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="approvals">
+                <th mat-header-cell *matHeaderCellDef>承認</th>
+                <td mat-cell *matCellDef="let usage">
+                  {{ usage.approvalRecords.length }}件
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="oemUsageColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: oemUsageColumns;"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>     
+ <!-- Parameter Differences Tab -->
+      <mat-tab label="パラメータ差異">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>OEM間パラメータ差異</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table mat-table [dataSource]="getParameterDifferences()" class="differences-table">
+              <ng-container matColumnDef="oemCode">
+                <th mat-header-cell *matHeaderCellDef>OEMコード</th>
+                <td mat-cell *matCellDef="let diff">{{ diff.oemCode }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="parameterName">
+                <th mat-header-cell *matHeaderCellDef>パラメータ名</th>
+                <td mat-cell *matCellDef="let diff">{{ diff.parameterName }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="originalValue">
+                <th mat-header-cell *matHeaderCellDef>元の値</th>
+                <td mat-cell *matCellDef="let diff">{{ diff.originalValue }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="customValue">
+                <th mat-header-cell *matHeaderCellDef>カスタム値</th>
+                <td mat-cell *matCellDef="let diff">{{ diff.customValue }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="difference">
+                <th mat-header-cell *matHeaderCellDef>差異</th>
+                <td mat-cell *matCellDef="let diff">
+                  <mat-chip [color]="diff.differencePercentage > 50 ? 'warn' : 'primary'">
+                    {{ formatDifferencePercentage(diff.differencePercentage) }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="parameterDiffColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: parameterDiffColumns;"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <!-- Usage Pattern Differences Tab -->
+      <mat-tab label="使用パターン差異">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>使用パターン差異分析</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table mat-table [dataSource]="getUsagePatternDifferences()" class="patterns-table">
+              <ng-container matColumnDef="oemCode">
+                <th mat-header-cell *matHeaderCellDef>OEMコード</th>
+                <td mat-cell *matCellDef="let pattern">{{ pattern.oemCode }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="patternType">
+                <th mat-header-cell *matHeaderCellDef>パターンタイプ</th>
+                <td mat-cell *matCellDef="let pattern">{{ pattern.patternType }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="description">
+                <th mat-header-cell *matHeaderCellDef>説明</th>
+                <td mat-cell *matCellDef="let pattern">{{ pattern.description }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="frequency">
+                <th mat-header-cell *matHeaderCellDef>頻度</th>
+                <td mat-cell *matCellDef="let pattern">{{ pattern.frequency }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="impact">
+                <th mat-header-cell *matHeaderCellDef>影響度</th>
+                <td mat-cell *matCellDef="let pattern">
+                  <mat-chip [color]="getImpactColor(pattern.impact)">
+                    {{ pattern.impact }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="patternDiffColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: patternDiffColumns;"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <!-- Recommendations Tab -->
+      <mat-tab label="推奨事項">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>推奨事項</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div *ngIf="getRecommendations().length === 0" class="no-recommendations">
+              <mat-icon>check_circle</mat-icon>
+              <p>現在、推奨事項はありません。</p>
+            </div>
+            <div *ngFor="let recommendation of getRecommendations()" class="recommendation-item">
+              <mat-icon color="accent">lightbulb</mat-icon>
+              <span>{{ recommendation }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

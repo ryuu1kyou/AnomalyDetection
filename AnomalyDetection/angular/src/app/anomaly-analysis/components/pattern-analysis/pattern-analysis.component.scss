@@ -1,0 +1,128 @@
+.pattern-analysis-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.analysis-form-card {
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  .full-width {
+    width: 100%;
+  }
+  
+  .date-field {
+    flex: 1;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.analysis-results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summary-card {
+  .summary-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    
+    .stat-item {
+      text-align: center;
+      
+      .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1976d2;
+      }
+      
+      .stat-label {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 4px;
+      }
+    }
+  }
+  
+  .analysis-summary {
+    background-color: #f5f5f5;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 0;
+    font-style: italic;
+  }
+}
+
+.charts-card {
+  .chart-container {
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.patterns-card,
+.correlations-card {
+  .full-width {
+    width: 100%;
+  }
+  
+  .correlation-strength {
+    color: #666;
+    font-size: 0.75rem;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .pattern-analysis-container {
+    padding: 10px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .summary-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .chart-container {
+    height: 300px;
+    padding: 10px;
+  }
+}
+
+// Material theme customizations
+.mat-mdc-card-header {
+  .mat-mdc-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.mat-mdc-chip {
+  font-weight: 500;
+}
+
+.mat-mdc-progress-spinner {
+  margin-right: 8px;
+}

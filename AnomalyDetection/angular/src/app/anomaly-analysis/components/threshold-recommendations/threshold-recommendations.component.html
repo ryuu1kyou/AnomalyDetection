@@ -1,0 +1,217 @@
+<div class="threshold-recommendations-container">
+  <mat-card class="recommendation-form-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>tune</mat-icon>
+        Threshold Optimization Recommendations
+      </mat-card-title>
+      <mat-card-subtitle>
+        Generate threshold optimization recommendations for detection logic
+      </mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <form [formGroup]="recommendationForm" (ngSubmit)="onGenerateRecommendations()">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Detection Logic ID</mat-label>
+            <input matInput formControlName="detectionLogicId" placeholder="Enter Detection Logic ID">
+            <mat-error *ngIf="recommendationForm.get('detectionLogicId')?.hasError('required')">
+              Detection Logic ID is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Analysis Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="analysisStartDate">
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-error *ngIf="recommendationForm.get('analysisStartDate')?.hasError('required')">
+              Start date is required
+            </mat-error>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Analysis End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="analysisEndDate">
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-error *ngIf="recommendationForm.get('analysisEndDate')?.hasError('required')">
+              End date is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-actions">
+          <button mat-raised-button color="primary" type="submit" [disabled]="!recommendationForm.valid || isLoading">
+            <mat-icon *ngIf="!isLoading">auto_fix_high</mat-icon>
+            <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+            {{ isLoading ? 'Generating...' : 'Generate Recommendations' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Recommendation Results -->
+  <div *ngIf="recommendationResult" class="recommendation-results">
+    <!-- Summary Card -->
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Optimization Summary</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <div class="stat-value">{{ recommendationResult.recommendations.length }}</div>
+            <div class="stat-label">Recommendations</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" [ngClass]="getImprovementColor(recommendationResult.expectedImprovement)">
+              {{ formatImprovement(recommendationResult.expectedImprovement) }}
+            </div>
+            <div class="stat-label">Expected F1 Improvement</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ formatPercentage(recommendationResult.currentMetrics.f1Score) }}</div>
+            <div class="stat-label">Current F1 Score</div>
+          </div>
+        </div>
+        <p class="recommendation-summary">{{ recommendationResult.recommendationSummary }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Metrics Comparison Chart -->
+    <mat-card class="metrics-chart-card">
+      <mat-card-header>
+        <mat-card-title>Performance Metrics Comparison</mat-card-title>
+        <mat-card-subtitle>Current vs Predicted Performance</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="metricsComparisonChartData"
+            [type]="radarChartType"
+            [options]="radarChartOptions">
+          </canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Detailed Metrics Comparison -->
+    <mat-card class="detailed-metrics-card">
+      <mat-card-header>
+        <mat-card-title>Detailed Metrics Comparison</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metrics-grid">
+          <div class="metric-item" *ngFor="let metric of ['Detection Rate', 'False Positive Rate', 'False Negative Rate', 'Precision', 'Recall', 'F1 Score', 'Avg Detection Time']">
+            <div class="metric-name">{{ metric }}</div>
+            <div class="metric-values">
+              <div class="current-value">
+                <span class="label">Current:</span>
+                <span class="value">
+                  {{ metric === 'Avg Detection Time' ? 
+                      formatDuration(getMetricValue(recommendationResult.currentMetrics, metric)) : 
+                      formatPercentage(getMetricValue(recommendationResult.currentMetrics, metric)) }}
+                </span>
+              </div>
+              <div class="predicted-value">
+                <span class="label">Predicted:</span>
+                <span class="value">
+                  {{ metric === 'Avg Detection Time' ? 
+                      formatDuration(getMetricValue(recommendationResult.predictedMetrics, metric)) : 
+                      formatPercentage(getMetricValue(recommendationResult.predictedMetrics, metric)) }}
+                </span>
+              </div>
+              <div class="improvement" [ngClass]="getImprovementColor(getMetricImprovement(metric))">
+                <mat-icon>{{ getMetricImprovement(metric) > 0 ? 'trending_up' : getMetricImprovement(metric) < 0 ? 'trending_down' : 'trending_flat' }}</mat-icon>
+                {{ formatImprovement(getMetricImprovement(metric)) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Recommendations Table -->
+    <mat-card class="recommendations-table-card" *ngIf="recommendationResult.recommendations.length > 0">
+      <mat-card-header>
+        <mat-card-title>Threshold Recommendations</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="recommendationResult.recommendations" class="full-width">
+          <ng-container matColumnDef="parameterName">
+            <th mat-header-cell *matHeaderCellDef>Parameter</th>
+            <td mat-cell *matCellDef="let recommendation">
+              <strong>{{ recommendation.parameterName }}</strong>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="currentValue">
+            <th mat-header-cell *matHeaderCellDef>Current Value</th>
+            <td mat-cell *matCellDef="let recommendation">
+              <code>{{ recommendation.currentValue }}</code>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="recommendedValue">
+            <th mat-header-cell *matHeaderCellDef>Recommended Value</th>
+            <td mat-cell *matCellDef="let recommendation">
+              <code class="recommended-value">{{ recommendation.recommendedValue }}</code>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef>Priority</th>
+            <td mat-cell *matCellDef="let recommendation">
+              <mat-chip [color]="getPriorityColor(recommendation.priority)">
+                {{ getPriorityLabel(recommendation.priority) }}
+              </mat-chip>
+              <mat-progress-bar 
+                mode="determinate" 
+                [value]="recommendation.priority * 100"
+                [color]="getPriorityColor(recommendation.priority)"
+                class="priority-bar">
+              </mat-progress-bar>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="confidenceLevel">
+            <th mat-header-cell *matHeaderCellDef>Confidence</th>
+            <td mat-cell *matCellDef="let recommendation">
+              <mat-chip [color]="getConfidenceColor(recommendation.confidenceLevel)">
+                {{ formatPercentage(recommendation.confidenceLevel) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="reason">
+            <th mat-header-cell *matHeaderCellDef>Reason</th>
+            <td mat-cell *matCellDef="let recommendation">
+              <div class="recommendation-reason">
+                {{ recommendation.recommendationReason }}
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- No Recommendations Message -->
+    <mat-card *ngIf="recommendationResult.recommendations.length === 0" class="no-recommendations-card">
+      <mat-card-content>
+        <div class="no-recommendations-message">
+          <mat-icon>check_circle</mat-icon>
+          <h3>No Recommendations Needed</h3>
+          <p>The current threshold configuration appears to be optimal. No adjustments are recommended at this time.</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

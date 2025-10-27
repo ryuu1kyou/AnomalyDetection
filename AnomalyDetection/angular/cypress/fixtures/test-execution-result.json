@@ -1,0 +1,15 @@
+{
+  "result": "Normal",
+  "confidence": 0.95,
+  "executionTime": 2.3,
+  "details": {
+    "inputValue": 5000,
+    "threshold": {
+      "min": 0,
+      "max": 8000
+    },
+    "withinRange": true,
+    "anomalyScore": 0.05
+  },
+  "timestamp": "2024-01-01T12:00:00Z"
+}

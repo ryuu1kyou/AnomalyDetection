@@ -1,0 +1,455 @@
+.detailed-statistics-container {
+  padding: 24px;
+  max-width: 100%;
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    
+    .header-info {
+      h2 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        font-weight: 500;
+      }
+      
+      .header-description {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.4;
+        max-width: 600px;
+      }
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+  }
+  
+  .filter-card {
+    margin-bottom: 24px;
+    
+    .filter-form {
+      .filter-row {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        
+        mat-form-field {
+          min-width: 150px;
+          flex: 1;
+        }
+        
+        button {
+          height: 40px;
+        }
+      }
+    }
+  }
+  
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 48px;
+  }
+  
+  .statistics-content {
+    .statistics-tabs {
+      .tab-content {
+        padding: 24px 0;
+        
+        // System Analysis Tab
+        .system-reports-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          gap: 16px;
+          
+          .system-report-card {
+            .report-metrics {
+              margin-bottom: 16px;
+              
+              .metric-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                
+                &:last-child {
+                  margin-bottom: 0;
+                }
+                
+                .metric-label {
+                  font-size: 14px;
+                  color: #666;
+                }
+                
+                .metric-value {
+                  font-weight: 500;
+                  
+                  &.resolved {
+                    color: #4caf50;
+                  }
+                  
+                  &.critical {
+                    color: #f44336;
+                  }
+                }
+              }
+            }
+            
+            mat-divider {
+              margin: 16px 0;
+            }
+            
+            .top-signals {
+              h4 {
+                margin: 0 0 12px 0;
+                font-size: 14px;
+                font-weight: 500;
+                color: #333;
+              }
+              
+              .signal-list {
+                .signal-item {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  padding: 8px 0;
+                  border-bottom: 1px solid #f0f0f0;
+                  
+                  &:last-child {
+                    border-bottom: none;
+                  }
+                  
+                  .signal-info {
+                    .signal-name {
+                      font-weight: 500;
+                      font-size: 14px;
+                    }
+                    
+                    .signal-id {
+                      font-size: 12px;
+                      color: #666;
+                      font-family: monospace;
+                    }
+                  }
+                  
+                  .signal-stats {
+                    text-align: right;
+                    
+                    .anomaly-count {
+                      font-weight: 500;
+                      color: #f44336;
+                      font-size: 14px;
+                    }
+                    
+                    .last-detection {
+                      font-size: 12px;
+                      color: #666;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // OEM Comparison Tab
+        .comparison-card {
+          .comparison-controls {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            
+            mat-form-field {
+              min-width: 200px;
+            }
+          }
+          
+          .comparison-results {
+            .comparison-chart {
+              margin-bottom: 24px;
+              
+              .chart-placeholder {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 48px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                color: #666;
+                
+                mat-icon {
+                  font-size: 48px;
+                  width: 48px;
+                  height: 48px;
+                  margin-bottom: 16px;
+                  opacity: 0.5;
+                }
+                
+                p {
+                  margin: 0;
+                  font-size: 14px;
+                }
+              }
+            }
+            
+            .comparison-table {
+              .comparison-data-table {
+                width: 100%;
+              }
+            }
+          }
+        }
+        
+        // Custom Reports Tab
+        .custom-report-card {
+          .report-form {
+            .form-section {
+              margin-bottom: 24px;
+              
+              h4 {
+                margin: 0 0 16px 0;
+                font-size: 16px;
+                font-weight: 500;
+                color: #333;
+              }
+              
+              .full-width {
+                width: 100%;
+                margin-bottom: 16px;
+              }
+              
+              .form-row {
+                display: flex;
+                gap: 16px;
+                margin-bottom: 16px;
+                
+                mat-form-field {
+                  flex: 1;
+                }
+              }
+              
+              .checkbox-group {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+                
+                mat-checkbox {
+                  margin-bottom: 8px;
+                }
+              }
+            }
+            
+            mat-divider {
+              margin: 24px 0;
+            }
+          }
+        }
+        
+        // Trend Analysis Tab
+        .trend-analysis-card {
+          .trend-controls {
+            margin-bottom: 24px;
+            
+            mat-form-field {
+              min-width: 200px;
+            }
+          }
+          
+          .trend-results {
+            .trend-summary {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 16px;
+              margin-bottom: 24px;
+              
+              .trend-metric {
+                padding: 16px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                text-align: center;
+                
+                .trend-title {
+                  font-size: 14px;
+                  color: #666;
+                  margin-bottom: 8px;
+                }
+                
+                .trend-value {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 4px;
+                  font-size: 20px;
+                  font-weight: 500;
+                  margin-bottom: 4px;
+                  
+                  mat-icon {
+                    font-size: 20px;
+                    width: 20px;
+                    height: 20px;
+                  }
+                  
+                  &.trend-up {
+                    color: #4caf50;
+                  }
+                  
+                  &.trend-down {
+                    color: #f44336;
+                  }
+                  
+                  &.trend-stable {
+                    color: #666;
+                  }
+                }
+                
+                .trend-description {
+                  font-size: 12px;
+                  color: #666;
+                }
+              }
+            }
+            
+            .trend-chart {
+              .chart-placeholder {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 48px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                color: #666;
+                
+                mat-icon {
+                  font-size: 48px;
+                  width: 48px;
+                  height: 48px;
+                  margin-bottom: 16px;
+                  opacity: 0.5;
+                }
+                
+                p {
+                  margin: 0;
+                  font-size: 14px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .detailed-statistics-container {
+    padding: 16px;
+    
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      
+      .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+    
+    .filter-card .filter-form .filter-row {
+      flex-direction: column;
+      align-items: stretch;
+      
+      mat-form-field {
+        min-width: unset;
+        width: 100%;
+      }
+      
+      button {
+        width: 100%;
+      }
+    }
+    
+    .statistics-content .statistics-tabs .tab-content {
+      .system-reports-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .comparison-card .comparison-controls {
+        flex-direction: column;
+        align-items: stretch;
+        
+        mat-form-field {
+          min-width: unset;
+          width: 100%;
+        }
+        
+        button {
+          width: 100%;
+        }
+      }
+      
+      .custom-report-card .report-form .form-section {
+        .form-row {
+          flex-direction: column;
+        }
+        
+        .checkbox-group {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      .trend-analysis-card {
+        .trend-controls {
+          mat-form-field {
+            min-width: unset;
+            width: 100%;
+          }
+        }
+        
+        .trend-results .trend-summary {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .detailed-statistics-container {
+    .header .header-actions,
+    .filter-card {
+      display: none !important;
+    }
+    
+    .statistics-content .statistics-tabs {
+      ::ng-deep {
+        .mat-tab-header {
+          display: none !important;
+        }
+        
+        .mat-tab-body-wrapper {
+          .mat-tab-body {
+            display: block !important;
+          }
+        }
+      }
+    }
+    
+    .chart-placeholder {
+      border: 1px solid #ccc;
+    }
+  }
+}

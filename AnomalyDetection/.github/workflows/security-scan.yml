@@ -1,0 +1,177 @@
+name: Security Scan
+
+on:
+  schedule:
+    # 毎日午前2時に実行
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+
+    # .NET 脆弱性スキャン
+    - name: .NET Security Audit
+      run: |
+        dotnet restore AnomalyDetection.sln
+        dotnet list package --vulnerable --include-transitive > dotnet-security-report.txt
+        if grep -q "has the following vulnerable packages" dotnet-security-report.txt; then
+          echo "::error::Vulnerable packages found in .NET dependencies"
+          cat dotnet-security-report.txt
+          exit 1
+        fi
+
+    # Node.js 脆弱性スキャン
+    - name: Node.js Security Audit
+      run: |
+        cd angular
+        yarn install --frozen-lockfile
+        yarn audit --level moderate --json > ../node-security-report.json || true
+        
+        # 中程度以上の脆弱性をチェック
+        if jq -e '.data.vulnerabilities | to_entries[] | select(.value.severity == "moderate" or .value.severity == "high" or .value.severity == "critical")' ../node-security-report.json > /dev/null; then
+          echo "::error::Moderate or higher vulnerabilities found in Node.js dependencies"
+          jq '.data.vulnerabilities' ../node-security-report.json
+          exit 1
+        fi
+
+    # Docker イメージ脆弱性スキャン
+    - name: Build Docker images for scanning
+      run: |
+        docker build -t anomaly-detection-backend:scan -f src/AnomalyDetection.HttpApi.Host/Dockerfile .
+        docker build -t anomaly-detection-frontend:scan -f angular/Dockerfile angular/
+
+    - name: Run Trivy scanner on backend image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'anomaly-detection-backend:scan'
+        format: 'sarif'
+        output: 'backend-trivy-results.sarif'
+
+    - name: Run Trivy scanner on frontend image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'anomaly-detection-frontend:scan'
+        format: 'sarif'
+        output: 'frontend-trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: '.'
+
+    # ファイルシステム脆弱性スキャン
+    - name: Run Trivy filesystem scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'filesystem-trivy-results.sarif'
+
+    - name: Upload filesystem scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'filesystem-trivy-results.sarif'
+
+    # OWASP Dependency Check
+    - name: Run OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'CAN-Anomaly-Detection'
+        path: '.'
+        format: 'ALL'
+        args: >
+          --enableRetired
+          --enableExperimental
+          --failOnCVSS 7
+
+    - name: Upload OWASP Dependency Check results
+      uses: actions/upload-artifact@v3
+      with:
+        name: dependency-check-report
+        path: reports/
+
+    # セキュリティレポートの通知
+    - name: Create security issue on vulnerabilities
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const title = `Security vulnerabilities detected - ${new Date().toISOString().split('T')[0]}`;
+          const body = `
+          ## 🚨 Security Vulnerabilities Detected
+          
+          The automated security scan has detected vulnerabilities in the codebase.
+          
+          ### Scan Results
+          - **Date**: ${new Date().toISOString()}
+          - **Workflow**: ${context.workflow}
+          - **Run ID**: ${context.runId}
+          
+          ### Action Required
+          Please review the security scan results and address any critical or high-severity vulnerabilities.
+          
+          ### Artifacts
+          Check the workflow artifacts for detailed reports:
+          - .NET Security Report
+          - Node.js Security Report  
+          - Docker Image Scan Results
+          - OWASP Dependency Check Report
+          
+          ### Links
+          - [Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})
+          - [Security Tab](${context.payload.repository.html_url}/security)
+          `;
+          
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['security', 'vulnerability', 'automated']
+          });
+
+    - name: Notify Slack on security issues
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#security-alerts'
+        webhook_url: ${{ secrets.SLACK_SECURITY_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+        custom_payload: |
+          {
+            text: "🚨 Security vulnerabilities detected in CAN異常検出管理システム",
+            attachments: [{
+              color: "danger",
+              fields: [{
+                title: "Repository",
+                value: "${{ github.repository }}",
+                short: true
+              }, {
+                title: "Workflow",
+                value: "${{ github.workflow }}",
+                short: true
+              }, {
+                title: "Run ID",
+                value: "${{ github.run_id }}",
+                short: true
+              }]
+            }]
+          }

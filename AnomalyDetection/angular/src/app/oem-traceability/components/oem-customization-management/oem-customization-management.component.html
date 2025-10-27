@@ -1,0 +1,207 @@
+<div class="oem-customization-management">
+  <!-- Filters Section -->
+  <mat-card class="filters-card">
+    <mat-card-header>
+      <mat-card-title>フィルター</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="filters-form">
+        <mat-form-field appearance="outline">
+          <mat-label>OEMコード</mat-label>
+          <input matInput [(ngModel)]="selectedOemCode" placeholder="OEMコードで絞り込み">
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline">
+          <mat-label>エンティティタイプ</mat-label>
+          <input matInput [(ngModel)]="selectedEntityType" placeholder="エンティティタイプで絞り込み">
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline">
+          <mat-label>ステータス</mat-label>
+          <mat-select [(ngModel)]="selectedStatus">
+            <mat-option [value]="null">すべて</mat-option>
+            <mat-option *ngFor="let status of customizationStatuses" [value]="status.value">
+              {{ status.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" (click)="applyFilters()">
+            <mat-icon>filter_list</mat-icon>
+            適用
+          </button>
+          <button mat-button (click)="clearFilters()">
+            <mat-icon>clear</mat-icon>
+            クリア
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Create/Edit Form -->
+  <mat-card class="form-card">
+    <mat-card-header>
+      <mat-card-title>
+        {{ isEditing ? 'カスタマイズ編集' : 'カスタマイズ作成' }}
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="customizationForm" class="customization-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>エンティティID</mat-label>
+            <input matInput formControlName="entityId" [readonly]="isEditing">
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>エンティティタイプ</mat-label>
+            <input matInput formControlName="entityType" [readonly]="isEditing">
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>OEMコード</mat-label>
+            <input matInput formControlName="oemCode" [readonly]="isEditing">
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>カスタマイズタイプ</mat-label>
+            <mat-select formControlName="type">
+              <mat-option *ngFor="let type of customizationTypes" [value]="type.value">
+                {{ type.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>カスタマイズ理由</mat-label>
+          <textarea matInput formControlName="customizationReason" rows="3"></textarea>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>カスタムパラメータ (JSON)</mat-label>
+          <textarea matInput formControlName="customParameters" rows="5"></textarea>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" class="full-width" *ngIf="!isEditing">
+          <mat-label>元のパラメータ (JSON)</mat-label>
+          <textarea matInput formControlName="originalParameters" rows="5"></textarea>
+        </mat-form-field>
+        
+        <div class="form-actions">
+          <button mat-raised-button color="primary" 
+                  (click)="isEditing ? updateCustomization() : createCustomization()"
+                  [disabled]="!customizationForm.valid">
+            <mat-icon>{{ isEditing ? 'save' : 'add' }}</mat-icon>
+            {{ isEditing ? '更新' : '作成' }}
+          </button>
+          <button mat-button (click)="resetForm()" *ngIf="isEditing">
+            <mat-icon>cancel</mat-icon>
+            キャンセル
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>  <!-- C
+ustomizations List -->
+  <mat-card class="list-card">
+    <mat-card-header>
+      <mat-card-title>カスタマイズ一覧</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-container">
+        <mat-spinner></mat-spinner>
+        <p>読み込み中...</p>
+      </div>
+      
+      <table mat-table [dataSource]="customizations" class="customizations-table" *ngIf="!loading">
+        <ng-container matColumnDef="entityId">
+          <th mat-header-cell *matHeaderCellDef>エンティティID</th>
+          <td mat-cell *matCellDef="let customization">{{ customization.entityId }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="entityType">
+          <th mat-header-cell *matHeaderCellDef>タイプ</th>
+          <td mat-cell *matCellDef="let customization">{{ customization.entityType }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="oemCode">
+          <th mat-header-cell *matHeaderCellDef>OEMコード</th>
+          <td mat-cell *matCellDef="let customization">{{ customization.oemCode }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>カスタマイズタイプ</th>
+          <td mat-cell *matCellDef="let customization">
+            {{ getTypeLabel(customization.type) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>ステータス</th>
+          <td mat-cell *matCellDef="let customization">
+            <mat-chip [color]="getStatusColor(customization.status)">
+              {{ getStatusLabel(customization.status) }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="creationTime">
+          <th mat-header-cell *matHeaderCellDef>作成日時</th>
+          <td mat-cell *matCellDef="let customization">
+            {{ customization.creationTime | date:'yyyy/MM/dd HH:mm' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>アクション</th>
+          <td mat-cell *matCellDef="let customization">
+            <div class="action-buttons">
+              <button mat-icon-button 
+                      (click)="editCustomization(customization)"
+                      [disabled]="!canEdit(customization)"
+                      matTooltip="編集">
+                <mat-icon>edit</mat-icon>
+              </button>
+              
+              <button mat-icon-button 
+                      (click)="submitForApproval(customization.id)"
+                      [disabled]="!canSubmitForApproval(customization)"
+                      matTooltip="承認申請">
+                <mat-icon>send</mat-icon>
+              </button>
+              
+              <button mat-icon-button 
+                      (click)="approveCustomization(customization.id)"
+                      [disabled]="!canApprove(customization)"
+                      matTooltip="承認"
+                      color="primary">
+                <mat-icon>check</mat-icon>
+              </button>
+              
+              <button mat-icon-button 
+                      (click)="rejectCustomization(customization.id)"
+                      [disabled]="!canApprove(customization)"
+                      matTooltip="却下"
+                      color="warn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+      
+      <div *ngIf="!loading && customizations.length === 0" class="no-data">
+        <mat-icon>inbox</mat-icon>
+        <p>カスタマイズが見つかりません</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

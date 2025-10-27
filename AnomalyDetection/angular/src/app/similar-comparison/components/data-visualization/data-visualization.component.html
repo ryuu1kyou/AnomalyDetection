@@ -1,0 +1,86 @@
+<div class="data-visualization-container">
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>検査データ可視化 / Test Data Visualization</mat-card-title>
+    </mat-card-header>
+  </mat-card>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>データ読み込み中... / Loading data...</p>
+  </div>
+
+  <div *ngIf="!loading && visualizationData">
+    <mat-tab-group class="visualization-tabs">
+      <mat-tab label="時系列グラフ / Time Series">
+        <mat-card class="chart-card">
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas id="timeSeriesChart"></canvas>
+              <div class="chart-placeholder">
+                <mat-icon>show_chart</mat-icon>
+                <p>時系列グラフ / Time Series Chart</p>
+                <p class="chart-description">
+                  ソース信号とターゲット信号の時系列データを比較表示します。<br>
+                  Displays time series comparison between source and target signals.
+                </p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="分布図 / Distribution">
+        <mat-card class="chart-card">
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas id="distributionChart"></canvas>
+              <div class="chart-placeholder">
+                <mat-icon>bar_chart</mat-icon>
+                <p>分布図 / Distribution Chart</p>
+                <p class="chart-description">
+                  信号値の分布を比較表示します。<br>
+                  Displays value distribution comparison.
+                </p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="相関図 / Correlation">
+        <mat-card class="chart-card">
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas id="correlationChart"></canvas>
+              <div class="chart-placeholder">
+                <mat-icon>scatter_plot</mat-icon>
+                <p>相関図 / Correlation Chart</p>
+                <p class="chart-description">
+                  ソース信号とターゲット信号の相関関係を表示します。<br>
+                  Displays correlation between source and target signals.
+                </p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </mat-tab-group>
+
+    <mat-card class="info-card">
+      <mat-card-content>
+        <h3>グラフ情報 / Chart Information</h3>
+        <ul>
+          <li>時系列グラフ: 時間経過に伴う信号値の変化と異常検出を表示 / Time series: Shows signal value changes and anomaly detection over time</li>
+          <li>分布図: 信号値の頻度分布を比較 / Distribution: Compares frequency distribution of signal values</li>
+          <li>相関図: 2つの信号間の相関関係を散布図で表示 / Correlation: Shows relationship between two signals in scatter plot</li>
+        </ul>
+        <p class="note">
+          <mat-icon>info</mat-icon>
+          注: グラフの実装にはChart.jsまたはD3.jsなどのチャートライブラリが必要です。<br>
+          Note: Chart implementation requires a charting library such as Chart.js or D3.js.
+        </p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

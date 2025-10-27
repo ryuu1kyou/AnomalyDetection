@@ -1,0 +1,95 @@
+.milestone-dialog {
+  min-width: 500px;
+  max-width: 700px;
+  
+  h2[mat-dialog-title] {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+    
+    mat-icon {
+      color: #2196f3;
+    }
+  }
+  
+  mat-dialog-content {
+    padding: 24px 0;
+    
+    .milestone-form {
+      .full-width {
+        width: 100%;
+        margin-bottom: 16px;
+      }
+      
+      .form-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        
+        mat-form-field {
+          flex: 1;
+        }
+      }
+      
+      mat-divider {
+        margin: 24px 0;
+      }
+      
+      .dependencies-section,
+      .deliverables-section {
+        h3 {
+          margin: 0 0 16px 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: #333;
+        }
+        
+        .dependency-item,
+        .deliverable-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          margin-bottom: 12px;
+          
+          .dependency-input,
+          .deliverable-input {
+            flex: 1;
+          }
+          
+          button[mat-icon-button] {
+            margin-top: 8px;
+          }
+        }
+        
+        .add-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+          color: #2196f3;
+        }
+      }
+    }
+  }
+  
+  mat-dialog-actions {
+    padding: 16px 0 0 0;
+    gap: 12px;
+  }
+}
+
+// Responsive design
+@media (max-width: 600px) {
+  .milestone-dialog {
+    min-width: unset;
+    width: 100%;
+    
+    .milestone-form {
+      .form-row {
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+  }
+}

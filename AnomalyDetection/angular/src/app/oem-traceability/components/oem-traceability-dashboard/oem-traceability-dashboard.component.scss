@@ -1,0 +1,154 @@
+.oem-traceability-dashboard {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .search-card {
+    margin-bottom: 20px;
+
+    .search-form {
+      display: flex;
+      gap: 16px;
+      align-items: end;
+      flex-wrap: wrap;
+
+      mat-form-field {
+        min-width: 200px;
+        flex: 1;
+      }
+
+      button {
+        height: 56px;
+        min-width: 120px;
+      }
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+
+    mat-spinner {
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+
+  .results-section {
+    .mat-tab-group {
+      .mat-tab-body-content {
+        padding: 20px 0;
+      }
+    }
+
+    .usage-table,
+    .differences-table,
+    .patterns-table {
+      width: 100%;
+      margin-top: 16px;
+
+      .mat-column-oemCode {
+        width: 120px;
+      }
+
+      .mat-column-usageCount,
+      .mat-column-frequency {
+        width: 100px;
+        text-align: center;
+      }
+
+      .mat-column-difference,
+      .mat-column-impact {
+        width: 120px;
+        text-align: center;
+      }
+
+      mat-chip {
+        font-size: 12px;
+        min-height: 24px;
+      }
+    }
+
+    .no-recommendations {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+      color: #666;
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        color: #4caf50;
+      }
+
+      p {
+        margin: 0;
+        font-size: 16px;
+      }
+    }
+
+    .recommendation-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      mat-icon {
+        margin-top: 2px;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      span {
+        flex: 1;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .oem-traceability-dashboard {
+    padding: 16px;
+
+    .search-card .search-form {
+      flex-direction: column;
+      align-items: stretch;
+
+      mat-form-field {
+        min-width: unset;
+      }
+
+      button {
+        height: 48px;
+      }
+    }
+
+    .usage-table,
+    .differences-table,
+    .patterns-table {
+      font-size: 12px;
+
+      .mat-column-vehicles,
+      .mat-column-description {
+        display: none;
+      }
+    }
+  }
+}

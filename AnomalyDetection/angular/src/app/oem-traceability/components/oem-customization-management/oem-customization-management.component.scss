@@ -1,0 +1,195 @@
+.oem-customization-management {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .filters-card,
+  .form-card,
+  .list-card {
+    margin-bottom: 20px;
+  }
+
+  .filters-form {
+    display: flex;
+    gap: 16px;
+    align-items: end;
+    flex-wrap: wrap;
+
+    mat-form-field {
+      min-width: 200px;
+      flex: 1;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+
+      button {
+        height: 56px;
+      }
+    }
+  }
+
+  .customization-form {
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+
+      mat-form-field {
+        flex: 1;
+      }
+    }
+
+    .full-width {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-start;
+      margin-top: 20px;
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+
+    mat-spinner {
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+
+  .customizations-table {
+    width: 100%;
+    margin-top: 16px;
+
+    .mat-column-entityId {
+      width: 200px;
+    }
+
+    .mat-column-entityType,
+    .mat-column-oemCode {
+      width: 120px;
+    }
+
+    .mat-column-type {
+      width: 150px;
+    }
+
+    .mat-column-status {
+      width: 120px;
+      text-align: center;
+    }
+
+    .mat-column-creationTime {
+      width: 150px;
+    }
+
+    .mat-column-actions {
+      width: 200px;
+      text-align: center;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+
+      button {
+        &:disabled {
+          opacity: 0.3;
+        }
+      }
+    }
+
+    mat-chip {
+      font-size: 12px;
+      min-height: 24px;
+    }
+  }
+
+  .no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    color: #666;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .oem-customization-management {
+    padding: 16px;
+
+    .filters-form {
+      flex-direction: column;
+      align-items: stretch;
+
+      mat-form-field {
+        min-width: unset;
+      }
+
+      .filter-actions {
+        justify-content: stretch;
+
+        button {
+          flex: 1;
+          height: 48px;
+        }
+      }
+    }
+
+    .customization-form {
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+    }
+
+    .customizations-table {
+      font-size: 12px;
+
+      .mat-column-entityId,
+      .mat-column-type,
+      .mat-column-creationTime {
+        display: none;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 2px;
+
+        button {
+          min-width: 32px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+    }
+  }
+}

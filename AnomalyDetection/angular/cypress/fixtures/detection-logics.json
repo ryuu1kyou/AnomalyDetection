@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "id": "1",
+      "name": "Engine RPM Range Check",
+      "description": "Checks if engine RPM is within normal range",
+      "detectionType": "OutOfRange",
+      "status": "Approved",
+      "sharingLevel": "Private",
+      "asilLevel": "B",
+      "systemType": "Engine",
+      "logicContent": "{\"min\": 0, \"max\": 8000}",
+      "oemCode": "TOYOTA",
+      "version": "1.0",
+      "executionCount": 1500,
+      "lastExecutedAt": "2024-01-01T12:00:00Z",
+      "averageExecutionTime": 2.5,
+      "approvedBy": "admin",
+      "approvedAt": "2024-01-01T10:00:00Z",
+      "approvalNotes": "Approved for production use",
+      "parameters": [
+        {
+          "id": "1",
+          "name": "MinThreshold",
+          "dataType": "Double",
+          "defaultValue": "0.0",
+          "description": "Minimum threshold value",
+          "isRequired": true
+        }
+      ],
+      "signalMappings": [],
+      "creationTime": "2024-01-01T00:00:00Z",
+      "lastModificationTime": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "2",
+      "name": "Brake Pressure Timeout",
+      "description": "Detects brake pressure signal timeout",
+      "detectionType": "Timeout",
+      "status": "Draft",
+      "sharingLevel": "OemPartner",
+      "asilLevel": "C",
+      "systemType": "Brake",
+      "logicContent": "{\"timeout\": 200}",
+      "oemCode": "TOYOTA",
+      "version": "1.0",
+      "executionCount": 0,
+      "lastExecutedAt": null,
+      "averageExecutionTime": 0,
+      "approvedBy": null,
+      "approvedAt": null,
+      "approvalNotes": null,
+      "parameters": [],
+      "signalMappings": [],
+      "creationTime": "2024-01-01T00:00:00Z",
+      "lastModificationTime": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "totalCount": 2
+}

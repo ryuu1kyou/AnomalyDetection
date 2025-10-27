@@ -1,0 +1,450 @@
+# CAN異常検出管理システム - Azure DevOps Pipeline
+
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    exclude:
+    - README.md
+    - docs/*
+
+pr:
+  branches:
+    include:
+    - main
+
+variables:
+  # Build Variables
+  buildConfiguration: 'Release'
+  dotnetVersion: '9.0.x'
+  nodeVersion: '18.x'
+  
+  # Docker Variables
+  dockerRegistryServiceConnection: 'anomaly-detection-acr'
+  imageRepository: 'anomaly-detection'
+  containerRegistry: 'anomalydetection.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/src/AnomalyDetection.HttpApi.Host/Dockerfile'
+  angularDockerfilePath: '$(Build.SourcesDirectory)/angular/Dockerfile'
+  tag: '$(Build.BuildId)'
+
+  # Test Variables
+  testResultsDirectory: '$(Agent.TempDirectory)/TestResults'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  
+  # バックエンドビルド・テスト
+  - job: BackendBuildTest
+    displayName: 'Backend Build & Test'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: TestPass@123
+          MSSQL_PID: Developer
+        ports:
+          1433: 1433
+    
+    steps:
+    - checkout: self
+      fetchDepth: 0
+    
+    - task: UseDotNet@2
+      displayName: 'Setup .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: $(dotnetVersion)
+    
+    - task: Cache@2
+      displayName: 'Cache NuGet packages'
+      inputs:
+        key: 'nuget | "$(Agent.OS)" | **/*.csproj'
+        restoreKeys: |
+          nuget | "$(Agent.OS)"
+        path: '$(Pipeline.Workspace)/.nuget/packages'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore NuGet packages'
+      inputs:
+        command: 'restore'
+        projects: 'AnomalyDetection.sln'
+        feedsToUse: 'select'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: 'build'
+        projects: 'AnomalyDetection.sln'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Run database migrations'
+      inputs:
+        command: 'run'
+        projects: 'src/AnomalyDetection.DbMigrator/AnomalyDetection.DbMigrator.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+      env:
+        ConnectionStrings__Default: 'Server=localhost;Database=AnomalyDetection_Test;User Id=sa;Password=TestPass@123;TrustServerCertificate=true'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Run unit tests'
+      inputs:
+        command: 'test'
+        projects: |
+          test/AnomalyDetection.Application.Tests/AnomalyDetection.Application.Tests.csproj
+          test/AnomalyDetection.Domain.Tests/AnomalyDetection.Domain.Tests.csproj
+        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --collect:"XPlat Code Coverage" --results-directory $(testResultsDirectory)'
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/*.trx'
+        searchFolder: '$(testResultsDirectory)'
+        mergeTestResults: true
+        failTaskOnFailedTests: true
+    
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish code coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(testResultsDirectory)/**/coverage.cobertura.xml'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish backend'
+      inputs:
+        command: 'publish'
+        projects: 'src/AnomalyDetection.HttpApi.Host/AnomalyDetection.HttpApi.Host.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/backend'
+        zipAfterPublish: false
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish backend artifacts'
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)/backend'
+        artifactName: 'backend'
+
+  # フロントエンドビルド・テスト
+  - job: FrontendBuildTest
+    displayName: 'Frontend Build & Test'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - checkout: self
+    
+    - task: NodeTool@0
+      displayName: 'Setup Node.js'
+      inputs:
+        versionSpec: $(nodeVersion)
+    
+    - task: Cache@2
+      displayName: 'Cache node modules'
+      inputs:
+        key: 'yarn | "$(Agent.OS)" | angular/yarn.lock'
+        restoreKeys: |
+          yarn | "$(Agent.OS)"
+        path: 'angular/node_modules'
+    
+    - script: |
+        cd angular
+        yarn install --frozen-lockfile
+      displayName: 'Install dependencies'
+    
+    - script: |
+        cd angular
+        yarn lint
+      displayName: 'Lint code'
+    
+    - script: |
+        cd angular
+        yarn test:ci
+      displayName: 'Run unit tests'
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'angular/test-results.xml'
+        failTaskOnFailedTests: true
+    
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish code coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: 'angular/coverage/cobertura-coverage.xml'
+    
+    - script: |
+        cd angular
+        yarn build:prod
+      displayName: 'Build application'
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish frontend artifacts'
+      inputs:
+        pathToPublish: 'angular/dist'
+        artifactName: 'frontend'
+
+  # セキュリティスキャン
+  - job: SecurityScan
+    displayName: 'Security Scan'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - checkout: self
+    
+    - task: UseDotNet@2
+      displayName: 'Setup .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: $(dotnetVersion)
+    
+    - script: |
+        dotnet list package --vulnerable --include-transitive > $(Build.ArtifactStagingDirectory)/security-report.txt
+        cat $(Build.ArtifactStagingDirectory)/security-report.txt
+      displayName: '.NET Security Scan'
+      continueOnError: true
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish security report'
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)/security-report.txt'
+        artifactName: 'security-report'
+
+- stage: E2ETest
+  displayName: 'E2E Testing'
+  dependsOn: Build
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.Reason'], 'PullRequest')))
+  jobs:
+  
+  - job: E2ETest
+    displayName: 'Run E2E Tests'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - checkout: self
+    
+    - task: DockerCompose@0
+      displayName: 'Start application'
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerComposeFile: 'docker-compose.yml'
+        action: 'Run services'
+        buildImages: true
+    
+    - script: |
+        timeout 300 bash -c 'until curl -f http://localhost:44318/health-status; do sleep 5; done'
+        timeout 300 bash -c 'until curl -f http://localhost:4200; do sleep 5; done'
+      displayName: 'Wait for services'
+    
+    - task: NodeTool@0
+      displayName: 'Setup Node.js'
+      inputs:
+        versionSpec: $(nodeVersion)
+    
+    - script: |
+        cd angular
+        yarn install --frozen-lockfile
+        yarn e2e:ci
+      displayName: 'Run E2E tests'
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish E2E test results'
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'angular/cypress/results/*.xml'
+        failTaskOnFailedTests: true
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish E2E artifacts'
+      condition: always()
+      inputs:
+        pathToPublish: 'angular/cypress'
+        artifactName: 'e2e-results'
+    
+    - task: DockerCompose@0
+      displayName: 'Stop application'
+      condition: always()
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerComposeFile: 'docker-compose.yml'
+        action: 'Run a Docker Compose command'
+        dockerComposeCommand: 'down -v'
+
+- stage: BuildImages
+  displayName: 'Build Docker Images'
+  dependsOn: 
+  - Build
+  - E2ETest
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.SourceBranch'], 'refs/heads/develop')))
+  jobs:
+  
+  - job: BuildDockerImages
+    displayName: 'Build and Push Docker Images'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - checkout: self
+    
+    - task: Docker@2
+      displayName: 'Login to ACR'
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        command: 'login'
+    
+    - task: Docker@2
+      displayName: 'Build and push backend image'
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: '$(imageRepository)-backend'
+        command: 'buildAndPush'
+        Dockerfile: $(dockerfilePath)
+        tags: |
+          $(tag)
+          latest
+    
+    - task: Docker@2
+      displayName: 'Build and push frontend image'
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: '$(imageRepository)-frontend'
+        command: 'buildAndPush'
+        Dockerfile: $(angularDockerfilePath)
+        tags: |
+          $(tag)
+          latest
+
+- stage: DeployStaging
+  displayName: 'Deploy to Staging'
+  dependsOn: BuildImages
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  
+  - deployment: DeployToStaging
+    displayName: 'Deploy to Staging Environment'
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          
+          - task: AzureCLI@2
+            displayName: 'Deploy to Azure Container Instances'
+            inputs:
+              azureSubscription: 'anomaly-detection-subscription'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # リソースグループとコンテナインスタンスの作成/更新
+                az container create \
+                  --resource-group anomaly-detection-staging \
+                  --name anomaly-detection-backend-staging \
+                  --image $(containerRegistry)/$(imageRepository)-backend:$(tag) \
+                  --cpu 2 --memory 4 \
+                  --ports 80 \
+                  --environment-variables \
+                    ASPNETCORE_ENVIRONMENT=Staging \
+                    ConnectionStrings__Default="$(STAGING_CONNECTION_STRING)" \
+                  --restart-policy Always
+                
+                az container create \
+                  --resource-group anomaly-detection-staging \
+                  --name anomaly-detection-frontend-staging \
+                  --image $(containerRegistry)/$(imageRepository)-frontend:$(tag) \
+                  --cpu 1 --memory 2 \
+                  --ports 80 \
+                  --restart-policy Always
+          
+          - script: |
+              # ヘルスチェック
+              BACKEND_URL=$(az container show --resource-group anomaly-detection-staging --name anomaly-detection-backend-staging --query ipAddress.ip --output tsv)
+              timeout 300 bash -c "until curl -f http://$BACKEND_URL/health-status; do sleep 5; done"
+              echo "Staging deployment completed successfully"
+            displayName: 'Health check'
+
+- stage: DeployProduction
+  displayName: 'Deploy to Production'
+  dependsOn: DeployStaging
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  
+  - deployment: DeployToProduction
+    displayName: 'Deploy to Production Environment'
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          
+          - task: AzureCLI@2
+            displayName: 'Deploy to Azure Kubernetes Service'
+            inputs:
+              azureSubscription: 'anomaly-detection-subscription'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # AKSクラスターに接続
+                az aks get-credentials --resource-group anomaly-detection-prod --name anomaly-detection-aks
+                
+                # Kubernetesマニフェストを適用
+                kubectl set image deployment/backend-deployment backend=$(containerRegistry)/$(imageRepository)-backend:$(tag)
+                kubectl set image deployment/frontend-deployment frontend=$(containerRegistry)/$(imageRepository)-frontend:$(tag)
+                
+                # デプロイメントの完了を待機
+                kubectl rollout status deployment/backend-deployment
+                kubectl rollout status deployment/frontend-deployment
+          
+          - script: |
+              # ヘルスチェック
+              BACKEND_URL=$(kubectl get service backend-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+              timeout 300 bash -c "until curl -f http://$BACKEND_URL/health-status; do sleep 5; done"
+              echo "Production deployment completed successfully"
+            displayName: 'Health check'
+          
+          - task: InvokeRESTAPI@1
+            displayName: 'Notify Slack'
+            inputs:
+              connectionType: 'connectedServiceName'
+              serviceConnection: 'slack-webhook'
+              method: 'POST'
+              body: |
+                {
+                  "text": "🚀 CAN異常検出管理システムが本番環境にデプロイされました",
+                  "attachments": [
+                    {
+                      "color": "good",
+                      "fields": [
+                        {
+                          "title": "Build ID",
+                          "value": "$(Build.BuildId)",
+                          "short": true
+                        },
+                        {
+                          "title": "Commit",
+                          "value": "$(Build.SourceVersion)",
+                          "short": true
+                        }
+                      ]
+                    }
+                  ]
+                }

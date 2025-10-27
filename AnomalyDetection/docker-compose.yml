@@ -1,0 +1,100 @@
+# CAN異常検出管理システム - 開発環境用 Docker Compose
+version: '3.8'
+
+services:
+  # SQL Server データベース
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: anomaly-detection-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=MyPass@word123
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - anomaly-detection-network
+    restart: unless-stopped
+
+  # Redis (キャッシュ・セッション管理)
+  redis:
+    image: redis:7-alpine
+    container_name: anomaly-detection-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - anomaly-detection-network
+    restart: unless-stopped
+
+  # ABP vNext Web API バックエンド
+  backend:
+    build:
+      context: .
+      dockerfile: src/AnomalyDetection.HttpApi.Host/Dockerfile.local
+    container_name: anomaly-detection-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__Default=Server=sqlserver;Database=AnomalyDetection;User Id=sa;Password=MyPass@word123;TrustServerCertificate=true
+      - ConnectionStrings__AbpTenantManagement=Server=sqlserver;Database=AnomalyDetection;User Id=sa;Password=MyPass@word123;TrustServerCertificate=true
+      - App__SelfUrl=http://localhost:44318
+      - App__AngularUrl=http://localhost:4200
+      - App__CorsOrigins=http://localhost:4200,http://frontend:80
+      - AuthServer__Authority=http://localhost:44318
+      - AuthServer__RequireHttpsMetadata=false
+      - Redis__Configuration=redis:6379
+    ports:
+      - "44318:80"
+    depends_on:
+      - sqlserver
+      - redis
+    networks:
+      - anomaly-detection-network
+    restart: unless-stopped
+    volumes:
+      - ./src/AnomalyDetection.HttpApi.Host/Logs:/app/Logs
+
+  # Angular フロントエンド
+  frontend:
+    build:
+      context: angular
+      dockerfile: Dockerfile.local
+    container_name: anomaly-detection-frontend
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - anomaly-detection-network
+    restart: unless-stopped
+
+  # DbMigrator (初回セットアップ用)
+  dbmigrator:
+    build:
+      context: .
+      dockerfile: src/AnomalyDetection.DbMigrator/Dockerfile
+    container_name: anomaly-detection-dbmigrator
+    environment:
+      - ConnectionStrings__Default=Server=sqlserver;Database=AnomalyDetection;User Id=sa;Password=MyPass@word123;TrustServerCertificate=true
+    depends_on:
+      - sqlserver
+    networks:
+      - anomaly-detection-network
+    profiles:
+      - migration
+
+volumes:
+  sqlserver_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  anomaly-detection-network:
+    driver: bridge

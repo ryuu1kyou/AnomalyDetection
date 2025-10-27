@@ -1,0 +1,233 @@
+.accuracy-metrics-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.metrics-form-card {
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  .full-width {
+    width: 100%;
+  }
+  
+  .date-field {
+    flex: 1;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.metrics-results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summary-card {
+  .summary-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    
+    .stat-item {
+      text-align: center;
+      
+      .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        
+        &.success { color: #4caf50; }
+        &.primary { color: #1976d2; }
+        &.warning { color: #ff9800; }
+        &.warn { color: #f44336; }
+      }
+      
+      .stat-label {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 4px;
+      }
+      
+      .stat-assessment {
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 2px;
+        text-transform: uppercase;
+      }
+    }
+  }
+  
+  .performance-assessment {
+    background-color: #f5f5f5;
+    padding: 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    
+    h4 {
+      margin: 0 0 8px 0;
+      color: #333;
+    }
+    
+    p {
+      margin: 0;
+      font-style: italic;
+    }
+  }
+  
+  .recommendations {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    padding: 16px;
+    border-radius: 4px;
+    
+    h4 {
+      margin: 0 0 12px 0;
+      color: #856404;
+    }
+    
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      
+      li {
+        margin-bottom: 8px;
+        color: #856404;
+      }
+    }
+  }
+}
+
+.detailed-metrics-card {
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    
+    .metric-group {
+      h4 {
+        margin: 0 0 16px 0;
+        color: #333;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 8px;
+      }
+      
+      .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        .metric-label {
+          font-weight: 500;
+          color: #666;
+        }
+        
+        .metric-value {
+          font-weight: 600;
+          
+          &.success { color: #4caf50; }
+          &.primary { color: #1976d2; }
+          &.warning { color: #ff9800; }
+          &.warn { color: #f44336; }
+        }
+      }
+    }
+  }
+}
+
+.confusion-matrix-card,
+.performance-charts-card {
+  .chart-container {
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.accuracy-by-type-card,
+.accuracy-by-time-card {
+  .full-width {
+    width: 100%;
+  }
+}
+
+.performance-summary-card {
+  .summary-text {
+    background-color: #e3f2fd;
+    padding: 16px;
+    border-radius: 4px;
+    font-style: italic;
+    color: #1565c0;
+    border-left: 4px solid #1976d2;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .accuracy-metrics-container {
+    padding: 10px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-container {
+    height: 300px;
+    padding: 10px;
+  }
+}
+
+// Material theme customizations
+.mat-mdc-card-header {
+  .mat-mdc-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.mat-mdc-chip {
+  font-weight: 500;
+}
+
+.mat-mdc-progress-spinner {
+  margin-right: 8px;
+}
+
+.mat-mdc-tab-group {
+  .mat-mdc-tab-body-wrapper {
+    .mat-mdc-tab-body-content {
+      overflow: visible;
+    }
+  }
+}

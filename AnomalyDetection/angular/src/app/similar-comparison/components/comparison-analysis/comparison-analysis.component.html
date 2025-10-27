@@ -1,0 +1,170 @@
+<div class="comparison-analysis-container">
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>比較分析中... / Analyzing comparison...</p>
+  </div>
+
+  <div *ngIf="!loading && comparison">
+    <mat-card class="header-card">
+      <mat-card-header>
+        <mat-card-title>検査データ比較分析 / Test Data Comparison Analysis</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="comparison-header">
+          <div class="signal-info">
+            <h3>ソース信号 / Source Signal</h3>
+            <p class="signal-name">{{ comparison.sourceSignalName }}</p>
+            <p class="signal-id">ID: {{ comparison.sourceSignalId }}</p>
+          </div>
+          
+          <div class="comparison-arrow">
+            <mat-icon>compare_arrows</mat-icon>
+          </div>
+
+          <div class="signal-info">
+            <h3>ターゲット信号 / Target Signal</h3>
+            <p class="signal-name">{{ comparison.targetSignalName }}</p>
+            <p class="signal-id">ID: {{ comparison.targetSignalId }}</p>
+          </div>
+        </div>
+
+        <div class="overall-similarity">
+          <h4>総合類似度 / Overall Similarity</h4>
+          <div class="similarity-score">
+            {{ formatSimilarity(comparison.overallSimilarity) }}
+          </div>
+        </div>
+
+        <div class="export-buttons">
+          <button mat-raised-button color="primary" (click)="onExport('csv')">
+            <mat-icon>download</mat-icon>
+            CSV
+          </button>
+          <button mat-raised-button color="primary" (click)="onExport('excel')">
+            <mat-icon>download</mat-icon>
+            Excel
+          </button>
+          <button mat-raised-button color="primary" (click)="onExport('pdf')">
+            <mat-icon>download</mat-icon>
+            PDF
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-tab-group class="analysis-tabs">
+      <mat-tab label="閾値差異 / Threshold Differences">
+        <mat-card class="tab-content">
+          <mat-card-content>
+            <div *ngIf="comparison.thresholdDifferences.length > 0">
+              <table mat-table [dataSource]="comparison.thresholdDifferences" class="differences-table">
+                <ng-container matColumnDef="parameterName">
+                  <th mat-header-cell *matHeaderCellDef>パラメータ / Parameter</th>
+                  <td mat-cell *matCellDef="let diff">{{ diff.parameterName }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="sourceValue">
+                  <th mat-header-cell *matHeaderCellDef>ソース値 / Source</th>
+                  <td mat-cell *matCellDef="let diff">{{ diff.sourceValue }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="targetValue">
+                  <th mat-header-cell *matHeaderCellDef>ターゲット値 / Target</th>
+                  <td mat-cell *matCellDef="let diff">{{ diff.targetValue }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="difference">
+                  <th mat-header-cell *matHeaderCellDef>差分 / Difference</th>
+                  <td mat-cell *matCellDef="let diff">{{ diff.difference }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="differencePercentage">
+                  <th mat-header-cell *matHeaderCellDef>差分率 / Diff %</th>
+                  <td mat-cell *matCellDef="let diff">{{ formatPercentage(diff.differencePercentage) }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="impactLevel">
+                  <th mat-header-cell *matHeaderCellDef>影響度 / Impact</th>
+                  <td mat-cell *matCellDef="let diff">
+                    <span class="impact-badge" [ngClass]="getImpactLevelColor(diff.impactLevel)">
+                      {{ getImpactLevelText(diff.impactLevel) }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="thresholdColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: thresholdColumns;"></tr>
+              </table>
+            </div>
+            <div *ngIf="comparison.thresholdDifferences.length === 0" class="no-data">
+              <p>閾値差異はありません / No threshold differences</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="検出条件差異 / Detection Condition Differences">
+        <mat-card class="tab-content">
+          <mat-card-content>
+            <div *ngIf="comparison.detectionConditionDifferences.length > 0">
+              <mat-chip-set>
+                <mat-chip *ngFor="let diff of comparison.detectionConditionDifferences">
+                  {{ diff }}
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+            <div *ngIf="comparison.detectionConditionDifferences.length === 0" class="no-data">
+              <p>検出条件差異はありません / No detection condition differences</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="結果差異 / Result Differences">
+        <mat-card class="tab-content">
+          <mat-card-content>
+            <div *ngIf="comparison.resultDifferences.length > 0">
+              <mat-chip-set>
+                <mat-chip *ngFor="let diff of comparison.resultDifferences">
+                  {{ diff }}
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+            <div *ngIf="comparison.resultDifferences.length === 0" class="no-data">
+              <p>結果差異はありません / No result differences</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="推奨事項 / Recommendations">
+        <mat-card class="tab-content">
+          <mat-card-content>
+            <div *ngIf="comparison.recommendations.length > 0">
+              <mat-accordion>
+                <mat-expansion-panel *ngFor="let rec of comparison.recommendations">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>
+                      <span class="priority-badge" [ngClass]="getPriorityColor(rec.priority)">
+                        {{ getPriorityText(rec.priority) }}
+                      </span>
+                      <span class="recommendation-type">{{ getRecommendationTypeText(rec.type) }}</span>
+                    </mat-panel-title>
+                  </mat-expansion-panel-header>
+                  <div class="recommendation-details">
+                    <p><strong>説明 / Description:</strong> {{ rec.description }}</p>
+                    <p *ngIf="rec.suggestedValue"><strong>推奨値 / Suggested Value:</strong> {{ rec.suggestedValue }}</p>
+                    <p><strong>根拠 / Rationale:</strong> {{ rec.rationale }}</p>
+                  </div>
+                </mat-expansion-panel>
+              </mat-accordion>
+            </div>
+            <div *ngIf="comparison.recommendations.length === 0" class="no-data">
+              <p>推奨事項はありません / No recommendations</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

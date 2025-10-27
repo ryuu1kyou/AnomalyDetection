@@ -1,0 +1,108 @@
+{
+  "template": "app",
+  "imports": {
+    "Volo.Abp.LeptonXLiteTheme": {
+      "version": "4.3.5",
+      "isInstalled": true
+    },
+    "Volo.Abp.Account": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    },
+    "Volo.Abp.OpenIddict": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    },
+    "Volo.Abp.Identity": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    },
+    "Volo.Abp.TenantManagement": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    },
+    "Volo.Abp.SettingManagement": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    },
+    "Volo.Abp.PermissionManagement": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    },
+    "Volo.Abp.FeatureManagement": {
+      "version": "9.3.5",
+      "isInstalled": true,
+      "creationTime": "10/26/2025 14:36:33 +00:00"
+    }
+  },
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {}
+    }
+  },
+  "packages": {
+    "AnomalyDetection.Application": {
+      "path": "src/AnomalyDetection.Application/AnomalyDetection.Application.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.Application.Tests": {
+      "path": "test/AnomalyDetection.Application.Tests/AnomalyDetection.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "AnomalyDetection.Domain.Shared": {
+      "path": "src/AnomalyDetection.Domain.Shared/AnomalyDetection.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.Application.Contracts": {
+      "path": "src/AnomalyDetection.Application.Contracts/AnomalyDetection.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.HttpApi": {
+      "path": "src/AnomalyDetection.HttpApi/AnomalyDetection.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.HttpApi.Client": {
+      "path": "src/AnomalyDetection.HttpApi.Client/AnomalyDetection.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.EntityFrameworkCore.Tests": {
+      "path": "test/AnomalyDetection.EntityFrameworkCore.Tests/AnomalyDetection.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+    "AnomalyDetection.EntityFrameworkCore": {
+      "path": "src/AnomalyDetection.EntityFrameworkCore/AnomalyDetection.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.TestBase": {
+      "path": "test/AnomalyDetection.TestBase/AnomalyDetection.TestBase.abppkg",
+      "folder": "test"
+    },
+    "AnomalyDetection.Domain.Tests": {
+      "path": "test/AnomalyDetection.Domain.Tests/AnomalyDetection.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "AnomalyDetection.HttpApi.Client.ConsoleTestApp": {
+      "path": "test/AnomalyDetection.HttpApi.Client.ConsoleTestApp/AnomalyDetection.HttpApi.Client.ConsoleTestApp.abppkg",
+      "folder": "test"
+    },
+    "AnomalyDetection.DbMigrator": {
+      "path": "src/AnomalyDetection.DbMigrator/AnomalyDetection.DbMigrator.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.HttpApi.Host": {
+      "path": "src/AnomalyDetection.HttpApi.Host/AnomalyDetection.HttpApi.Host.abppkg",
+      "folder": "src"
+    },
+    "AnomalyDetection.Domain": {
+      "path": "src/AnomalyDetection.Domain/AnomalyDetection.Domain.abppkg",
+      "folder": "src"
+    }
+  }
+}

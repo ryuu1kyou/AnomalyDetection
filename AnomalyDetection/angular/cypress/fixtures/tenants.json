@@ -1,0 +1,74 @@
+{
+  "items": [
+    {
+      "id": "1",
+      "name": "Toyota",
+      "oemCode": "TOYOTA",
+      "oemName": "Toyota Motor Corporation",
+      "isActive": true,
+      "databaseConnectionString": "Server=localhost;Database=Toyota;",
+      "description": "Toyota tenant for CAN anomaly detection",
+      "features": [
+        {
+          "featureName": "AdvancedAnalytics",
+          "featureValue": "true"
+        },
+        {
+          "featureName": "ExportFeatures",
+          "featureValue": "true"
+        }
+      ],
+      "createdBy": "system",
+      "updatedBy": "system",
+      "creationTime": "2024-01-01T00:00:00Z",
+      "lastModificationTime": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "2",
+      "name": "Honda",
+      "oemCode": "HONDA",
+      "oemName": "Honda Motor Co., Ltd.",
+      "isActive": true,
+      "databaseConnectionString": "Server=localhost;Database=Honda;",
+      "description": "Honda tenant for CAN anomaly detection",
+      "features": [
+        {
+          "featureName": "AdvancedAnalytics",
+          "featureValue": "false"
+        },
+        {
+          "featureName": "ExportFeatures",
+          "featureValue": "true"
+        }
+      ],
+      "createdBy": "system",
+      "updatedBy": "system",
+      "creationTime": "2024-01-01T00:00:00Z",
+      "lastModificationTime": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "3",
+      "name": "Nissan",
+      "oemCode": "NISSAN",
+      "oemName": "Nissan Motor Co., Ltd.",
+      "isActive": true,
+      "databaseConnectionString": "Server=localhost;Database=Nissan;",
+      "description": "Nissan tenant for CAN anomaly detection",
+      "features": [
+        {
+          "featureName": "AdvancedAnalytics",
+          "featureValue": "true"
+        },
+        {
+          "featureName": "ExportFeatures",
+          "featureValue": "false"
+        }
+      ],
+      "createdBy": "system",
+      "updatedBy": "system",
+      "creationTime": "2024-01-01T00:00:00Z",
+      "lastModificationTime": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "totalCount": 3
+}

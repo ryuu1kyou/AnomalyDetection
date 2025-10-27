@@ -1,0 +1,170 @@
+<div class="test-data-list-container">
+  <mat-card class="filter-card">
+    <mat-card-header>
+      <mat-card-title>過去検査データ一覧 / Test Data History</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="filterForm" (ngSubmit)="onFilter()">
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>CAN信号ID / Signal ID</mat-label>
+            <input matInput formControlName="canSignalId">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>車両フェーズ / Vehicle Phase</mat-label>
+            <input matInput formControlName="vehiclePhase">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>OEM</mat-label>
+            <input matInput formControlName="oemCode">
+          </mat-form-field>
+        </div>
+
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>開始日 / Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>終了日 / End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>異常種類 / Anomaly Type</mat-label>
+            <mat-select formControlName="anomalyType">
+              <mat-option value="">すべて / All</mat-option>
+              <mat-option *ngFor="let type of anomalyTypes" [value]="type">
+                {{ type }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>最小検出率 / Min Detection Rate (%)</mat-label>
+            <input matInput type="number" formControlName="minDetectionRate" min="0" max="100">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>最大検出率 / Max Detection Rate (%)</mat-label>
+            <input matInput type="number" formControlName="maxDetectionRate" min="0" max="100">
+          </mat-form-field>
+
+          <div class="button-group">
+            <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+              <mat-icon>filter_list</mat-icon>
+              フィルター / Filter
+            </button>
+            <button mat-raised-button type="button" (click)="onReset()">
+              <mat-icon>clear</mat-icon>
+              クリア / Clear
+            </button>
+          </div>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="results-card">
+    <mat-card-header>
+      <mat-card-title>検査データ / Test Data ({{ totalRecords }})</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-container">
+        <mat-spinner></mat-spinner>
+        <p>読み込み中... / Loading...</p>
+      </div>
+
+      <div *ngIf="!loading" class="table-container">
+        <table mat-table [dataSource]="displayedRecords" matSort 
+               (matSortChange)="onSort($event)" class="data-table">
+          
+          <ng-container matColumnDef="canSignalName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>CAN信号 / Signal</th>
+            <td mat-cell *matCellDef="let record">{{ record.canSignalName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="vehiclePhase">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>車両フェーズ / Phase</th>
+            <td mat-cell *matCellDef="let record">{{ record.vehiclePhase }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="oemCode">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>OEM</th>
+            <td mat-cell *matCellDef="let record">{{ record.oemCode }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="testDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>テスト日 / Test Date</th>
+            <td mat-cell *matCellDef="let record">{{ formatDate(record.testDate) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="detectionLogicName">
+            <th mat-header-cell *matHeaderCellDef>検出ロジック / Logic</th>
+            <td mat-cell *matCellDef="let record">{{ record.detectionLogicName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="anomalyCount">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>異常数 / Anomalies</th>
+            <td mat-cell *matCellDef="let record">
+              <span class="anomaly-count">{{ record.anomalyCount }}</span>
+              <span class="false-positive-count" *ngIf="record.falsePositiveCount > 0">
+                (FP: {{ record.falsePositiveCount }})
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="detectionRate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>検出率 / Rate</th>
+            <td mat-cell *matCellDef="let record">
+              <span class="rate-badge" [ngClass]="getDetectionRateColor(record.detectionRate)">
+                {{ formatDetectionRate(record.detectionRate) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>操作 / Actions</th>
+            <td mat-cell *matCellDef="let record">
+              <button mat-icon-button color="primary"
+                      [routerLink]="['/similar-comparison/compare-analysis', record.id]"
+                      matTooltip="比較分析 / Compare">
+                <mat-icon>analytics</mat-icon>
+              </button>
+              <button mat-icon-button color="accent"
+                      [routerLink]="['/similar-comparison/visualization', record.id]"
+                      matTooltip="可視化 / Visualize">
+                <mat-icon>show_chart</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+
+        <mat-paginator
+          [length]="totalRecords"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          (page)="onPageChange($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
+
+      <div *ngIf="!loading && displayedRecords.length === 0" class="no-data">
+        <mat-icon>inbox</mat-icon>
+        <p>データがありません / No data available</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

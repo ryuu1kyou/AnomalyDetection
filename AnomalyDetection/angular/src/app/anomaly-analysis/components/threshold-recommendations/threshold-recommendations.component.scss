@@ -1,0 +1,235 @@
+.threshold-recommendations-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.recommendation-form-card {
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  .full-width {
+    width: 100%;
+  }
+  
+  .date-field {
+    flex: 1;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.recommendation-results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summary-card {
+  .summary-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    
+    .stat-item {
+      text-align: center;
+      
+      .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1976d2;
+        
+        &.success { color: #4caf50; }
+        &.warning { color: #ff9800; }
+        &.primary { color: #1976d2; }
+        &.warn { color: #f44336; }
+      }
+      
+      .stat-label {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 4px;
+      }
+    }
+  }
+  
+  .recommendation-summary {
+    background-color: #f5f5f5;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 0;
+    font-style: italic;
+  }
+}
+
+.metrics-chart-card {
+  .chart-container {
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.detailed-metrics-card {
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    
+    .metric-item {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      
+      .metric-name {
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #333;
+      }
+      
+      .metric-values {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        
+        .current-value,
+        .predicted-value {
+          display: flex;
+          justify-content: space-between;
+          
+          .label {
+            font-size: 0.875rem;
+            color: #666;
+          }
+          
+          .value {
+            font-weight: 500;
+          }
+        }
+        
+        .improvement {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-weight: 600;
+          
+          &.success { color: #4caf50; }
+          &.warning { color: #ff9800; }
+          &.primary { color: #1976d2; }
+          &.warn { color: #f44336; }
+          
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+          }
+        }
+      }
+    }
+  }
+}
+
+.recommendations-table-card {
+  .full-width {
+    width: 100%;
+  }
+  
+  .recommended-value {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  
+  .priority-bar {
+    margin-top: 4px;
+    height: 4px;
+  }
+  
+  .recommendation-reason {
+    max-width: 300px;
+    word-wrap: break-word;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+}
+
+.no-recommendations-card {
+  .no-recommendations-message {
+    text-align: center;
+    padding: 40px 20px;
+    
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #4caf50;
+      margin-bottom: 16px;
+    }
+    
+    h3 {
+      margin: 0 0 16px 0;
+      color: #333;
+    }
+    
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .threshold-recommendations-container {
+    padding: 10px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .summary-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-container {
+    height: 300px;
+    padding: 10px;
+  }
+}
+
+// Material theme customizations
+.mat-mdc-card-header {
+  .mat-mdc-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.mat-mdc-chip {
+  font-weight: 500;
+}
+
+.mat-mdc-progress-spinner {
+  margin-right: 8px;
+}

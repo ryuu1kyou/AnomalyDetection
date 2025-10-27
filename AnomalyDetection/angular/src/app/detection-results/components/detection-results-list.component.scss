@@ -1,0 +1,309 @@
+.detection-results-container {
+  padding: 24px;
+  max-width: 100%;
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 500;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+  }
+  
+  .filter-panel {
+    margin-bottom: 24px;
+    
+    .filter-form {
+      padding: 16px 0;
+      
+      .filter-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        
+        mat-form-field {
+          min-width: 200px;
+          flex: 1;
+        }
+      }
+      
+      .filter-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 16px;
+      }
+    }
+  }
+  
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    
+    span {
+      font-weight: 500;
+      color: #666;
+    }
+  }
+  
+  .table-container {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    
+    .results-table {
+      width: 100%;
+      
+      .clickable-row {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        
+        &:hover {
+          background-color: #f5f5f5;
+        }
+      }
+      
+      .signal-info {
+        .signal-name {
+          font-weight: 500;
+        }
+        
+        .can-id {
+          font-size: 12px;
+          color: #666;
+          font-family: monospace;
+        }
+      }
+      
+      .confidence-score {
+        font-weight: 500;
+        text-align: right;
+      }
+      
+      // Anomaly Level Chips
+      mat-chip {
+        &.level-info {
+          background-color: #e3f2fd;
+          color: #1976d2;
+        }
+        
+        &.level-warning {
+          background-color: #fff3e0;
+          color: #f57c00;
+        }
+        
+        &.level-error {
+          background-color: #ffebee;
+          color: #d32f2f;
+        }
+        
+        &.level-critical {
+          background-color: #fce4ec;
+          color: #c2185b;
+        }
+        
+        &.level-fatal {
+          background-color: #f3e5f5;
+          color: #7b1fa2;
+        }
+      }
+      
+      // Resolution Status Chips
+      mat-chip {
+        &.status-open {
+          background-color: #ffebee;
+          color: #d32f2f;
+        }
+        
+        &.status-investigating {
+          background-color: #fff3e0;
+          color: #f57c00;
+        }
+        
+        &.status-in-progress {
+          background-color: #e8f5e8;
+          color: #2e7d32;
+        }
+        
+        &.status-resolved {
+          background-color: #e8f5e8;
+          color: #2e7d32;
+        }
+        
+        &.status-false-positive {
+          background-color: #f3e5f5;
+          color: #7b1fa2;
+        }
+        
+        &.status-ignored {
+          background-color: #f5f5f5;
+          color: #666;
+        }
+        
+        &.status-reopened {
+          background-color: #fff3e0;
+          color: #f57c00;
+        }
+        
+        &.status-escalated {
+          background-color: #fce4ec;
+          color: #c2185b;
+        }
+      }
+    }
+    
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 48px;
+    }
+    
+    .no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+      color: #666;
+      
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+      
+      p {
+        margin: 0;
+        font-size: 16px;
+      }
+    }
+  }
+  
+  mat-paginator {
+    background: white;
+    border-top: 1px solid #e0e0e0;
+  }
+  
+  .realtime-indicator {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #4caf50;
+    color: white;
+    border-radius: 20px;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      
+      &.pulse {
+        animation: pulse 2s infinite;
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .detection-results-container {
+    padding: 16px;
+    
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      
+      .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+    
+    .filter-panel .filter-form .filter-row {
+      flex-direction: column;
+      
+      mat-form-field {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+    
+    .bulk-actions {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      
+      .results-table {
+        min-width: 800px;
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .detection-results-container {
+    .header-actions,
+    .filter-panel,
+    .bulk-actions,
+    mat-paginator,
+    .realtime-indicator {
+      display: none !important;
+    }
+    
+    .table-container {
+      box-shadow: none;
+      
+      .results-table {
+        .mat-column-select,
+        .mat-column-actions {
+          display: none !important;
+        }
+      }
+    }
+  }
+}

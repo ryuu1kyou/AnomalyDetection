@@ -1,0 +1,12 @@
+{
+  "AnomalyDetection": {
+    "AppName": "Anomaly Detection System",
+    "Menu": {
+      "Home": "Home",
+      "Dashboard": "Dashboard",
+      "Settings": "Settings"
+    },
+    "Welcome": "Welcome",
+    "LongWelcomeMessage": "Welcome to the Anomaly Detection System. This system is a platform for detecting and analyzing anomalies in CAN signals."
+  }
+}

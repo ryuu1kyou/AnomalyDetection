@@ -1,0 +1,12 @@
+{
+  "AnomalyDetection": {
+    "AppName": "異常検出システム",
+    "Menu": {
+      "Home": "ホーム",
+      "Dashboard": "ダッシュボード",
+      "Settings": "設定"
+    },
+    "Welcome": "ようこそ",
+    "LongWelcomeMessage": "異常検出システムへようこそ。このシステムはCAN信号の異常を検出し、分析するためのプラットフォームです。"
+  }
+}

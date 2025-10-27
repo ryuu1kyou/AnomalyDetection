@@ -1,0 +1,198 @@
+<div class="pattern-analysis-container">
+  <mat-card class="analysis-form-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>analytics</mat-icon>
+        Anomaly Pattern Analysis
+      </mat-card-title>
+      <mat-card-subtitle>
+        Analyze anomaly patterns for CAN signals over a specified time period
+      </mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <form [formGroup]="analysisForm" (ngSubmit)="onAnalyze()">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>CAN Signal ID</mat-label>
+            <input matInput formControlName="canSignalId" placeholder="Enter CAN Signal ID">
+            <mat-error *ngIf="analysisForm.get('canSignalId')?.hasError('required')">
+              CAN Signal ID is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Analysis Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="analysisStartDate">
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-error *ngIf="analysisForm.get('analysisStartDate')?.hasError('required')">
+              Start date is required
+            </mat-error>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Analysis End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="analysisEndDate">
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-error *ngIf="analysisForm.get('analysisEndDate')?.hasError('required')">
+              End date is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-actions">
+          <button mat-raised-button color="primary" type="submit" [disabled]="!analysisForm.valid || isLoading">
+            <mat-icon *ngIf="!isLoading">search</mat-icon>
+            <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+            {{ isLoading ? 'Analyzing...' : 'Analyze Pattern' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Analysis Results -->
+  <div *ngIf="analysisResult" class="analysis-results">
+    <!-- Summary Card -->
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Analysis Summary</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <div class="stat-value">{{ analysisResult.totalAnomalies }}</div>
+            <div class="stat-label">Total Anomalies</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ formatDuration(analysisResult.averageDetectionDurationMs) }}</div>
+            <div class="stat-label">Avg Detection Time</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ formatPercentage(analysisResult.falsePositiveRate) }}</div>
+            <div class="stat-label">False Positive Rate</div>
+          </div>
+        </div>
+        <p class="analysis-summary">{{ analysisResult.analysisSummary }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Charts Section -->
+    <mat-card class="charts-card">
+      <mat-card-header>
+        <mat-card-title>Distribution Analysis</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-tab-group>
+          <mat-tab label="Anomaly Types">
+            <div class="chart-container">
+              <canvas baseChart
+                [data]="anomalyTypeChartData"
+                [type]="pieChartType"
+                [options]="pieChartOptions">
+              </canvas>
+            </div>
+          </mat-tab>
+          
+          <mat-tab label="Anomaly Levels">
+            <div class="chart-container">
+              <canvas baseChart
+                [data]="anomalyLevelChartData"
+                [type]="pieChartType"
+                [options]="pieChartOptions">
+              </canvas>
+            </div>
+          </mat-tab>
+          
+          <mat-tab label="Frequency Patterns">
+            <div class="chart-container">
+              <canvas baseChart
+                [data]="frequencyPatternChartData"
+                [type]="barChartType"
+                [options]="barChartOptions">
+              </canvas>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Frequency Patterns Table -->
+    <mat-card class="patterns-card" *ngIf="analysisResult.frequencyPatterns.length > 0">
+      <mat-card-header>
+        <mat-card-title>Frequency Patterns</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="analysisResult.frequencyPatterns" class="full-width">
+          <ng-container matColumnDef="patternName">
+            <th mat-header-cell *matHeaderCellDef>Pattern Name</th>
+            <td mat-cell *matCellDef="let pattern">{{ pattern.patternName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="timeInterval">
+            <th mat-header-cell *matHeaderCellDef>Time Interval</th>
+            <td mat-cell *matCellDef="let pattern">{{ pattern.timeInterval }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="frequency">
+            <th mat-header-cell *matHeaderCellDef>Frequency</th>
+            <td mat-cell *matCellDef="let pattern">{{ pattern.frequency }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="confidence">
+            <th mat-header-cell *matHeaderCellDef>Confidence</th>
+            <td mat-cell *matCellDef="let pattern">
+              <mat-chip [color]="getConfidenceColor(pattern.confidence)">
+                {{ formatPercentage(pattern.confidence) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumnsPatterns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumnsPatterns;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Correlations Table -->
+    <mat-card class="correlations-card" *ngIf="analysisResult.correlations.length > 0">
+      <mat-card-header>
+        <mat-card-title>Signal Correlations</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="analysisResult.correlations" class="full-width">
+          <ng-container matColumnDef="relatedSignalName">
+            <th mat-header-cell *matHeaderCellDef>Related Signal</th>
+            <td mat-cell *matCellDef="let correlation">{{ correlation.relatedSignalName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="correlationCoefficient">
+            <th mat-header-cell *matHeaderCellDef>Correlation Coefficient</th>
+            <td mat-cell *matCellDef="let correlation">
+              <mat-chip [color]="getCorrelationColor(correlation.correlationCoefficient)">
+                {{ correlation.correlationCoefficient.toFixed(3) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="correlationType">
+            <th mat-header-cell *matHeaderCellDef>Correlation Type</th>
+            <td mat-cell *matCellDef="let correlation">
+              {{ correlation.correlationType }}
+              <small class="correlation-strength">
+                ({{ getCorrelationStrength(correlation.correlationCoefficient) }})
+              </small>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumnsCorrelations"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumnsCorrelations;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+{
+  "currentTenantId": "1",
+  "currentTenantName": "Toyota",
+  "isHostTenant": false,
+  "currentTenantDataCount": 150,
+  "currentTenantData": [
+    {
+      "entityType": "CanSignal",
+      "count": 75,
+      "tenantId": "1"
+    },
+    {
+      "entityType": "DetectionLogic",
+      "count": 25,
+      "tenantId": "1"
+    },
+    {
+      "entityType": "DetectionResult",
+      "count": 50,
+      "tenantId": "1"
+    }
+  ],
+  "oemMasterCount": 3,
+  "allTenantsCount": null,
+  "isSuccess": true,
+  "message": "データ分離の確認が正常に完了しました。",
+  "errorDetails": null,
+  "testExecutedAt": "2024-01-01T12:00:00Z"
+}

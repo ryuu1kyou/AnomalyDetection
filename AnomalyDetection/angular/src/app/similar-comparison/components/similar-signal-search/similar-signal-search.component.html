@@ -1,0 +1,150 @@
+<div class="similar-signal-search-container">
+  <mat-card class="search-card">
+    <mat-card-header>
+      <mat-card-title>類似CAN信号検索 / Similar CAN Signal Search</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
+        <div class="search-criteria">
+          <h3>検索条件 / Search Criteria</h3>
+          
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>信号名 / Signal Name</mat-label>
+              <input matInput formControlName="targetSignalName" placeholder="例: EngineSpeed">
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>CAN ID</mat-label>
+              <input matInput formControlName="targetCanId" placeholder="例: 0x123">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>システム種別 / System Type</mat-label>
+              <mat-select formControlName="targetSystemType">
+                <mat-option [value]="null">すべて / All</mat-option>
+                <mat-option *ngFor="let type of systemTypes" [value]="type.value">
+                  {{ type.label }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <h4>比較属性 / Comparison Attributes</h4>
+          <div class="checkbox-group">
+            <mat-checkbox formControlName="compareCanId">CAN ID</mat-checkbox>
+            <mat-checkbox formControlName="compareSignalName">信号名 / Signal Name</mat-checkbox>
+            <mat-checkbox formControlName="compareSystemType">システム種別 / System Type</mat-checkbox>
+            <mat-checkbox formControlName="comparePhysicalRange">物理値範囲 / Physical Range</mat-checkbox>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>最小類似度 / Minimum Similarity</mat-label>
+              <input matInput type="number" formControlName="minimumSimilarity" 
+                     min="0" max="1" step="0.1">
+              <mat-hint>0.0 - 1.0</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>最大結果数 / Max Results</mat-label>
+              <input matInput type="number" formControlName="maxResults" 
+                     min="1" max="100">
+            </mat-form-field>
+          </div>
+
+          <div class="button-group">
+            <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+              <mat-icon>search</mat-icon>
+              検索 / Search
+            </button>
+            <button mat-raised-button type="button" (click)="onReset()">
+              <mat-icon>refresh</mat-icon>
+              リセット / Reset
+            </button>
+          </div>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="results-card" *ngIf="searchResults.length > 0 || loading">
+    <mat-card-header>
+      <mat-card-title>検索結果 / Search Results ({{ searchResults.length }})</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-container">
+        <mat-spinner></mat-spinner>
+        <p>検索中... / Searching...</p>
+      </div>
+
+      <div *ngIf="!loading && searchResults.length > 0" class="table-container">
+        <table mat-table [dataSource]="searchResults" class="results-table">
+          <ng-container matColumnDef="signalName">
+            <th mat-header-cell *matHeaderCellDef>信号名 / Signal Name</th>
+            <td mat-cell *matCellDef="let result">{{ result.signalName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="canId">
+            <th mat-header-cell *matHeaderCellDef>CAN ID</th>
+            <td mat-cell *matCellDef="let result">{{ result.canId }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="systemType">
+            <th mat-header-cell *matHeaderCellDef>システム / System</th>
+            <td mat-cell *matCellDef="let result">{{ getSystemTypeName(result.systemType) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="similarityScore">
+            <th mat-header-cell *matHeaderCellDef>類似度 / Similarity</th>
+            <td mat-cell *matCellDef="let result">
+              <span class="similarity-badge" [ngClass]="getSimilarityColor(result.similarityScore)">
+                {{ formatSimilarityScore(result.similarityScore) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="matchedAttributes">
+            <th mat-header-cell *matHeaderCellDef>一致属性 / Matched Attributes</th>
+            <td mat-cell *matCellDef="let result">
+              <mat-chip-set>
+                <mat-chip *ngFor="let attr of result.matchedAttributes">{{ attr }}</mat-chip>
+              </mat-chip-set>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="oemCode">
+            <th mat-header-cell *matHeaderCellDef>OEM</th>
+            <td mat-cell *matCellDef="let result">{{ result.oemCode }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>操作 / Actions</th>
+            <td mat-cell *matCellDef="let result">
+              <button mat-icon-button color="primary" 
+                      [routerLink]="['/similar-comparison/compare', result.canSignalId]"
+                      matTooltip="比較分析 / Compare Analysis">
+                <mat-icon>compare_arrows</mat-icon>
+              </button>
+              <button mat-icon-button color="accent"
+                      [routerLink]="['/can-signals/detail', result.canSignalId]"
+                      matTooltip="詳細表示 / View Details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+
+      <div *ngIf="!loading && searchResults.length === 0" class="no-results">
+        <mat-icon>search_off</mat-icon>
+        <p>検索結果がありません / No results found</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

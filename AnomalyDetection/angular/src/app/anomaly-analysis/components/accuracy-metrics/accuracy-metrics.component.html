@@ -1,0 +1,342 @@
+<div class="accuracy-metrics-container">
+  <mat-card class="metrics-form-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>assessment</mat-icon>
+        Detection Accuracy Metrics
+      </mat-card-title>
+      <mat-card-subtitle>
+        Evaluate detection logic performance and accuracy metrics
+      </mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <form [formGroup]="metricsForm" (ngSubmit)="onCalculateMetrics()">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Detection Logic ID</mat-label>
+            <input matInput formControlName="detectionLogicId" placeholder="Enter Detection Logic ID">
+            <mat-error *ngIf="metricsForm.get('detectionLogicId')?.hasError('required')">
+              Detection Logic ID is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Analysis Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="analysisStartDate">
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-error *ngIf="metricsForm.get('analysisStartDate')?.hasError('required')">
+              Start date is required
+            </mat-error>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Analysis End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="analysisEndDate">
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-error *ngIf="metricsForm.get('analysisEndDate')?.hasError('required')">
+              End date is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-actions">
+          <button mat-raised-button color="primary" type="submit" [disabled]="!metricsForm.valid || isLoading">
+            <mat-icon *ngIf="!isLoading">calculate</mat-icon>
+            <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+            {{ isLoading ? 'Calculating...' : 'Calculate Metrics' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Metrics Results -->
+  <div *ngIf="metricsResult" class="metrics-results">
+    <!-- Summary Card -->
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Performance Summary</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <div class="stat-value" [ngClass]="getPerformanceColor(metricsResult.accuracy)">
+              {{ formatPercentage(metricsResult.accuracy) }}
+            </div>
+            <div class="stat-label">Accuracy</div>
+            <div class="stat-assessment">{{ getPerformanceLabel(metricsResult.accuracy) }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" [ngClass]="getPerformanceColor(metricsResult.precision)">
+              {{ formatPercentage(metricsResult.precision) }}
+            </div>
+            <div class="stat-label">Precision</div>
+            <div class="stat-assessment">{{ getPerformanceLabel(metricsResult.precision) }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" [ngClass]="getPerformanceColor(metricsResult.recall)">
+              {{ formatPercentage(metricsResult.recall) }}
+            </div>
+            <div class="stat-label">Recall</div>
+            <div class="stat-assessment">{{ getPerformanceLabel(metricsResult.recall) }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" [ngClass]="getPerformanceColor(metricsResult.f1Score)">
+              {{ formatPercentage(metricsResult.f1Score) }}
+            </div>
+            <div class="stat-label">F1 Score</div>
+            <div class="stat-assessment">{{ getPerformanceLabel(metricsResult.f1Score) }}</div>
+          </div>
+        </div>
+        
+        <div class="performance-assessment">
+          <h4>Overall Assessment</h4>
+          <p>{{ getOverallPerformanceAssessment() }}</p>
+        </div>
+
+        <div class="recommendations" *ngIf="getRecommendations().length > 0">
+          <h4>Recommendations</h4>
+          <ul>
+            <li *ngFor="let recommendation of getRecommendations()">{{ recommendation }}</li>
+          </ul>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Detailed Metrics Card -->
+    <mat-card class="detailed-metrics-card">
+      <mat-card-header>
+        <mat-card-title>Detailed Metrics</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metrics-grid">
+          <div class="metric-group">
+            <h4>Detection Counts</h4>
+            <div class="metric-row">
+              <span class="metric-label">Total Detections:</span>
+              <span class="metric-value">{{ metricsResult.totalDetections }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">True Positives:</span>
+              <span class="metric-value success">{{ metricsResult.truePositives }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">False Positives:</span>
+              <span class="metric-value warn">{{ metricsResult.falsePositives }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">True Negatives:</span>
+              <span class="metric-value primary">{{ metricsResult.trueNegatives }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">False Negatives:</span>
+              <span class="metric-value warning">{{ metricsResult.falseNegatives }}</span>
+            </div>
+          </div>
+
+          <div class="metric-group">
+            <h4>Performance Metrics</h4>
+            <div class="metric-row">
+              <span class="metric-label">Specificity:</span>
+              <span class="metric-value">{{ formatPercentage(metricsResult.specificity) }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Avg Detection Time:</span>
+              <span class="metric-value">{{ formatDuration(metricsResult.averageDetectionTimeMs) }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Median Detection Time:</span>
+              <span class="metric-value">{{ formatDuration(metricsResult.medianDetectionTimeMs) }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Confusion Matrix Chart -->
+    <mat-card class="confusion-matrix-card">
+      <mat-card-header>
+        <mat-card-title>Confusion Matrix</mat-card-title>
+        <mat-card-subtitle>Distribution of detection results</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="confusionMatrixChartData"
+            [type]="doughnutChartType"
+            [options]="doughnutChartOptions">
+          </canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Performance Charts -->
+    <mat-card class="performance-charts-card">
+      <mat-card-header>
+        <mat-card-title>Performance Analysis</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-tab-group>
+          <mat-tab label="By Anomaly Type" *ngIf="metricsResult.accuracyByType.length > 0">
+            <div class="chart-container">
+              <canvas baseChart
+                [data]="accuracyByTypeChartData"
+                [type]="lineChartType"
+                [options]="lineChartOptions">
+              </canvas>
+            </div>
+          </mat-tab>
+          
+          <mat-tab label="By Time Period" *ngIf="metricsResult.accuracyByTime.length > 0">
+            <div class="chart-container">
+              <canvas baseChart
+                [data]="accuracyByTimeChartData"
+                [type]="lineChartType"
+                [options]="lineChartOptions">
+              </canvas>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Accuracy by Type Table -->
+    <mat-card class="accuracy-by-type-card" *ngIf="metricsResult.accuracyByType.length > 0">
+      <mat-card-header>
+        <mat-card-title>Accuracy by Anomaly Type</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="metricsResult.accuracyByType" class="full-width">
+          <ng-container matColumnDef="anomalyType">
+            <th mat-header-cell *matHeaderCellDef>Anomaly Type</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.anomalyType }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="truePositives">
+            <th mat-header-cell *matHeaderCellDef>True Positives</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.truePositives }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="falsePositives">
+            <th mat-header-cell *matHeaderCellDef>False Positives</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.falsePositives }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="falseNegatives">
+            <th mat-header-cell *matHeaderCellDef>False Negatives</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.falseNegatives }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="precision">
+            <th mat-header-cell *matHeaderCellDef>Precision</th>
+            <td mat-cell *matCellDef="let accuracy">
+              <mat-chip [color]="getPerformanceColor(accuracy.precision)">
+                {{ formatPercentage(accuracy.precision) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="recall">
+            <th mat-header-cell *matHeaderCellDef>Recall</th>
+            <td mat-cell *matCellDef="let accuracy">
+              <mat-chip [color]="getPerformanceColor(accuracy.recall)">
+                {{ formatPercentage(accuracy.recall) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="f1Score">
+            <th mat-header-cell *matHeaderCellDef>F1 Score</th>
+            <td mat-cell *matCellDef="let accuracy">
+              <mat-chip [color]="getPerformanceColor(accuracy.f1Score)">
+                {{ formatPercentage(accuracy.f1Score) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumnsType"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumnsType;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Accuracy by Time Table -->
+    <mat-card class="accuracy-by-time-card" *ngIf="metricsResult.accuracyByTime.length > 0">
+      <mat-card-header>
+        <mat-card-title>Accuracy by Time Period</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="metricsResult.accuracyByTime" class="full-width">
+          <ng-container matColumnDef="timeRange">
+            <th mat-header-cell *matHeaderCellDef>Time Range</th>
+            <td mat-cell *matCellDef="let accuracy">
+              {{ formatTimeRange(accuracy.startTime, accuracy.endTime) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="truePositives">
+            <th mat-header-cell *matHeaderCellDef>True Positives</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.truePositives }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="falsePositives">
+            <th mat-header-cell *matHeaderCellDef>False Positives</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.falsePositives }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="falseNegatives">
+            <th mat-header-cell *matHeaderCellDef>False Negatives</th>
+            <td mat-cell *matCellDef="let accuracy">{{ accuracy.falseNegatives }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="precision">
+            <th mat-header-cell *matHeaderCellDef>Precision</th>
+            <td mat-cell *matCellDef="let accuracy">
+              <mat-chip [color]="getPerformanceColor(accuracy.precision)">
+                {{ formatPercentage(accuracy.precision) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="recall">
+            <th mat-header-cell *matHeaderCellDef>Recall</th>
+            <td mat-cell *matCellDef="let accuracy">
+              <mat-chip [color]="getPerformanceColor(accuracy.recall)">
+                {{ formatPercentage(accuracy.recall) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="f1Score">
+            <th mat-header-cell *matHeaderCellDef>F1 Score</th>
+            <td mat-cell *matCellDef="let accuracy">
+              <mat-chip [color]="getPerformanceColor(accuracy.f1Score)">
+                {{ formatPercentage(accuracy.f1Score) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumnsTime"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumnsTime;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Performance Summary -->
+    <mat-card class="performance-summary-card">
+      <mat-card-header>
+        <mat-card-title>Performance Summary</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="summary-text">
+          {{ metricsResult.performanceSummary }}
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
