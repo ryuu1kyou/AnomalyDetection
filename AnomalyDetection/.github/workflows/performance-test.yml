@@ -1,0 +1,221 @@
+# パフォーマンステスト専用ワークフロー
+
+name: Performance Test
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # 毎週日曜日午前3時に実行
+  workflow_dispatch:  # 手動実行可能
+    inputs:
+      test_duration:
+        description: 'Test duration in minutes'
+        required: false
+        default: '10'
+      concurrent_users:
+        description: 'Number of concurrent users'
+        required: false
+        default: '50'
+
+jobs:
+  performance-test:
+    name: Performance Test
+    runs-on: ubuntu-latest
+    
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: TestPass@123
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TestPass@123 -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+    
+    - name: Restore and build backend
+      run: |
+        dotnet restore AnomalyDetection.sln
+        dotnet build AnomalyDetection.sln --configuration Release --no-restore
+    
+    - name: Run database migrations
+      run: dotnet run --project src/AnomalyDetection.DbMigrator/AnomalyDetection.DbMigrator.csproj --configuration Release
+      env:
+        ConnectionStrings__Default: 'Server=localhost;Database=AnomalyDetection_Perf;User Id=sa;Password=TestPass@123;TrustServerCertificate=true'
+    
+    - name: Start backend application
+      run: |
+        dotnet run --project src/AnomalyDetection.HttpApi.Host/AnomalyDetection.HttpApi.Host.csproj --configuration Release &
+        sleep 30
+      env:
+        ASPNETCORE_ENVIRONMENT: Production
+        ConnectionStrings__Default: 'Server=localhost;Database=AnomalyDetection_Perf;User Id=sa;Password=TestPass@123;TrustServerCertificate=true'
+        Redis__Configuration: 'localhost:6379'
+    
+    - name: Wait for application startup
+      run: |
+        timeout 300 bash -c 'until curl -f http://localhost:5000/health-status; do sleep 5; done'
+    
+    - name: Install k6
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install k6
+    
+    - name: Create k6 performance test script
+      run: |
+        cat > performance-test.js << 'EOF'
+        import http from 'k6/http';
+        import { check, sleep } from 'k6';
+        import { Rate } from 'k6/metrics';
+        
+        export let errorRate = new Rate('errors');
+        
+        export let options = {
+          stages: [
+            { duration: '2m', target: 10 }, // Ramp up
+            { duration: '${TEST_DURATION:-10}m', target: ${CONCURRENT_USERS:-50} }, // Stay at load
+            { duration: '2m', target: 0 }, // Ramp down
+          ],
+          thresholds: {
+            http_req_duration: ['p(95)<2000'], // 95% of requests must complete below 2s
+            http_req_failed: ['rate<0.1'], // Error rate must be below 10%
+          },
+        };
+        
+        const BASE_URL = 'http://localhost:5000';
+        
+        export default function() {
+          // Health check
+          let healthResponse = http.get(`${BASE_URL}/health-status`);
+          check(healthResponse, {
+            'health check status is 200': (r) => r.status === 200,
+          }) || errorRate.add(1);
+          
+          // API endpoints test
+          let apiResponse = http.get(`${BASE_URL}/api/app/can-signal`);
+          check(apiResponse, {
+            'API response status is 200': (r) => r.status === 200,
+            'API response time < 2000ms': (r) => r.timings.duration < 2000,
+          }) || errorRate.add(1);
+          
+          sleep(1);
+        }
+        EOF
+      env:
+        TEST_DURATION: ${{ github.event.inputs.test_duration || '10' }}
+        CONCURRENT_USERS: ${{ github.event.inputs.concurrent_users || '50' }}
+    
+    - name: Run performance test
+      run: |
+        k6 run --out json=performance-results.json performance-test.js
+    
+    - name: Generate performance report
+      run: |
+        cat > generate-report.js << 'EOF'
+        const fs = require('fs');
+        const results = fs.readFileSync('performance-results.json', 'utf8')
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => JSON.parse(line))
+          .filter(entry => entry.type === 'Point');
+        
+        const metrics = {};
+        results.forEach(entry => {
+          const metricName = entry.metric;
+          if (!metrics[metricName]) {
+            metrics[metricName] = [];
+          }
+          metrics[metricName].push(entry.data.value);
+        });
+        
+        const report = {
+          summary: {
+            total_requests: metrics.http_reqs ? metrics.http_reqs.length : 0,
+            avg_response_time: metrics.http_req_duration ? 
+              (metrics.http_req_duration.reduce((a, b) => a + b, 0) / metrics.http_req_duration.length).toFixed(2) : 0,
+            error_rate: metrics.http_req_failed ? 
+              (metrics.http_req_failed.reduce((a, b) => a + b, 0) / metrics.http_req_failed.length * 100).toFixed(2) : 0,
+          },
+          timestamp: new Date().toISOString()
+        };
+        
+        fs.writeFileSync('performance-report.json', JSON.stringify(report, null, 2));
+        console.log('Performance Report:', JSON.stringify(report, null, 2));
+        EOF
+        
+        node generate-report.js
+    
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-test-results
+        path: |
+          performance-results.json
+          performance-report.json
+    
+    - name: Check performance thresholds
+      run: |
+        REPORT=$(cat performance-report.json)
+        AVG_RESPONSE_TIME=$(echo $REPORT | jq -r '.summary.avg_response_time')
+        ERROR_RATE=$(echo $REPORT | jq -r '.summary.error_rate')
+        
+        echo "Average Response Time: ${AVG_RESPONSE_TIME}ms"
+        echo "Error Rate: ${ERROR_RATE}%"
+        
+        # Fail if thresholds are exceeded
+        if (( $(echo "$AVG_RESPONSE_TIME > 2000" | bc -l) )); then
+          echo "❌ Average response time exceeds 2000ms threshold"
+          exit 1
+        fi
+        
+        if (( $(echo "$ERROR_RATE > 10" | bc -l) )); then
+          echo "❌ Error rate exceeds 10% threshold"
+          exit 1
+        fi
+        
+        echo "✅ All performance thresholds passed"
+    
+    - name: Notify performance test results
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        channel: '#performance'
+        text: |
+          📊 パフォーマンステスト結果
+          Status: ${{ job.status }}
+          Repository: ${{ github.repository }}
+          詳細: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

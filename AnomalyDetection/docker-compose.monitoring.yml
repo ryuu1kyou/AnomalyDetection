@@ -1,0 +1,242 @@
+# CAN異常検出管理システム - 監視スタック用 Docker Compose
+
+version: '3.8'
+
+services:
+  # Prometheus - メトリクス収集
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: anomaly-detection-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - monitoring-network
+      - anomaly-detection-network
+    restart: unless-stopped
+
+  # Grafana - 可視化
+  grafana:
+    image: grafana/grafana:latest
+    container_name: anomaly-detection-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Alertmanager - アラート管理
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: anomaly-detection-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  # Node Exporter - システムメトリクス
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: anomaly-detection-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  # Redis Exporter - Redisメトリクス
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: anomaly-detection-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    networks:
+      - monitoring-network
+      - anomaly-detection-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  # SQL Server Exporter - SQL Serverメトリクス
+  sql-exporter:
+    image: awaragi/prometheus-mssql-exporter:latest
+    container_name: anomaly-detection-sql-exporter
+    ports:
+      - "9399:4000"
+    environment:
+      - SERVER=sqlserver
+      - USERNAME=sa
+      - PASSWORD=${DB_SA_PASSWORD:-MyPass@word123}
+      - DEBUG=app
+    networks:
+      - monitoring-network
+      - anomaly-detection-network
+    restart: unless-stopped
+    depends_on:
+      - sqlserver
+
+  # cAdvisor - コンテナメトリクス
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: anomaly-detection-cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  # Nginx Exporter - Nginxメトリクス
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: anomaly-detection-nginx-exporter
+    ports:
+      - "9113:9113"
+    command:
+      - '-nginx.scrape-uri=http://nginx:8080/nginx-status'
+    networks:
+      - monitoring-network
+      - anomaly-detection-network
+    restart: unless-stopped
+
+  # Jaeger - 分散トレーシング
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: anomaly-detection-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
+      - "14250:14250"  # gRPC collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  # Elasticsearch - ログ集約
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: anomaly-detection-elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  # Kibana - ログ可視化
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: anomaly-detection-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # Logstash - ログ処理
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: anomaly-detection-logstash
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    volumes:
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./monitoring/logstash/config:/usr/share/logstash/config
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # Filebeat - ログ収集
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: anomaly-detection-filebeat
+    user: root
+    volumes:
+      - ./monitoring/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/var/log/app:ro
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  monitoring-network:
+    driver: bridge
+  anomaly-detection-network:
+    external: true

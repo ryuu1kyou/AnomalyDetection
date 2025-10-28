@@ -1,0 +1,235 @@
+# CAN異常検出管理システム - Prometheus アラートルール
+
+groups:
+  - name: anomaly_detection_alerts
+    rules:
+      # アプリケーションレベルのアラート
+      - alert: HighErrorRate
+        expr: (rate(errors_total[5m]) / rate(api_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: anomaly-detection
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(api_response_time_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: anomaly-detection
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+      - alert: DetectionExecutionFailure
+        expr: rate(anomaly_detection_executions_total{success="false"}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: anomaly-detection
+        annotations:
+          summary: "High detection execution failure rate"
+          description: "Detection execution failure rate is {{ $value }} per second"
+
+      - alert: LowCacheHitRate
+        expr: cache_hit_rate < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: anomaly-detection
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+      # インフラストラクチャレベルのアラート
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanizePercentage }} available"
+
+      # データベースアラート
+      - alert: DatabaseConnectionFailure
+        expr: up{job="sql-server-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failure"
+          description: "Cannot connect to SQL Server"
+
+      - alert: HighDatabaseConnections
+        expr: mssql_connections > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connections"
+          description: "Database connections: {{ $value }}"
+
+      - alert: SlowDatabaseQueries
+        expr: mssql_slow_queries > 10
+        for: 3m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "{{ $value }} slow queries detected"
+
+      # Redisアラート
+      - alert: RedisConnectionFailure
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis connection failure"
+          description: "Cannot connect to Redis"
+
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: RedisSlowQueries
+        expr: rate(redis_slowlog_length[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis slow queries detected"
+          description: "{{ $value }} slow queries per second"
+
+      # コンテナアラート
+      - alert: ContainerDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: container
+        annotations:
+          summary: "Container is down"
+          description: "Container {{ $labels.instance }} is down"
+
+      - alert: ContainerHighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: container
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: ContainerHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: container
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is {{ $value | humanizePercentage }}"
+
+  - name: business_metrics_alerts
+    rules:
+      # ビジネスメトリクスアラート
+      - alert: LowDetectionExecutions
+        expr: rate(anomaly_detection_executions_total[1h]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low detection execution rate"
+          description: "Detection execution rate is {{ $value }} per second over the last hour"
+
+      - alert: HighAnomalyRate
+        expr: rate(anomaly_detection_executions_total{result="anomaly"}[1h]) / rate(anomaly_detection_executions_total[1h]) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "High anomaly detection rate"
+          description: "Anomaly detection rate is {{ $value | humanizePercentage }} over the last hour"
+
+      - alert: NoUserActivity
+        expr: active_user_sessions == 0
+        for: 30m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "No active user sessions"
+          description: "No users are currently active in the system"
+
+  - name: security_alerts
+    rules:
+      # セキュリティアラート
+      - alert: HighFailedLoginAttempts
+        expr: rate(failed_login_attempts_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High failed login attempts"
+          description: "{{ $value }} failed login attempts per second"
+
+      - alert: UnauthorizedAPIAccess
+        expr: rate(api_requests_total{status_code="401"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High unauthorized API access attempts"
+          description: "{{ $value }} unauthorized requests per second"
+
+      - alert: SuspiciousActivity
+        expr: rate(api_requests_total{status_code="403"}[5m]) > 0.02
+        for: 5m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} forbidden requests per second - possible attack"

@@ -1,0 +1,208 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "CAN異常検出管理システム - 概要ダッシュボード",
+    "tags": ["anomaly-detection", "overview"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "システム概要",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"anomaly-detection-backend\"}",
+            "legendFormat": "バックエンド稼働状況"
+          },
+          {
+            "expr": "active_user_sessions",
+            "legendFormat": "アクティブセッション"
+          },
+          {
+            "expr": "database_connections_active",
+            "legendFormat": "DB接続数"
+          },
+          {
+            "expr": "cache_hit_rate",
+            "legendFormat": "キャッシュヒット率"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.7},
+                {"color": "green", "value": 0.9}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "API リクエスト率",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(api_requests_total[5m])",
+            "legendFormat": "リクエスト/秒"
+          }
+        ],
+        "yAxes": [
+          {"label": "リクエスト/秒", "min": 0}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "レスポンスタイム",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(api_response_time_seconds_bucket[5m]))",
+            "legendFormat": "50パーセンタイル"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(api_response_time_seconds_bucket[5m]))",
+            "legendFormat": "95パーセンタイル"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(api_response_time_seconds_bucket[5m]))",
+            "legendFormat": "99パーセンタイル"
+          }
+        ],
+        "yAxes": [
+          {"label": "秒", "min": 0}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "エラー率",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(errors_total[5m]) / rate(api_requests_total[5m])",
+            "legendFormat": "エラー率"
+          }
+        ],
+        "yAxes": [
+          {"label": "パーセント", "min": 0, "max": 1}
+        ],
+        "thresholds": [
+          {"value": 0.05, "colorMode": "critical", "op": "gt"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "異常検出実行",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(anomaly_detection_executions_total[5m])",
+            "legendFormat": "実行/秒"
+          },
+          {
+            "expr": "rate(anomaly_detection_executions_total{success=\"false\"}[5m])",
+            "legendFormat": "失敗/秒"
+          }
+        ],
+        "yAxes": [
+          {"label": "実行/秒", "min": 0}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "システムリソース",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+            "legendFormat": "メモリ使用率 (%)"
+          },
+          {
+            "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU使用率 (%)"
+          }
+        ],
+        "yAxes": [
+          {"label": "パーセント", "min": 0, "max": 100}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "データベースメトリクス",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "mssql_connections",
+            "legendFormat": "アクティブ接続"
+          },
+          {
+            "expr": "rate(mssql_batch_requests[5m])",
+            "legendFormat": "バッチリクエスト/秒"
+          }
+        ],
+        "yAxes": [
+          {"label": "接続数/リクエスト数", "min": 0}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Redisメトリクス",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes / 1024 / 1024",
+            "legendFormat": "メモリ使用量 (MB)"
+          },
+          {
+            "expr": "rate(redis_commands_processed_total[5m])",
+            "legendFormat": "コマンド/秒"
+          }
+        ],
+        "yAxes": [
+          {"label": "MB/コマンド数", "min": 0}
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=\"anomaly-detection-backend\"}, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(up{job=\"anomaly-detection-backend\"}[1m]) > 0",
+          "titleFormat": "Deployment",
+          "textFormat": "Service restarted"
+        }
+      ]
+    }
+  }
+}

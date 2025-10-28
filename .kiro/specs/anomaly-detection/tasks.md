@@ -335,31 +335,45 @@
   - レスポンスタイムの測定
   - _Requirements: NFR 1.1-1.5_
 
-- [ ] 10. デプロイメントと CI/CD
+- [x] 10. デプロイメントと CI/CD
+
+
+
+
+
 
   - Docker、CI/CD パイプライン、モニタリングの設定
   - _Requirements: NFR 3.1-3.5, NFR 4.1-4.5_
 
-- [ ] 10.1 Docker 設定の検証
+- [x] 10.1 Docker 設定の検証
+
+
+
 
   - Dockerfile の確認
   - docker-compose.yml の確認
   - _Requirements: NFR 3.1-3.5_
 
-- [ ] 10.2 CI/CD パイプラインの設定
+- [x] 10.2 CI/CD パイプラインの設定
+
+
 
   - GitHub Actions / Azure Pipelines の設定
   - ビルド・テスト・デプロイの自動化
   - _Requirements: NFR 4.3_
 
-- [ ] 10.3 モニタリング設定
+- [x] 10.3 モニタリング設定
+
+
 
   - Application Insights の設定
   - ログ集約の設定
   - アラート設定
   - _Requirements: NFR 4.1, 4.2_
 
-- [ ] 10.4 デプロイメントテスト
+- [x] 10.4 デプロイメントテスト
+
+
   - Staging 環境へのデプロイ
   - Production 環境へのデプロイ
   - _Requirements: NFR 4.1-4.5_

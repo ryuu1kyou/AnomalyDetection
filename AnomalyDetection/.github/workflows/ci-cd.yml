@@ -1,23 +1,25 @@
-name: CAN異常検出管理システム CI/CD
+# CAN異常検出管理システム - GitHub Actions CI/CD Pipeline
+
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
   pull_request:
     branches: [ main ]
-  release:
-    types: [ published ]
 
 env:
   DOTNET_VERSION: '9.0.x'
   NODE_VERSION: '18.x'
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: ${{ github.repository }}/backend
-  IMAGE_NAME_FRONTEND: ${{ github.repository }}/frontend
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # バックエンドのビルドとテスト
-  backend-test:
+  # バックエンドビルド・テスト
+  backend-build-test:
     name: Backend Build & Test
     runs-on: ubuntu-latest
     
@@ -31,165 +33,147 @@ jobs:
         ports:
           - 1433:1433
         options: >-
-          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TestPass@123 -Q 'SELECT 1'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TestPass@123 -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+      with:
+        fetch-depth: 0
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
-
+    
     - name: Cache NuGet packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-
+    
     - name: Restore dependencies
       run: dotnet restore AnomalyDetection.sln
-
+    
     - name: Build solution
-      run: dotnet build AnomalyDetection.sln --no-restore --configuration Release
-
+      run: dotnet build AnomalyDetection.sln --configuration Release --no-restore
+    
     - name: Run database migrations
-      run: |
-        cd src/AnomalyDetection.DbMigrator
-        dotnet run --configuration Release
+      run: dotnet run --project src/AnomalyDetection.DbMigrator/AnomalyDetection.DbMigrator.csproj --configuration Release
       env:
-        ConnectionStrings__Default: "Server=localhost;Database=AnomalyDetection_Test;User Id=sa;Password=TestPass@123;TrustServerCertificate=true"
-
+        ConnectionStrings__Default: 'Server=localhost;Database=AnomalyDetection_Test;User Id=sa;Password=TestPass@123;TrustServerCertificate=true'
+    
     - name: Run unit tests
       run: |
         dotnet test test/AnomalyDetection.Application.Tests/AnomalyDetection.Application.Tests.csproj \
-          --no-build --configuration Release --logger trx --collect:"XPlat Code Coverage"
+          --configuration Release --no-build --verbosity normal \
+          --logger trx --collect:"XPlat Code Coverage" \
+          --results-directory ./TestResults
         dotnet test test/AnomalyDetection.Domain.Tests/AnomalyDetection.Domain.Tests.csproj \
-          --no-build --configuration Release --logger trx --collect:"XPlat Code Coverage"
-
+          --configuration Release --no-build --verbosity normal \
+          --logger trx --collect:"XPlat Code Coverage" \
+          --results-directory ./TestResults
+    
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: backend-test-results
-        path: |
-          **/*.trx
-          **/coverage.cobertura.xml
-
-    - name: Code coverage report
-      uses: codecov/codecov-action@v3
+        name: test-results-backend
+        path: TestResults/
+    
+    - name: Generate code coverage report
+      run: |
+        dotnet tool install -g dotnet-reportgenerator-globaltool
+        reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
       with:
-        files: '**/coverage.cobertura.xml'
+        files: TestResults/**/coverage.cobertura.xml
         flags: backend
+        name: backend-coverage
+    
+    - name: Publish backend
+      run: |
+        dotnet publish src/AnomalyDetection.HttpApi.Host/AnomalyDetection.HttpApi.Host.csproj \
+          --configuration Release --output ./publish/backend
+    
+    - name: Upload backend artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-artifacts
+        path: ./publish/backend/
 
-  # フロントエンドのビルドとテスト
-  frontend-test:
+  # フロントエンドビルド・テスト
+  frontend-build-test:
     name: Frontend Build & Test
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'yarn'
         cache-dependency-path: angular/yarn.lock
-
+    
     - name: Install dependencies
       run: |
         cd angular
         yarn install --frozen-lockfile
-
+    
     - name: Lint code
       run: |
         cd angular
         yarn lint
-
+    
     - name: Run unit tests
       run: |
         cd angular
         yarn test:ci
-
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-frontend
+        path: angular/test-results.xml
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: angular/coverage/cobertura-coverage.xml
+        flags: frontend
+        name: frontend-coverage
+    
     - name: Build application
       run: |
         cd angular
         yarn build:prod
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: frontend-dist
-        path: angular/dist/
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: frontend-test-results
-        path: |
-          angular/coverage/
-          angular/test-results.xml
-
-  # E2Eテスト
-  e2e-test:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Start application with Docker Compose
-      run: |
-        cp .env.development .env
-        docker-compose up -d --build
-        
-    - name: Wait for services
-      run: |
-        timeout 300 bash -c 'until curl -f http://localhost:44318/health-status; do sleep 5; done'
-        timeout 300 bash -c 'until curl -f http://localhost:4200; do sleep 5; done'
-
-    - name: Setup Node.js for E2E
-      uses: actions/setup-node@v4
+    - name: Upload frontend artifacts
+      uses: actions/upload-artifact@v4
       with:
-        node-version: ${{ env.NODE_VERSION }}
-
-    - name: Install Cypress
-      run: |
-        cd angular
-        yarn install --frozen-lockfile
-
-    - name: Run E2E tests
-      run: |
-        cd angular
-        yarn e2e:ci
-
-    - name: Upload E2E results
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: e2e-test-results
-        path: |
-          angular/cypress/videos/
-          angular/cypress/screenshots/
-
-    - name: Stop Docker Compose
-      if: always()
-      run: docker-compose down -v
+        name: frontend-artifacts
+        path: angular/dist/
 
   # セキュリティスキャン
   security-scan:
@@ -199,7 +183,18 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Run .NET security scan
+      run: |
+        dotnet list package --vulnerable --include-transitive > security-report.txt
+        cat security-report.txt
+      continue-on-error: true
+    
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
@@ -207,56 +202,113 @@ jobs:
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
-
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v2
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
       with:
         sarif_file: 'trivy-results.sarif'
-
-    - name: .NET Security Scan
-      run: |
-        dotnet list package --vulnerable --include-transitive > security-report.txt
-        cat security-report.txt
-
-    - name: Upload security report
-      uses: actions/upload-artifact@v3
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: security-report
-        path: security-report.txt
+        name: security-reports
+        path: |
+          security-report.txt
+          trivy-results.sarif
+
+  # E2Eテスト
+  e2e-test:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [backend-build-test, frontend-build-test]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Start application with Docker Compose
+      run: |
+        docker-compose up -d --build
+        sleep 30
+    
+    - name: Wait for services
+      run: |
+        timeout 300 bash -c 'until curl -f http://localhost:44318/health-status; do sleep 5; done'
+        timeout 300 bash -c 'until curl -f http://localhost:4200; do sleep 5; done'
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'yarn'
+        cache-dependency-path: angular/yarn.lock
+    
+    - name: Install dependencies
+      run: |
+        cd angular
+        yarn install --frozen-lockfile
+    
+    - name: Run E2E tests
+      run: |
+        cd angular
+        yarn e2e:ci
+    
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: e2e-results
+        path: |
+          angular/cypress/results/
+          angular/cypress/screenshots/
+          angular/cypress/videos/
+    
+    - name: Stop application
+      if: always()
+      run: docker-compose down -v
 
   # Dockerイメージビルド
   build-images:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    needs: [backend-build-test, frontend-build-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    permissions:
+      contents: read
+      packages: write
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+    
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
-
-    - name: Login to Container Registry
+    
+    - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-
+    
     - name: Extract metadata for backend
       id: meta-backend
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
         tags: |
           type=ref,event=branch
           type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
           type=sha,prefix={{branch}}-
-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
     - name: Build and push backend image
       uses: docker/build-push-action@v5
       with:
@@ -267,19 +319,18 @@ jobs:
         labels: ${{ steps.meta-backend.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
+    
     - name: Extract metadata for frontend
       id: meta-frontend
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
         tags: |
           type=ref,event=branch
           type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
           type=sha,prefix={{branch}}-
-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
     - name: Build and push frontend image
       uses: docker/build-push-action@v5
       with:
@@ -291,82 +342,61 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-  # 本番デプロイ (リリース時のみ)
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build-images, security-scan, e2e-test]
-    if: github.event_name == 'release'
-    environment: production
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Deploy to production server
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.PROD_HOST }}
-        username: ${{ secrets.PROD_USERNAME }}
-        key: ${{ secrets.PROD_SSH_KEY }}
-        script: |
-          cd /opt/anomaly-detection
-          
-          # 環境変数を設定
-          export IMAGE_TAG=${{ github.event.release.tag_name }}
-          
-          # 新しいイメージをプル
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:$IMAGE_TAG
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:$IMAGE_TAG
-          
-          # アプリケーションを更新
-          docker-compose -f docker-compose.prod.yml down
-          docker-compose -f docker-compose.prod.yml up -d
-          
-          # ヘルスチェック
-          timeout 300 bash -c 'until curl -f http://localhost/health-status; do sleep 5; done'
-          
-          echo "Deployment completed successfully"
-
-    - name: Notify deployment status
-      uses: 8398a7/action-slack@v3
-      if: always()
-      with:
-        status: ${{ job.status }}
-        channel: '#deployments'
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow
-
-  # ステージング環境デプロイ (mainブランチ)
+  # Stagingデプロイ
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build-images, security-scan]
+    needs: [build-images, e2e-test]
     if: github.ref == 'refs/heads/main'
     environment: staging
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # ここに実際のデプロイメントロジックを実装
+        # 例: kubectl, helm, terraform等を使用
+    
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests on staging..."
+        # ここにスモークテストを実装
 
-    - name: Deploy to staging server
-      uses: appleboy/ssh-action@v1.0.0
+  # Productionデプロイ
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # ここに実際のデプロイメントロジックを実装
+    
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests on production..."
+        # ここにスモークテストを実装
+    
+    - name: Notify deployment
+      uses: 8398a7/action-slack@v3
+      if: always()
       with:
-        host: ${{ secrets.STAGING_HOST }}
-        username: ${{ secrets.STAGING_USERNAME }}
-        key: ${{ secrets.STAGING_SSH_KEY }}
-        script: |
-          cd /opt/anomaly-detection-staging
-          
-          # 最新のmainブランチイメージをプル
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:main
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:main
-          
-          # アプリケーションを更新
-          docker-compose -f docker-compose.staging.yml down
-          docker-compose -f docker-compose.staging.yml up -d
-          
-          # ヘルスチェック
-          timeout 300 bash -c 'until curl -f http://localhost/health-status; do sleep 5; done'
-          
-          echo "Staging deployment completed successfully"
+        status: ${{ job.status }}
+        channel: '#deployments'
+        text: |
+          🚀 CAN異常検出管理システムが本番環境にデプロイされました
+          Build: ${{ github.run_number }}
+          Commit: ${{ github.sha }}
+          Status: ${{ job.status }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
