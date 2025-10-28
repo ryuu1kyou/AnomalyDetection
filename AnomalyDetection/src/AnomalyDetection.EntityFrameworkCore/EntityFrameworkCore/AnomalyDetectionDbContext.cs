@@ -18,6 +18,7 @@ using AnomalyDetection.CanSignals;
 using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.Projects;
 using AnomalyDetection.OemTraceability;
+using AnomalyDetection.AuditLogging;
 
 namespace AnomalyDetection.EntityFrameworkCore;
 
@@ -81,6 +82,9 @@ public class AnomalyDetectionDbContext :
     // OEM Traceability
     public DbSet<OemCustomization> OemCustomizations { get; set; }
     public DbSet<OemApproval> OemApprovals { get; set; }
+
+    // Audit Logging
+    public DbSet<AnomalyDetectionAuditLog> AnomalyDetectionAuditLogs { get; set; }
 
     #endregion
 

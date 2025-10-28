@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.MultiTenancy.Dtos;
+using AnomalyDetection.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -12,7 +13,7 @@ using Volo.Abp.MultiTenancy;
 
 namespace AnomalyDetection.MultiTenancy;
 
-[Authorize]
+[Authorize(AnomalyDetectionPermissions.TenantManagement.Default)]
 public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppService
 {
     private readonly IExtendedTenantRepository _extendedTenantRepository;
@@ -65,6 +66,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         return dto;
     }
 
+    [Authorize(AnomalyDetectionPermissions.TenantManagement.ManageTenantFeatures)]
     public async Task<ExtendedTenantDto> CreateAsync(CreateExtendedTenantDto input)
     {
         // Check if tenant name already exists
@@ -105,6 +107,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         return dto;
     }
 
+    [Authorize(AnomalyDetectionPermissions.TenantManagement.ManageTenantFeatures)]
     public async Task<ExtendedTenantDto> UpdateAsync(Guid id, UpdateExtendedTenantDto input)
     {
         var tenant = await _extendedTenantRepository.GetAsync(id);
@@ -130,6 +133,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         return dto;
     }
 
+    [Authorize(AnomalyDetectionPermissions.TenantManagement.ManageTenantFeatures)]
     public async Task DeleteAsync(Guid id)
     {
         await _extendedTenantRepository.DeleteAsync(id);
@@ -242,6 +246,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         };
     }
 
+    [Authorize(AnomalyDetectionPermissions.TenantManagement.SwitchTenant)]
     public async Task SwitchTenantAsync(Guid? tenantId)
     {
         // This method would typically work with a tenant switching service

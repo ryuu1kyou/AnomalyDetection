@@ -12,6 +12,8 @@ using AnomalyDetection.Projects.Dtos;
 using AnomalyDetection.OemTraceability;
 using AnomalyDetection.OemTraceability.Models;
 using AnomalyDetection.Application.Contracts.OemTraceability.Dtos;
+using AnomalyDetection.AuditLogging;
+using AnomalyDetection.Application.Contracts.AuditLogging;
 
 namespace AnomalyDetection;
 
@@ -29,6 +31,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
         CreateProjectMappings();
         CreateAnomalyAnalysisMappings();
         CreateOemTraceabilityMappings();
+        CreateAuditLogMappings();
     }
     
     private void CreateCanSignalMappings()
@@ -372,5 +375,11 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
         // OEM Approval mappings
         CreateMap<OemApproval, OemApprovalDto>()
             .ForMember(dest => dest.OemCode, opt => opt.MapFrom(src => src.OemCode.Code));
+    }
+
+    private void CreateAuditLogMappings()
+    {
+        CreateMap<AnomalyDetectionAuditLog, AuditLogDto>()
+            .ForMember(dest => dest.CreatorName, opt => opt.Ignore()); // Will be populated by the service if needed
     }
 }

@@ -9,6 +9,8 @@ using AnomalyDetection.CanSignals;
 using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.Projects;
 using AnomalyDetection.OemTraceability;
+using AnomalyDetection.ValueObjects;
+using AnomalyDetection.AuditLogging;
 
 namespace AnomalyDetection.EntityFrameworkCore;
 
@@ -20,6 +22,38 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
 
         /* Configure your own tables/entities inside here */
 
+        // Ignore owned types to prevent ConfigureByConvention from discovering them as entities
+        // Multi-tenancy value objects
+        builder.Ignore<OemFeature>();
+        builder.Ignore<TenantFeature>();
+        
+        // CAN Signal value objects
+        builder.Ignore<SignalIdentifier>();
+        builder.Ignore<SignalSpecification>();
+        builder.Ignore<PhysicalValueConversion>();
+        builder.Ignore<SignalTiming>();
+        builder.Ignore<SignalVersion>();
+        builder.Ignore<SystemCategoryConfiguration>();
+        
+        // Detection Logic value objects
+        builder.Ignore<DetectionLogicIdentity>();
+        builder.Ignore<LogicVersion>();
+        builder.Ignore<DetectionLogicSpecification>();
+        builder.Ignore<LogicImplementation>();
+        builder.Ignore<SafetyClassification>();
+        builder.Ignore<ParameterConstraints>();
+        builder.Ignore<SignalMappingConfiguration>();
+        
+        // Detection Result value objects
+        builder.Ignore<DetectionInputData>();
+        builder.Ignore<DetectionDetails>();
+        
+        // Project value objects
+        builder.Ignore<ProjectConfiguration>();
+        builder.Ignore<NotificationSettings>();
+        builder.Ignore<MilestoneConfiguration>();
+        builder.Ignore<MemberConfiguration>();
+
         // ============================================================================
         // 1. マルチテナント管理
         // ============================================================================
@@ -29,6 +63,22 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         builder.Entity<OemMaster>(b =>
         {
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "OemMasters", AnomalyDetectionConsts.DbSchema);
+            
+            // Owned Collection: Features (configure before ConfigureByConvention)
+            b.OwnsMany(x => x.Features, features =>
+            {
+                features.ToTable(AnomalyDetectionConsts.DbTablePrefix + "OemFeatures", AnomalyDetectionConsts.DbSchema);
+                features.WithOwner().HasForeignKey("OemMasterId");
+                features.Property<Guid>("OemMasterId");
+                features.HasKey("OemMasterId", "FeatureName");
+
+                features.Property(x => x.FeatureName).IsRequired().HasMaxLength(100);
+                features.Property(x => x.FeatureValue).IsRequired().HasMaxLength(500);
+                features.Property(x => x.IsEnabled).IsRequired();
+                features.Property(x => x.CreatedAt).IsRequired();
+                features.Property(x => x.UpdatedAt);
+            });
+            
             b.ConfigureByConvention();
 
             // Value Object: OemCode
@@ -51,18 +101,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.ContactEmail).HasMaxLength(256);
             b.Property(x => x.ContactPhone).HasMaxLength(50);
             b.Property(x => x.Description).HasMaxLength(1000);
-
-            // Owned Collection: Features
-            b.OwnsMany(x => x.Features, features =>
-            {
-                features.ToTable(AnomalyDetectionConsts.DbTablePrefix + "OemFeatures", AnomalyDetectionConsts.DbSchema);
-                features.WithOwner().HasForeignKey("OemMasterId");
-                features.Property<Guid>("OemMasterId");
-                features.HasKey("OemMasterId", "FeatureName");
-
-                features.Property(x => x.FeatureName).IsRequired().HasMaxLength(100);
-                features.Property(x => x.FeatureValue).HasMaxLength(500);
-            });
+            b.Property(x => x.IsActive).IsRequired();
+            b.Property(x => x.EstablishedDate);
         });
 
         #endregion
@@ -72,6 +112,24 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         builder.Entity<ExtendedTenant>(b =>
         {
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "ExtendedTenants", AnomalyDetectionConsts.DbSchema);
+            
+            // Owned Collection: Features (configure before ConfigureByConvention)
+            b.OwnsMany(x => x.Features, features =>
+            {
+                features.ToTable(AnomalyDetectionConsts.DbTablePrefix + "TenantFeatures", AnomalyDetectionConsts.DbSchema);
+                features.WithOwner().HasForeignKey("ExtendedTenantId");
+                features.Property<Guid>("ExtendedTenantId");
+                features.HasKey("ExtendedTenantId", "FeatureName");
+
+                features.Property(x => x.FeatureName).IsRequired().HasMaxLength(100);
+                features.Property(x => x.FeatureValue).IsRequired().HasMaxLength(500);
+                features.Property(x => x.IsEnabled).IsRequired();
+                features.Property(x => x.CreatedAt).IsRequired();
+                features.Property(x => x.UpdatedAt);
+                features.Property(x => x.CreatedBy).HasMaxLength(256);
+                features.Property(x => x.UpdatedBy).HasMaxLength(256);
+            });
+            
             b.ConfigureByConvention();
 
             // Value Object: OemCode
@@ -92,20 +150,9 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.Name).IsRequired().HasMaxLength(100);
             b.Property(x => x.DatabaseConnectionString).HasMaxLength(1000);
             b.Property(x => x.Description).HasMaxLength(1000);
-
-            // Owned Collection: Features
-            b.OwnsMany(x => x.Features, features =>
-            {
-                features.ToTable(AnomalyDetectionConsts.DbTablePrefix + "TenantFeatures", AnomalyDetectionConsts.DbSchema);
-                features.WithOwner().HasForeignKey("ExtendedTenantId");
-                features.Property<Guid>("ExtendedTenantId");
-                features.HasKey("ExtendedTenantId", "FeatureName");
-
-                features.Property(x => x.FeatureName).IsRequired().HasMaxLength(100);
-                features.Property(x => x.FeatureValue).HasMaxLength(500);
-                features.Property(x => x.CreatedBy).HasMaxLength(256);
-                features.Property(x => x.UpdatedBy).HasMaxLength(256);
-            });
+            b.Property(x => x.IsActive).IsRequired();
+            b.Property(x => x.ActivationDate);
+            b.Property(x => x.ExpirationDate);
 
             // Relationships
             b.HasOne<OemMaster>()
@@ -205,10 +252,29 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.Status).IsRequired();
             b.Property(x => x.SourceDocument).HasMaxLength(500);
             b.Property(x => x.Notes).HasMaxLength(2000);
+            b.Property(x => x.IsStandard).IsRequired();
+            b.Property(x => x.EffectiveDate);
 
-            // Indexes
+            // Indexes - Performance Optimized
             b.HasIndex(x => x.SystemType);
             b.HasIndex(x => x.Status);
+            b.HasIndex(x => x.IsStandard);
+            b.HasIndex(x => x.EffectiveDate);
+            
+            // Composite indexes for common query patterns
+            b.HasIndex(x => new { x.SystemType, x.Status });
+            b.HasIndex(x => new { x.IsStandard, x.Status });
+            b.HasIndex(x => new { x.SystemType, x.IsStandard, x.Status });
+            
+            // Indexes for similarity search optimization
+            b.HasIndex("Identifier_CanId");
+            b.HasIndex("Identifier_SignalName");
+            b.HasIndex("OemCode_Code");
+            b.HasIndex("Specification_DataType");
+            b.HasIndex("Timing_CycleTimeMs");
+            
+            // Composite index for frequent filtering
+            b.HasIndex(x => new { x.TenantId, x.SystemType, x.Status });
         });
 
         #endregion
@@ -239,9 +305,14 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             // Properties
             b.Property(x => x.SystemType).IsRequired();
             b.Property(x => x.Name).IsRequired().HasMaxLength(100);
-            b.Property(x => x.Description).HasMaxLength(1000);
-            b.Property(x => x.Icon).HasMaxLength(100);
-            b.Property(x => x.Color).HasMaxLength(20);
+            b.Property(x => x.Description).IsRequired().HasMaxLength(1000);
+            b.Property(x => x.Icon).IsRequired().HasMaxLength(100);
+            b.Property(x => x.Color).IsRequired().HasMaxLength(20);
+            b.Property(x => x.DisplayOrder).IsRequired();
+            b.Property(x => x.IsActive).IsRequired();
+            b.Property(x => x.SignalCount).IsRequired();
+            b.Property(x => x.ActiveSignalCount).IsRequired();
+            b.Property(x => x.LastSignalUpdate);
 
             // Indexes
             b.HasIndex(x => x.SystemType).IsUnique();
@@ -329,7 +400,14 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             // Properties
             b.Property(x => x.Status).IsRequired();
             b.Property(x => x.SharingLevel).IsRequired();
+            b.Property(x => x.SourceLogicId);
+            b.Property(x => x.VehiclePhaseId);
+            b.Property(x => x.ApprovedAt);
+            b.Property(x => x.ApprovedBy);
             b.Property(x => x.ApprovalNotes).HasMaxLength(2000);
+            b.Property(x => x.ExecutionCount).IsRequired();
+            b.Property(x => x.LastExecutedAt);
+            b.Property(x => x.LastExecutionTimeMs);
 
             // Relationships with child entities
             b.HasMany<DetectionParameter>()
@@ -342,9 +420,29 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                 .HasForeignKey("DetectionLogicId")
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Indexes
+            // Indexes - Performance Optimized
             b.HasIndex(x => x.Status);
             b.HasIndex(x => x.SharingLevel);
+            b.HasIndex(x => x.SourceLogicId);
+            b.HasIndex(x => x.VehiclePhaseId);
+            b.HasIndex(x => x.ApprovedAt);
+            
+            // Composite indexes for common query patterns
+            b.HasIndex(x => new { x.Status, x.SharingLevel });
+            b.HasIndex(x => new { x.TenantId, x.Status });
+            b.HasIndex(x => new { x.TenantId, x.SharingLevel });
+            
+            // Indexes for detection logic search
+            b.HasIndex("Identity_Name");
+            b.HasIndex("Identity_OemCode_Code");
+            b.HasIndex("Specification_DetectionType");
+            b.HasIndex("Specification_TargetSystemType");
+            b.HasIndex("Safety_AsilLevel");
+            
+            // Performance indexes for execution tracking
+            b.HasIndex(x => x.ExecutionCount);
+            b.HasIndex(x => x.LastExecutedAt);
+            b.HasIndex(x => new { x.LastExecutedAt, x.ExecutionCount });
         });
 
         #endregion
@@ -387,10 +485,19 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "CanSignalMappings", AnomalyDetectionConsts.DbSchema);
             b.ConfigureByConvention();
 
+            // Foreign Key (shadow property)
+            b.Property<Guid>("DetectionLogicId");
+
+            // Composite Primary Key
+            b.HasKey("DetectionLogicId", nameof(CanSignalMapping.CanSignalId));
+
             // Properties
             b.Property(x => x.CanSignalId).IsRequired();
             b.Property(x => x.SignalRole).IsRequired().HasMaxLength(50);
             b.Property(x => x.Description).HasMaxLength(500);
+            b.Property(x => x.IsRequired).IsRequired();
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.Property(x => x.UpdatedAt);
 
             // Value Object: SignalMappingConfiguration (stored as JSON)
             b.Property(x => x.Configuration)
@@ -398,9 +505,6 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                     v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
                     v => System.Text.Json.JsonSerializer.Deserialize<SignalMappingConfiguration>(v, (System.Text.Json.JsonSerializerOptions)null))
                 .HasColumnName("Configuration");
-
-            // Foreign Key (shadow property)
-            b.Property<Guid>("DetectionLogicId");
 
             // Indexes
             b.HasIndex("DetectionLogicId");
@@ -455,9 +559,20 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.AnomalyLevel).IsRequired();
             b.Property(x => x.ConfidenceScore).IsRequired();
             b.Property(x => x.Description).IsRequired().HasMaxLength(1000);
+            b.Property(x => x.DetectionDuration).IsRequired();
+            b.Property(x => x.AnomalyType).IsRequired();
+            b.Property(x => x.DetectionCondition).IsRequired().HasMaxLength(500);
+            b.Property(x => x.IsValidated).IsRequired();
+            b.Property(x => x.IsFalsePositiveFlag).IsRequired();
+            b.Property(x => x.ValidationNotes).HasMaxLength(4000);
             b.Property(x => x.ResolutionStatus).IsRequired();
+            b.Property(x => x.ResolvedAt);
+            b.Property(x => x.ResolvedBy);
             b.Property(x => x.ResolutionNotes).HasMaxLength(2000);
             b.Property(x => x.SharingLevel).IsRequired();
+            b.Property(x => x.IsShared).IsRequired();
+            b.Property(x => x.SharedAt);
+            b.Property(x => x.SharedBy);
 
             // Relationships
             b.HasOne<CanAnomalyDetectionLogic>()
@@ -470,12 +585,33 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                 .HasForeignKey(x => x.CanSignalId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Indexes
+            // Indexes - Performance Optimized
             b.HasIndex(x => x.DetectedAt);
             b.HasIndex(x => x.AnomalyLevel);
+            b.HasIndex(x => x.AnomalyType);
+            b.HasIndex(x => x.IsValidated);
+            b.HasIndex(x => x.IsFalsePositiveFlag);
             b.HasIndex(x => x.ResolutionStatus);
+            b.HasIndex(x => x.ResolvedAt);
             b.HasIndex(x => x.DetectionLogicId);
             b.HasIndex(x => x.CanSignalId);
+            b.HasIndex(x => x.IsShared);
+            b.HasIndex(x => x.SharedAt);
+            
+            // Composite indexes for common query patterns
+            b.HasIndex(x => new { x.DetectedAt, x.AnomalyLevel });
+            b.HasIndex(x => new { x.CanSignalId, x.DetectedAt });
+            b.HasIndex(x => new { x.DetectionLogicId, x.DetectedAt });
+            b.HasIndex(x => new { x.AnomalyLevel, x.ResolutionStatus });
+            b.HasIndex(x => new { x.TenantId, x.DetectedAt, x.AnomalyLevel });
+            
+            // Covering indexes for frequent queries
+            b.HasIndex(x => new { x.CanSignalId, x.DetectedAt, x.AnomalyLevel, x.ConfidenceScore });
+            b.HasIndex(x => new { x.DetectionLogicId, x.DetectedAt, x.AnomalyLevel, x.ResolutionStatus });
+            
+            // Indexes for analytics and reporting
+            b.HasIndex(x => new { x.AnomalyType, x.DetectedAt });
+            b.HasIndex(x => new { x.IsValidated, x.IsFalsePositiveFlag, x.DetectedAt });
         });
 
         #endregion
@@ -549,7 +685,14 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.VehicleModel).IsRequired().HasMaxLength(100);
             b.Property(x => x.ModelYear).IsRequired().HasMaxLength(4);
             b.Property(x => x.PrimarySystem).IsRequired();
+            b.Property(x => x.StartDate).IsRequired();
+            b.Property(x => x.EndDate);
+            b.Property(x => x.ActualEndDate);
             b.Property(x => x.ProjectManagerId).IsRequired();
+            b.Property(x => x.ProgressPercentage).IsRequired();
+            b.Property(x => x.TotalTasks).IsRequired();
+            b.Property(x => x.CompletedTasks).IsRequired();
+            b.Property(x => x.LastProgressUpdate);
 
             // Relationships with child entities
             b.HasMany<ProjectMilestone>()
@@ -567,6 +710,9 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.Status);
             b.HasIndex(x => x.StartDate);
             b.HasIndex(x => x.EndDate);
+            b.HasIndex(x => x.ActualEndDate);
+            b.HasIndex(x => x.ProjectManagerId);
+            b.HasIndex(x => x.PrimarySystem);
         });
 
         #endregion
@@ -578,11 +724,22 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "ProjectMilestones", AnomalyDetectionConsts.DbSchema);
             b.ConfigureByConvention();
 
+            // Foreign Key (shadow property)
+            b.Property<Guid>("ProjectId");
+
+            // Composite Primary Key
+            b.HasKey("ProjectId", nameof(ProjectMilestone.Name));
+
             // Properties
             b.Property(x => x.Name).IsRequired().HasMaxLength(100);
             b.Property(x => x.Description).HasMaxLength(1000);
             b.Property(x => x.DueDate).IsRequired();
             b.Property(x => x.Status).IsRequired();
+            b.Property(x => x.CompletedDate);
+            b.Property(x => x.CompletedBy);
+            b.Property(x => x.DisplayOrder).IsRequired();
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.Property(x => x.UpdatedAt);
 
             // Value Object: MilestoneConfiguration (stored as JSON)
             b.Property(x => x.Configuration)
@@ -591,11 +748,12 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                     v => System.Text.Json.JsonSerializer.Deserialize<MilestoneConfiguration>(v, (System.Text.Json.JsonSerializerOptions)null))
                 .HasColumnName("Configuration");
 
-            // Foreign Key (shadow property)
-            b.Property<Guid>("ProjectId");
-
             // Indexes
             b.HasIndex("ProjectId");
+            b.HasIndex(x => x.Status);
+            b.HasIndex(x => x.DueDate);
+            b.HasIndex(x => x.CompletedDate);
+            b.HasIndex(x => x.DisplayOrder);
         });
 
         #endregion
@@ -607,9 +765,18 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "ProjectMembers", AnomalyDetectionConsts.DbSchema);
             b.ConfigureByConvention();
 
+            // Foreign Key (shadow property)
+            b.Property<Guid>("ProjectId");
+
+            // Composite Primary Key
+            b.HasKey("ProjectId", nameof(ProjectMember.UserId));
+
             // Properties
             b.Property(x => x.UserId).IsRequired();
             b.Property(x => x.Role).IsRequired();
+            b.Property(x => x.JoinedDate).IsRequired();
+            b.Property(x => x.LeftDate);
+            b.Property(x => x.IsActive).IsRequired();
             b.Property(x => x.Notes).HasMaxLength(500);
 
             // Value Object: MemberConfiguration (stored as JSON)
@@ -619,12 +786,13 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                     v => System.Text.Json.JsonSerializer.Deserialize<MemberConfiguration>(v, (System.Text.Json.JsonSerializerOptions)null))
                 .HasColumnName("Configuration");
 
-            // Foreign Key (shadow property)
-            b.Property<Guid>("ProjectId");
-
             // Indexes
             b.HasIndex("ProjectId");
             b.HasIndex(x => x.UserId);
+            b.HasIndex(x => x.Role);
+            b.HasIndex(x => x.IsActive);
+            b.HasIndex(x => x.JoinedDate);
+            b.HasIndex(x => x.LeftDate);
         });
 
         #endregion
@@ -668,12 +836,26 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                     v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
                     v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
                 .IsRequired();
-            b.Property(x => x.CustomizationReason).HasMaxLength(1000);
+            b.Property(x => x.CustomizationReason).IsRequired().HasMaxLength(1000);
+            b.Property(x => x.ApprovedBy);
+            b.Property(x => x.ApprovedAt);
             b.Property(x => x.Status).IsRequired();
+            b.Property(x => x.ApprovalNotes).HasMaxLength(2000);
 
-            // Indexes
+            // Indexes - Performance Optimized
             b.HasIndex(x => new { x.EntityType, x.EntityId });
             b.HasIndex(x => x.Status);
+            b.HasIndex(x => x.ApprovedAt);
+            b.HasIndex(x => x.Type);
+            
+            // Composite indexes for OEM traceability queries
+            b.HasIndex(x => new { x.TenantId, x.Status });
+            b.HasIndex(x => new { x.EntityType, x.Status });
+            b.HasIndex("OemCode_Code");
+            b.HasIndex(x => new { x.Type, x.Status, x.ApprovedAt });
+            
+            // Covering index for customization listing
+            b.HasIndex(x => new { x.TenantId, x.EntityType, x.Status, x.CreationTime });
         });
 
         #endregion
@@ -703,18 +885,85 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.EntityType).IsRequired().HasMaxLength(100);
             b.Property(x => x.EntityId).IsRequired();
             b.Property(x => x.Type).IsRequired();
+            b.Property(x => x.RequestedBy).IsRequired();
+            b.Property(x => x.RequestedAt).IsRequired();
+            b.Property(x => x.ApprovedBy);
+            b.Property(x => x.ApprovedAt);
             b.Property(x => x.Status).IsRequired();
-            b.Property(x => x.ApprovalReason).HasMaxLength(1000);
+            b.Property(x => x.ApprovalReason).IsRequired().HasMaxLength(1000);
+            b.Property(x => x.ApprovalNotes).HasMaxLength(2000);
             b.Property(x => x.ApprovalData)
                 .HasConversion(
                     v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
                     v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
                 .IsRequired();
+            b.Property(x => x.DueDate);
+            b.Property(x => x.Priority).IsRequired();
 
-            // Indexes
+            // Indexes - Performance Optimized
             b.HasIndex(x => new { x.EntityType, x.EntityId });
             b.HasIndex(x => x.Status);
+            b.HasIndex(x => x.RequestedAt);
             b.HasIndex(x => x.ApprovedAt);
+            b.HasIndex(x => x.DueDate);
+            b.HasIndex(x => x.Priority);
+            b.HasIndex(x => x.Type);
+            
+            // Composite indexes for approval workflow queries
+            b.HasIndex(x => new { x.TenantId, x.Status });
+            b.HasIndex(x => new { x.Status, x.DueDate });
+            b.HasIndex(x => new { x.Status, x.Priority });
+            b.HasIndex("OemCode_Code");
+            b.HasIndex(x => new { x.Type, x.Status, x.RequestedAt });
+            
+            // Covering indexes for approval dashboard
+            b.HasIndex(x => new { x.TenantId, x.Status, x.DueDate, x.Priority });
+            b.HasIndex(x => new { x.RequestedBy, x.Status, x.RequestedAt });
+        });
+
+        #endregion
+
+        // ============================================================================
+        // 7. Audit Logging
+        // ============================================================================
+
+        #region AnomalyDetectionAuditLog (Aggregate Root)
+
+        builder.Entity<AnomalyDetectionAuditLog>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "AuditLogs", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            // Properties
+            b.Property(x => x.EntityId);
+            b.Property(x => x.EntityType).IsRequired().HasMaxLength(100);
+            b.Property(x => x.Action).IsRequired();
+            b.Property(x => x.Level).IsRequired();
+            b.Property(x => x.Description).IsRequired().HasMaxLength(2000);
+            b.Property(x => x.OldValues).HasMaxLength(8000);
+            b.Property(x => x.NewValues).HasMaxLength(8000);
+            b.Property(x => x.Metadata)
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                .IsRequired();
+            b.Property(x => x.IpAddress).HasMaxLength(45); // IPv6 support
+            b.Property(x => x.UserAgent).HasMaxLength(500);
+            b.Property(x => x.SessionId).HasMaxLength(100);
+            b.Property(x => x.ExecutionDuration);
+            b.Property(x => x.Exception).HasMaxLength(4000);
+
+            // Indexes
+            b.HasIndex(x => x.EntityId);
+            b.HasIndex(x => x.EntityType);
+            b.HasIndex(x => x.Action);
+            b.HasIndex(x => x.Level);
+            b.HasIndex(x => x.CreationTime);
+            b.HasIndex(x => x.CreatorId);
+            b.HasIndex(x => x.TenantId);
+            b.HasIndex(x => new { x.EntityType, x.EntityId });
+            b.HasIndex(x => new { x.Action, x.CreationTime });
+            b.HasIndex(x => new { x.Level, x.CreationTime });
         });
 
         #endregion

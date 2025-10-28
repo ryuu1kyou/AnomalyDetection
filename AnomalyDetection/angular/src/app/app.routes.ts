@@ -1,5 +1,6 @@
 import { authGuard, permissionGuard } from '@abp/ng.core';
 import { Routes } from '@angular/router';
+import { PERMISSIONS } from './shared/constants/permissions';
 
 export const APP_ROUTES: Routes = [
   {
@@ -23,30 +24,28 @@ export const APP_ROUTES: Routes = [
     path: 'setting-management',
     loadChildren: () => import('@abp/ng.setting-management').then(c => c.createRoutes()),
   },
-  // TODO: Uncomment when can-signals routes are implemented
-  // {
-  //   path: 'can-signals',
-  //   loadChildren: () => import('./can-signals/can-signals.routes').then(r => r.CAN_SIGNALS_ROUTES),
-  //   canActivate: [authGuard, permissionGuard],
-  //   data: {
-  //     requiredPolicy: 'AnomalyDetection.CanSignals'
-  //   }
-  // },
-  // TODO: Uncomment when detection-logics routes are implemented
-  // {
-  //   path: 'detection-logics',
-  //   loadChildren: () => import('./detection-logics/detection-logics.routes').then(r => r.DETECTION_LOGICS_ROUTES),
-  //   canActivate: [authGuard, permissionGuard],
-  //   data: {
-  //     requiredPolicy: 'AnomalyDetection.DetectionLogics'
-  //   }
-  // },
+  {
+    path: 'can-signals',
+    loadChildren: () => import('./can-signals/can-signals.routes').then(r => r.CAN_SIGNALS_ROUTES),
+    canActivate: [authGuard, permissionGuard],
+    data: {
+      requiredPolicy: PERMISSIONS.CAN_SIGNALS.DEFAULT
+    }
+  },
+  {
+    path: 'detection-logics',
+    loadChildren: () => import('./detection-logics/detection-logics.routes').then(r => r.DETECTION_LOGICS_ROUTES),
+    canActivate: [authGuard, permissionGuard],
+    data: {
+      requiredPolicy: PERMISSIONS.DETECTION_LOGICS.DEFAULT
+    }
+  },
   {
     path: 'detection-results',
     loadChildren: () => import('./detection-results/detection-results.routes').then(r => r.detectionResultsRoutes),
     canActivate: [authGuard, permissionGuard],
     data: {
-      requiredPolicy: 'AnomalyDetection.DetectionResults'
+      requiredPolicy: PERMISSIONS.DETECTION_RESULTS.DEFAULT
     }
   },
   {
@@ -54,7 +53,7 @@ export const APP_ROUTES: Routes = [
     loadChildren: () => import('./projects/projects.routes').then(r => r.projectsRoutes),
     canActivate: [authGuard, permissionGuard],
     data: {
-      requiredPolicy: 'AnomalyDetection.Projects'
+      requiredPolicy: PERMISSIONS.PROJECTS.DEFAULT
     }
   },
   {
@@ -62,7 +61,7 @@ export const APP_ROUTES: Routes = [
     loadChildren: () => import('./anomaly-analysis/anomaly-analysis.routes').then(r => r.ANOMALY_ANALYSIS_ROUTES),
     canActivate: [authGuard, permissionGuard],
     data: {
-      requiredPolicy: 'AnomalyDetection.AnomalyAnalysis'
+      requiredPolicy: PERMISSIONS.ANOMALY_ANALYSIS.DEFAULT
     }
   },
   {
@@ -70,7 +69,7 @@ export const APP_ROUTES: Routes = [
     loadChildren: () => import('./oem-traceability/oem-traceability.routes').then(r => r.OEM_TRACEABILITY_ROUTES),
     canActivate: [authGuard, permissionGuard],
     data: {
-      requiredPolicy: 'AnomalyDetection.OemTraceability'
+      requiredPolicy: PERMISSIONS.OEM_TRACEABILITY.DEFAULT
     }
   },
   {
@@ -78,13 +77,12 @@ export const APP_ROUTES: Routes = [
     loadChildren: () => import('./similar-comparison/similar-comparison.routes').then(r => r.SIMILAR_COMPARISON_ROUTES),
     canActivate: [authGuard, permissionGuard],
     data: {
-      requiredPolicy: 'AnomalyDetection.SimilarComparison'
+      requiredPolicy: PERMISSIONS.SIMILAR_COMPARISON.DEFAULT
     }
   },
-  // TODO: Uncomment when dashboard component is implemented
-  // {
-  //   path: 'dashboard',
-  //   loadComponent: () => import('./dashboard/dashboard.component').then(c => c.DashboardComponent),
-  //   canActivate: [authGuard]
-  // }
+  {
+    path: 'dashboard',
+    loadChildren: () => import('./dashboard/dashboard.routes').then(r => r.dashboardRoutes),
+    canActivate: [authGuard]
+  }
 ];

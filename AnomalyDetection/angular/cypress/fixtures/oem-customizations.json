@@ -1,0 +1,59 @@
+{
+  "items": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "entityId": "signal-001",
+      "entityType": "CanSignal",
+      "type": "ParameterModification",
+      "customParameters": {
+        "MaxValue": "9000",
+        "MinValue": "0"
+      },
+      "originalParameters": {
+        "MaxValue": "8000",
+        "MinValue": "0"
+      },
+      "customizationReason": "Adjust signal range for Toyota specific requirements",
+      "status": "Draft",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "createdBy": "engineer@toyota.com"
+    },
+    {
+      "id": "4fa85f64-5717-4562-b3fc-2c963f66afa7",
+      "entityId": "logic-001",
+      "entityType": "DetectionLogic",
+      "type": "ThresholdAdjustment",
+      "customParameters": {
+        "UpperThreshold": "8500",
+        "LowerThreshold": "500"
+      },
+      "originalParameters": {
+        "UpperThreshold": "8000",
+        "LowerThreshold": "1000"
+      },
+      "customizationReason": "Adjust detection thresholds for Toyota vehicle characteristics",
+      "status": "Pending Approval",
+      "createdAt": "2024-01-14T14:20:00Z",
+      "createdBy": "engineer@toyota.com"
+    },
+    {
+      "id": "5fa85f64-5717-4562-b3fc-2c963f66afa8",
+      "entityId": "signal-002",
+      "entityType": "CanSignal",
+      "type": "ParameterModification",
+      "customParameters": {
+        "CycleTime": "50"
+      },
+      "originalParameters": {
+        "CycleTime": "100"
+      },
+      "customizationReason": "Increase signal frequency for better monitoring",
+      "status": "Approved",
+      "approvedBy": "approver@toyota.com",
+      "approvedAt": "2024-01-13T16:45:00Z",
+      "createdAt": "2024-01-12T09:15:00Z",
+      "createdBy": "engineer@toyota.com"
+    }
+  ],
+  "totalCount": 3
+}

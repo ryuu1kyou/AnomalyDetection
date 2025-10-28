@@ -4,6 +4,13 @@
     "Menu": {
       "Home": "ホーム",
       "Dashboard": "ダッシュボード",
+      "CanSignals": "CAN信号",
+      "DetectionLogics": "異常検出ロジック",
+      "DetectionResults": "異常検出結果",
+      "Projects": "プロジェクト",
+      "OemTraceability": "OEMトレーサビリティ",
+      "SimilarComparison": "類似パターン検索",
+      "AnomalyAnalysis": "異常分析",
       "Settings": "設定"
     },
     "Welcome": "ようこそ",

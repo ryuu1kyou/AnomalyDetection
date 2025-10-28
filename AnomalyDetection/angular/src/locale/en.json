@@ -4,6 +4,13 @@
     "Menu": {
       "Home": "Home",
       "Dashboard": "Dashboard",
+      "CanSignals": "CAN Signals",
+      "DetectionLogics": "Detection Logics",
+      "DetectionResults": "Detection Results",
+      "Projects": "Projects",
+      "OemTraceability": "OEM Traceability",
+      "SimilarComparison": "Similar Pattern Search",
+      "AnomalyAnalysis": "Anomaly Analysis",
       "Settings": "Settings"
     },
     "Welcome": "Welcome",

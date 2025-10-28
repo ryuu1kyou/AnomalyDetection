@@ -1,0 +1,59 @@
+{
+  "items": [
+    {
+      "id": "result-001",
+      "detectionLogicId": "logic-001",
+      "canSignalId": "signal-001",
+      "detectedAt": "2024-01-20T14:30:15Z",
+      "anomalyLevel": "Warning",
+      "confidenceScore": 0.87,
+      "description": "Engine RPM exceeded upper threshold",
+      "resolutionStatus": "Unresolved",
+      "inputData": {
+        "signalValue": 8250,
+        "timestamp": "2024-01-20T14:30:15Z",
+        "additionalData": {
+          "vehicleSpeed": 85,
+          "engineLoad": 78
+        }
+      },
+      "detectionDetails": {
+        "detectionType": "OutOfRange",
+        "triggerCondition": "value > 8000",
+        "executionTimeMs": 12.5,
+        "parameters": {
+          "upperThreshold": 8000,
+          "lowerThreshold": 500
+        }
+      }
+    },
+    {
+      "id": "result-002",
+      "detectionLogicId": "logic-002",
+      "canSignalId": "signal-002",
+      "detectedAt": "2024-01-20T13:45:22Z",
+      "anomalyLevel": "Error",
+      "confidenceScore": 0.92,
+      "description": "Transmission shift pattern deviation detected",
+      "resolutionStatus": "Investigating",
+      "inputData": {
+        "signalValue": 3.2,
+        "timestamp": "2024-01-20T13:45:22Z",
+        "additionalData": {
+          "gearPosition": 3,
+          "throttlePosition": 65
+        }
+      },
+      "detectionDetails": {
+        "detectionType": "PatternDeviation",
+        "triggerCondition": "pattern_similarity < 0.7",
+        "executionTimeMs": 18.3,
+        "parameters": {
+          "patternThreshold": 0.7,
+          "windowSize": 10
+        }
+      }
+    }
+  ],
+  "totalCount": 2
+}

@@ -1,0 +1,173 @@
+{
+  "targetLogic": {
+    "logicId": "logic-001",
+    "logicName": "Engine RPM Range Check",
+    "currentVersion": "1.2.0"
+  },
+  "analysisParameters": {
+    "analysisPeriod": "LastMonth",
+    "optimizationGoal": "BalancedAccuracy",
+    "analysisDate": "2024-01-20T10:00:00Z"
+  },
+  "currentPerformance": {
+    "precision": 89.5,
+    "recall": 92.3,
+    "f1Score": 90.9,
+    "accuracy": 91.2,
+    "falsePositiveRate": 4.2,
+    "falseNegativeRate": 3.1,
+    "averageExecutionTime": 12.5
+  },
+  "thresholdRecommendations": [
+    {
+      "parameterName": "UpperThreshold",
+      "currentValue": 8000,
+      "recommendedValue": 8200,
+      "confidence": 0.87,
+      "expectedImpact": {
+        "precisionChange": 2.3,
+        "recallChange": -0.8,
+        "f1ScoreChange": 1.1,
+        "falsePositiveRateChange": -1.2,
+        "falseNegativeRateChange": 0.3
+      },
+      "reasoning": "Slightly higher threshold reduces false positives while maintaining good recall",
+      "riskLevel": "Low"
+    },
+    {
+      "parameterName": "LowerThreshold",
+      "currentValue": 500,
+      "recommendedValue": 450,
+      "confidence": 0.92,
+      "expectedImpact": {
+        "precisionChange": 1.8,
+        "recallChange": 3.2,
+        "f1ScoreChange": 2.5,
+        "falsePositiveRateChange": -0.9,
+        "falseNegativeRateChange": -1.8
+      },
+      "reasoning": "Lower threshold improves detection of low RPM anomalies",
+      "riskLevel": "Low"
+    },
+    {
+      "parameterName": "ConsecutiveViolations",
+      "currentValue": 3,
+      "recommendedValue": 2,
+      "confidence": 0.78,
+      "expectedImpact": {
+        "precisionChange": -1.5,
+        "recallChange": 4.7,
+        "f1ScoreChange": 1.8,
+        "falsePositiveRateChange": 0.8,
+        "falseNegativeRateChange": -2.9
+      },
+      "reasoning": "Faster detection with acceptable increase in false positives",
+      "riskLevel": "Medium"
+    }
+  ],
+  "optimizationMetrics": {
+    "overallImprovement": {
+      "precisionImprovement": 2.6,
+      "recallImprovement": 7.1,
+      "f1ScoreImprovement": 5.4,
+      "accuracyImprovement": 4.2
+    },
+    "confidenceInterval": {
+      "lower": 0.82,
+      "upper": 0.94,
+      "confidenceLevel": 95
+    },
+    "statisticalSignificance": 0.003,
+    "sampleSize": 15420
+  },
+  "performanceTrend": {
+    "last30Days": [
+      {
+        "date": "2024-01-01",
+        "precision": 88.2,
+        "recall": 91.5,
+        "f1Score": 89.8
+      },
+      {
+        "date": "2024-01-15",
+        "precision": 89.1,
+        "recall": 92.0,
+        "f1Score": 90.5
+      },
+      {
+        "date": "2024-01-30",
+        "precision": 89.5,
+        "recall": 92.3,
+        "f1Score": 90.9
+      }
+    ]
+  },
+  "sensitivityAnalysis": {
+    "upperThresholdSensitivity": {
+      "7800": { "precision": 87.2, "recall": 94.1, "f1Score": 90.5 },
+      "8000": { "precision": 89.5, "recall": 92.3, "f1Score": 90.9 },
+      "8200": { "precision": 91.8, "recall": 91.5, "f1Score": 91.6 },
+      "8400": { "precision": 93.1, "recall": 89.7, "f1Score": 91.4 }
+    },
+    "lowerThresholdSensitivity": {
+      "400": { "precision": 91.2, "recall": 94.8, "f1Score": 93.0 },
+      "450": { "precision": 91.3, "recall": 95.5, "f1Score": 93.4 },
+      "500": { "precision": 89.5, "recall": 92.3, "f1Score": 90.9 },
+      "550": { "precision": 88.1, "recall": 90.1, "f1Score": 89.1 }
+    }
+  },
+  "riskAssessment": {
+    "overallRisk": "Low",
+    "riskFactors": [
+      {
+        "factor": "Threshold Range",
+        "risk": "Low",
+        "description": "Recommended values are within safe operational limits"
+      },
+      {
+        "factor": "Performance Impact",
+        "risk": "Low",
+        "description": "Expected improvements outweigh potential risks"
+      },
+      {
+        "factor": "System Stability",
+        "risk": "Low",
+        "description": "Changes are incremental and reversible"
+      }
+    ],
+    "mitigationStrategies": [
+      "Implement gradual rollout with monitoring",
+      "Maintain rollback capability",
+      "Monitor performance metrics for 48 hours post-deployment"
+    ]
+  },
+  "implementationPlan": {
+    "phases": [
+      {
+        "phase": 1,
+        "description": "Update UpperThreshold parameter",
+        "estimatedTime": "5 minutes",
+        "rollbackTime": "2 minutes"
+      },
+      {
+        "phase": 2,
+        "description": "Update LowerThreshold parameter",
+        "estimatedTime": "5 minutes",
+        "rollbackTime": "2 minutes"
+      },
+      {
+        "phase": 3,
+        "description": "Update ConsecutiveViolations parameter",
+        "estimatedTime": "5 minutes",
+        "rollbackTime": "2 minutes"
+      }
+    ],
+    "totalEstimatedTime": "15 minutes",
+    "monitoringPeriod": "48 hours",
+    "successCriteria": [
+      "F1 score improvement >= 3%",
+      "No increase in critical false negatives",
+      "System stability maintained"
+    ]
+  }
+}

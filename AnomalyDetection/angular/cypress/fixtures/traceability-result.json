@@ -1,0 +1,100 @@
+{
+  "entityId": "signal-001",
+  "entityType": "CanSignal",
+  "entityName": "EngineRPM",
+  "customizationHistory": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "type": "ParameterModification",
+      "status": "Approved",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "approvedAt": "2024-01-16T14:20:00Z",
+      "changes": [
+        {
+          "parameter": "MaxValue",
+          "oldValue": "8000",
+          "newValue": "9000",
+          "reason": "Increased range for high-performance engines"
+        }
+      ]
+    },
+    {
+      "id": "2fa85f64-5717-4562-b3fc-2c963f66afa5",
+      "type": "ParameterModification",
+      "status": "Approved",
+      "createdAt": "2024-01-10T09:15:00Z",
+      "approvedAt": "2024-01-11T11:30:00Z",
+      "changes": [
+        {
+          "parameter": "CycleTime",
+          "oldValue": "100",
+          "newValue": "50",
+          "reason": "Improved monitoring frequency"
+        }
+      ]
+    }
+  ],
+  "approvalHistory": [
+    {
+      "id": "approval-001",
+      "type": "CustomizationApproval",
+      "requestedAt": "2024-01-15T10:30:00Z",
+      "approvedAt": "2024-01-16T14:20:00Z",
+      "approvedBy": "approver@toyota.com",
+      "status": "Approved"
+    }
+  ],
+  "changeTimeline": [
+    {
+      "timestamp": "2024-01-01T00:00:00Z",
+      "event": "Created",
+      "description": "Initial signal definition",
+      "user": "system@toyota.com"
+    },
+    {
+      "timestamp": "2024-01-10T09:15:00Z",
+      "event": "Customization Created",
+      "description": "CycleTime parameter modification requested",
+      "user": "engineer@toyota.com"
+    },
+    {
+      "timestamp": "2024-01-11T11:30:00Z",
+      "event": "Customization Approved",
+      "description": "CycleTime parameter modification approved",
+      "user": "approver@toyota.com"
+    },
+    {
+      "timestamp": "2024-01-15T10:30:00Z",
+      "event": "Customization Created",
+      "description": "MaxValue parameter modification requested",
+      "user": "engineer@toyota.com"
+    },
+    {
+      "timestamp": "2024-01-16T14:20:00Z",
+      "event": "Customization Approved",
+      "description": "MaxValue parameter modification approved",
+      "user": "approver@toyota.com"
+    }
+  ],
+  "impactAnalysis": {
+    "affectedProjects": [
+      {
+        "projectId": "project-001",
+        "projectName": "Toyota Camry 2024 Engine Monitoring",
+        "impactLevel": "Medium"
+      }
+    ],
+    "dependentLogics": [
+      {
+        "logicId": "logic-001",
+        "logicName": "Engine RPM Range Check",
+        "impactLevel": "High"
+      }
+    ],
+    "riskAssessment": {
+      "overallRisk": "Low",
+      "safetyImpact": "None",
+      "performanceImpact": "Positive"
+    }
+  }
+}

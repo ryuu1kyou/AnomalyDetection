@@ -81,6 +81,49 @@ public static class AnomalyDetectionPermissions
         public const string ViewTenantInfo = Default + ".ViewTenantInfo";
     }
 
+    // OEM Traceability Permissions
+    public static class OemTraceability
+    {
+        public const string Default = GroupName + ".OemTraceability";
+        public const string CreateCustomization = Default + ".CreateCustomization";
+        public const string EditCustomization = Default + ".EditCustomization";
+        public const string DeleteCustomization = Default + ".DeleteCustomization";
+        public const string SubmitCustomization = Default + ".SubmitCustomization";
+        public const string ApproveCustomization = Default + ".ApproveCustomization";
+        public const string RejectCustomization = Default + ".RejectCustomization";
+        public const string ViewCustomization = Default + ".ViewCustomization";
+        public const string ViewTraceability = Default + ".ViewTraceability";
+        public const string ManageApprovals = Default + ".ManageApprovals";
+        public const string ViewApprovalHistory = Default + ".ViewApprovalHistory";
+        public const string CancelApproval = Default + ".CancelApproval";
+    }
+
+    // Analysis Permissions
+    public static class Analysis
+    {
+        public const string Default = GroupName + ".Analysis";
+        public const string AnalyzePatterns = Default + ".AnalyzePatterns";
+        public const string GenerateRecommendations = Default + ".GenerateRecommendations";
+        public const string ViewMetrics = Default + ".ViewMetrics";
+        public const string SearchSimilarSignals = Default + ".SearchSimilarSignals";
+        public const string CompareTestData = Default + ".CompareTestData";
+        public const string CalculateSimilarity = Default + ".CalculateSimilarity";
+        public const string ViewAnalysisReports = Default + ".ViewAnalysisReports";
+        public const string ExportAnalysisData = Default + ".ExportAnalysisData";
+        public const string ManageAnalysisSettings = Default + ".ManageAnalysisSettings";
+    }
+
+    // Audit Log Permissions
+    public static class AuditLogs
+    {
+        public const string Default = GroupName + ".AuditLogs";
+        public const string View = Default + ".View";
+        public const string ViewSecurity = Default + ".ViewSecurity";
+        public const string ViewUserActivity = Default + ".ViewUserActivity";
+        public const string ViewSystemActivity = Default + ".ViewSystemActivity";
+        public const string Export = Default + ".Export";
+    }
+
     // System Administration Permissions
     public static class Administration
     {

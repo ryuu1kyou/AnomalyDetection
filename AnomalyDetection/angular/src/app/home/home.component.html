@@ -12,6 +12,11 @@
             <i class="fa fa-sign-in"></i>
             {{ 'AbpAccount::Login' | abpLocalization }}
           </a>
+          } @else {
+          <h3>{{ '::Welcome' | abpLocalization }}</h3>
+          <p class="lead text-muted mb-4">
+            {{ '::LongWelcomeMessage' | abpLocalization }}
+          </p>
           }
 
           <h4>Getting Started</h4>
@@ -116,6 +121,34 @@
     </div>
   </div>
 </div>
+
+<!-- Module Navigation Cards (only show when logged in) -->
+@if(hasLoggedIn) {
+<div class="row mb-4">
+  <div class="col-12">
+    <h4 class="mb-3">システム機能</h4>
+  </div>
+  @for (card of moduleCards; track card.path) {
+    <div class="col-xl-3 col-lg-4 col-md-6 mb-3" *hasPermission="card.permission">
+      <div class="card h-100 cursor-pointer" (click)="navigateTo(card.path)">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i [class]="card.icon + ' fa-3x text-' + card.color"></i>
+          </div>
+          <h5 class="card-title">{{ card.title }}</h5>
+          <p class="card-text text-muted">{{ card.description }}</p>
+        </div>
+        <div class="card-footer bg-transparent border-0">
+          <button [class]="'btn btn-' + card.color + ' btn-sm w-100'">
+            <i class="fas fa-arrow-right me-1"></i>
+            アクセス
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+}
 
 <div class="row">
   <div class="col-xl-3 col-lg-4">

@@ -18,6 +18,9 @@ public class AnomalyDetectionPermissionDefinitionProvider : PermissionDefinition
         DefineProjectPermissions(anomalyDetectionGroup);
         DefineStatisticsPermissions(anomalyDetectionGroup);
         DefineTenantManagementPermissions(anomalyDetectionGroup);
+        DefineOemTraceabilityPermissions(anomalyDetectionGroup);
+        DefineAnalysisPermissions(anomalyDetectionGroup);
+        DefineAuditLogPermissions(anomalyDetectionGroup);
         DefineAdministrationPermissions(anomalyDetectionGroup);
     }
 
@@ -217,6 +220,127 @@ public class AnomalyDetectionPermissionDefinitionProvider : PermissionDefinition
         tenantManagementPermission.AddChild(
             AnomalyDetectionPermissions.TenantManagement.ViewTenantInfo,
             L("Permission:TenantManagement.ViewTenantInfo"));
+    }
+
+    private static void DefineOemTraceabilityPermissions(PermissionGroupDefinition group)
+    {
+        var oemTraceabilityPermission = group.AddPermission(
+            AnomalyDetectionPermissions.OemTraceability.Default,
+            L("Permission:OemTraceability"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.CreateCustomization,
+            L("Permission:OemTraceability.CreateCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.EditCustomization,
+            L("Permission:OemTraceability.EditCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.DeleteCustomization,
+            L("Permission:OemTraceability.DeleteCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.SubmitCustomization,
+            L("Permission:OemTraceability.SubmitCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.ApproveCustomization,
+            L("Permission:OemTraceability.ApproveCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.RejectCustomization,
+            L("Permission:OemTraceability.RejectCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.ViewCustomization,
+            L("Permission:OemTraceability.ViewCustomization"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.ViewTraceability,
+            L("Permission:OemTraceability.ViewTraceability"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.ManageApprovals,
+            L("Permission:OemTraceability.ManageApprovals"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.ViewApprovalHistory,
+            L("Permission:OemTraceability.ViewApprovalHistory"));
+
+        oemTraceabilityPermission.AddChild(
+            AnomalyDetectionPermissions.OemTraceability.CancelApproval,
+            L("Permission:OemTraceability.CancelApproval"));
+    }
+
+    private static void DefineAnalysisPermissions(PermissionGroupDefinition group)
+    {
+        var analysisPermission = group.AddPermission(
+            AnomalyDetectionPermissions.Analysis.Default,
+            L("Permission:Analysis"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.AnalyzePatterns,
+            L("Permission:Analysis.AnalyzePatterns"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.GenerateRecommendations,
+            L("Permission:Analysis.GenerateRecommendations"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ViewMetrics,
+            L("Permission:Analysis.ViewMetrics"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.SearchSimilarSignals,
+            L("Permission:Analysis.SearchSimilarSignals"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.CompareTestData,
+            L("Permission:Analysis.CompareTestData"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.CalculateSimilarity,
+            L("Permission:Analysis.CalculateSimilarity"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ViewAnalysisReports,
+            L("Permission:Analysis.ViewAnalysisReports"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ExportAnalysisData,
+            L("Permission:Analysis.ExportAnalysisData"));
+
+        analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ManageAnalysisSettings,
+            L("Permission:Analysis.ManageAnalysisSettings"));
+    }
+
+    private static void DefineAuditLogPermissions(PermissionGroupDefinition group)
+    {
+        var auditLogPermission = group.AddPermission(
+            AnomalyDetectionPermissions.AuditLogs.Default,
+            L("Permission:AuditLogs"));
+
+        auditLogPermission.AddChild(
+            AnomalyDetectionPermissions.AuditLogs.View,
+            L("Permission:AuditLogs.View"));
+
+        auditLogPermission.AddChild(
+            AnomalyDetectionPermissions.AuditLogs.ViewSecurity,
+            L("Permission:AuditLogs.ViewSecurity"));
+
+        auditLogPermission.AddChild(
+            AnomalyDetectionPermissions.AuditLogs.ViewUserActivity,
+            L("Permission:AuditLogs.ViewUserActivity"));
+
+        auditLogPermission.AddChild(
+            AnomalyDetectionPermissions.AuditLogs.ViewSystemActivity,
+            L("Permission:AuditLogs.ViewSystemActivity"));
+
+        auditLogPermission.AddChild(
+            AnomalyDetectionPermissions.AuditLogs.Export,
+            L("Permission:AuditLogs.Export"));
     }
 
     private static void DefineAdministrationPermissions(PermissionGroupDefinition group)

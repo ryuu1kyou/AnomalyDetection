@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AnomalyDetection.AnomalyDetection.Dtos;
 using AnomalyDetection.AnomalyDetection.Services;
+using AnomalyDetection.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Volo.Abp.Application.Services;
@@ -11,7 +12,7 @@ namespace AnomalyDetection.AnomalyDetection;
 /// <summary>
 /// 異常検出分析アプリケーションサービス
 /// </summary>
-[Authorize]
+[Authorize(AnomalyDetectionPermissions.Analysis.Default)]
 public class AnomalyAnalysisAppService : ApplicationService, IAnomalyAnalysisAppService
 {
     private readonly IAnomalyAnalysisService _anomalyAnalysisService;
@@ -28,6 +29,7 @@ public class AnomalyAnalysisAppService : ApplicationService, IAnomalyAnalysisApp
     /// <summary>
     /// 異常パターンを分析する
     /// </summary>
+    [Authorize(AnomalyDetectionPermissions.Analysis.AnalyzePatterns)]
     public async Task<AnomalyPatternAnalysisDto> AnalyzeAnomalyPatternAsync(AnomalyAnalysisRequestDto request)
     {
         _logger.LogInformation("Starting anomaly pattern analysis for CAN signal {CanSignalId}", request.CanSignalId);
@@ -48,6 +50,7 @@ public class AnomalyAnalysisAppService : ApplicationService, IAnomalyAnalysisApp
     /// <summary>
     /// 閾値最適化推奨を取得する
     /// </summary>
+    [Authorize(AnomalyDetectionPermissions.Analysis.GenerateRecommendations)]
     public async Task<ThresholdRecommendationResultDto> GetThresholdRecommendationsAsync(ThresholdRecommendationRequestDto request)
     {
         _logger.LogInformation("Generating threshold recommendations for detection logic {DetectionLogicId}", request.DetectionLogicId);
@@ -68,6 +71,7 @@ public class AnomalyAnalysisAppService : ApplicationService, IAnomalyAnalysisApp
     /// <summary>
     /// 検出精度評価メトリクスを取得する
     /// </summary>
+    [Authorize(AnomalyDetectionPermissions.Analysis.ViewMetrics)]
     public async Task<DetectionAccuracyMetricsDto> GetDetectionAccuracyMetricsAsync(DetectionAccuracyRequestDto request)
     {
         _logger.LogInformation("Calculating detection accuracy metrics for logic {DetectionLogicId}", request.DetectionLogicId);

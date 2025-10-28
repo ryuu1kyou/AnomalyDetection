@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AnomalyDetection.MultiTenancy;
+using AnomalyDetection.OemTraceability.Events;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 using Volo.Abp.MultiTenancy;
@@ -119,6 +120,9 @@ public class OemCustomization : FullAuditedAggregateRoot<Guid>, IMultiTenant
         ApprovedAt = DateTime.UtcNow;
         ApprovalNotes = approvalNotes;
         Status = CustomizationStatus.Approved;
+
+        // 監査ログ用のイベントを発行
+        AddLocalEvent(new OemCustomizationApprovedEvent(this, approvedBy, approvalNotes));
     }
 
     /// <summary>
@@ -138,6 +142,9 @@ public class OemCustomization : FullAuditedAggregateRoot<Guid>, IMultiTenant
         ApprovedAt = DateTime.UtcNow;
         ApprovalNotes = rejectionNotes;
         Status = CustomizationStatus.Rejected;
+
+        // 監査ログ用のイベントを発行
+        AddLocalEvent(new OemCustomizationRejectedEvent(this, rejectedBy, rejectionNotes));
     }
 
     /// <summary>

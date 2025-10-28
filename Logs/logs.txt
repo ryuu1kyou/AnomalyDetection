@@ -1,0 +1,40 @@
+2025-10-28 11:11:33.546 +09:00 [INF] Started database migrations...
+2025-10-28 11:11:33.553 +09:00 [INF] Migrating schema for host database...
+2025-10-28 11:14:33.242 +09:00 [INF] Started database migrations...
+2025-10-28 11:14:33.252 +09:00 [INF] Migrating schema for host database...
+2025-10-28 11:16:13.203 +09:00 [INF] Started database migrations...
+2025-10-28 11:16:13.213 +09:00 [INF] Migrating schema for host database...
+2025-10-28 11:16:14.480 +09:00 [WRN] The entity type 'OemFeature' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 11:16:14.486 +09:00 [WRN] The entity type 'TenantFeature' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 11:23:40.600 +09:00 [INF] Started database migrations...
+2025-10-28 11:23:40.607 +09:00 [INF] Migrating schema for host database...
+2025-10-28 11:23:41.935 +09:00 [WRN] The entity type 'OemFeature' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 11:23:41.943 +09:00 [WRN] The entity type 'TenantFeature' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 11:23:41.948 +09:00 [WRN] The entity type 'LogicImplementation' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 11:23:41.950 +09:00 [WRN] The entity type 'DetectionInputData' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 11:23:42.532 +09:00 [WRN] The property 'DetectionDetails.Parameters' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.533 +09:00 [WRN] The property 'DetectionInputData.AdditionalData' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.541 +09:00 [WRN] The property 'SystemCategoryConfiguration.CustomSettings' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.547 +09:00 [WRN] The property 'OemApproval.ApprovalData' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.549 +09:00 [WRN] The property 'OemCustomization.CustomParameters' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.550 +09:00 [WRN] The property 'OemCustomization.OriginalParameters' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.556 +09:00 [WRN] The property 'NotificationSettings.NotificationChannels' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.556 +09:00 [WRN] The property 'ProjectConfiguration.CustomSettings' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.556 +09:00 [WRN] The property 'ProjectConfiguration.Notes' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 11:23:42.556 +09:00 [WRN] The property 'ProjectConfiguration.Tags' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:05.160 +09:00 [INF] Started database migrations...
+2025-10-28 12:18:05.170 +09:00 [INF] Migrating schema for host database...
+2025-10-28 12:18:07.196 +09:00 [WRN] The entity type 'OemFeature' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 12:18:07.208 +09:00 [WRN] The entity type 'TenantFeature' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 12:18:07.214 +09:00 [WRN] The entity type 'LogicImplementation' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 12:18:07.216 +09:00 [WRN] The entity type 'DetectionInputData' was first mapped explicitly and then ignored. Consider not mapping the entity type in the first place.
+2025-10-28 12:18:07.968 +09:00 [WRN] The property 'DetectionDetails.Parameters' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.969 +09:00 [WRN] The property 'DetectionInputData.AdditionalData' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.974 +09:00 [WRN] The property 'SystemCategoryConfiguration.CustomSettings' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.979 +09:00 [WRN] The property 'OemApproval.ApprovalData' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.981 +09:00 [WRN] The property 'OemCustomization.CustomParameters' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.982 +09:00 [WRN] The property 'OemCustomization.OriginalParameters' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.984 +09:00 [WRN] The property 'NotificationSettings.NotificationChannels' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.984 +09:00 [WRN] The property 'ProjectConfiguration.CustomSettings' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.984 +09:00 [WRN] The property 'ProjectConfiguration.Notes' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.
+2025-10-28 12:18:07.984 +09:00 [WRN] The property 'ProjectConfiguration.Tags' is a collection or enumeration type with a value converter but with no value comparer. Set a value comparer to ensure the collection/enumeration elements are compared correctly.

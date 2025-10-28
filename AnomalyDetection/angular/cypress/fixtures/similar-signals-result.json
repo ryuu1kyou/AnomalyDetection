@@ -1,0 +1,96 @@
+{
+  "searchCriteria": {
+    "referenceSignalId": "signal-001",
+    "referenceSignalName": "EngineRPM",
+    "similarityThreshold": 0.7,
+    "searchScope": "Industry",
+    "comparisonAttributes": ["CanId", "SignalName", "SystemType", "ValueRange", "DataLength"]
+  },
+  "results": [
+    {
+      "signalId": "signal-honda-001",
+      "signalName": "EngineRPM_Honda",
+      "oemCode": "Honda",
+      "systemType": "Engine",
+      "overallSimilarityScore": 0.92,
+      "recommendationLevel": "Highly",
+      "similarityBreakdown": {
+        "canIdSimilarity": 0.85,
+        "signalNameSimilarity": 0.95,
+        "systemTypeSimilarity": 1.0,
+        "valueRangeSimilarity": 0.88,
+        "dataLengthSimilarity": 1.0,
+        "cycleTimeSimilarity": 0.90
+      },
+      "matchedAttributes": [
+        "SignalName",
+        "SystemType",
+        "DataLength"
+      ],
+      "differentAttributes": [
+        {
+          "attribute": "CanId",
+          "referenceValue": "0x123",
+          "candidateValue": "0x124",
+          "difference": "Minor ID difference"
+        },
+        {
+          "attribute": "ValueRange",
+          "referenceValue": "0-8000",
+          "candidateValue": "0-7500",
+          "difference": "Slightly lower maximum"
+        }
+      ],
+      "usageSuggestions": [
+        "Consider adopting similar threshold values",
+        "Review detection logic compatibility"
+      ]
+    },
+    {
+      "signalId": "signal-nissan-001",
+      "signalName": "Engine_RPM",
+      "oemCode": "Nissan",
+      "systemType": "Engine",
+      "overallSimilarityScore": 0.78,
+      "recommendationLevel": "High",
+      "similarityBreakdown": {
+        "canIdSimilarity": 0.70,
+        "signalNameSimilarity": 0.80,
+        "systemTypeSimilarity": 1.0,
+        "valueRangeSimilarity": 0.75,
+        "dataLengthSimilarity": 1.0,
+        "cycleTimeSimilarity": 0.65
+      },
+      "matchedAttributes": [
+        "SystemType",
+        "DataLength"
+      ],
+      "differentAttributes": [
+        {
+          "attribute": "CanId",
+          "referenceValue": "0x123",
+          "candidateValue": "0x200",
+          "difference": "Different ID range"
+        },
+        {
+          "attribute": "SignalName",
+          "referenceValue": "EngineRPM",
+          "candidateValue": "Engine_RPM",
+          "difference": "Naming convention difference"
+        },
+        {
+          "attribute": "CycleTime",
+          "referenceValue": "50ms",
+          "candidateValue": "100ms",
+          "difference": "Different update frequency"
+        }
+      ],
+      "usageSuggestions": [
+        "Evaluate naming convention alignment",
+        "Consider cycle time optimization"
+      ]
+    }
+  ],
+  "totalResults": 2,
+  "executionTime": "245ms"
+}

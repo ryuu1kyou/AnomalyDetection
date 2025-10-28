@@ -1,0 +1,140 @@
+{
+  "analysisParameters": {
+    "timeRange": "LastMonth",
+    "scope": "AllSystems",
+    "selectedLogics": ["logic-001", "logic-002"],
+    "analysisDate": "2024-01-20T10:00:00Z"
+  },
+  "anomalyTypeDistribution": {
+    "outOfRange": {
+      "count": 1250,
+      "percentage": 45.2,
+      "trend": "Increasing"
+    },
+    "rateOfChange": {
+      "count": 890,
+      "percentage": 32.1,
+      "trend": "Stable"
+    },
+    "patternDeviation": {
+      "count": 420,
+      "percentage": 15.2,
+      "trend": "Decreasing"
+    },
+    "timeout": {
+      "count": 210,
+      "percentage": 7.5,
+      "trend": "Stable"
+    }
+  },
+  "anomalyLevelDistribution": {
+    "info": {
+      "count": 980,
+      "percentage": 35.4,
+      "averageResolutionTime": "2.5 hours"
+    },
+    "warning": {
+      "count": 1120,
+      "percentage": 40.4,
+      "averageResolutionTime": "4.2 hours"
+    },
+    "error": {
+      "count": 520,
+      "percentage": 18.8,
+      "averageResolutionTime": "8.7 hours"
+    },
+    "critical": {
+      "count": 150,
+      "percentage": 5.4,
+      "averageResolutionTime": "1.2 hours"
+    }
+  },
+  "frequencyPatterns": {
+    "peakFrequencyTime": "14:30",
+    "averageFrequency": 89.2,
+    "frequencyVariance": 23.7,
+    "recurringPatterns": [
+      {
+        "pattern": "Daily peak at 2:30 PM",
+        "confidence": 0.92,
+        "description": "Consistent anomaly spike during shift change"
+      },
+      {
+        "pattern": "Weekly low on Sundays",
+        "confidence": 0.87,
+        "description": "Reduced anomaly detection during maintenance periods"
+      }
+    ],
+    "anomalyClusters": [
+      {
+        "timeRange": "13:00-15:00",
+        "clusterSize": 45,
+        "dominantType": "OutOfRange",
+        "affectedSystems": ["Engine", "Transmission"]
+      }
+    ],
+    "seasonalPatterns": [
+      {
+        "season": "Winter",
+        "anomalyIncrease": 15.2,
+        "primaryCause": "Cold weather impact on sensors"
+      }
+    ]
+  },
+  "anomalyCorrelations": [
+    {
+      "signal1": "EngineRPM",
+      "signal2": "EngineTemperature",
+      "correlationCoefficient": 0.78,
+      "significance": "High",
+      "description": "Strong correlation between RPM and temperature anomalies"
+    },
+    {
+      "signal1": "BrakePosition",
+      "signal2": "VehicleSpeed",
+      "correlationCoefficient": -0.65,
+      "significance": "Medium",
+      "description": "Inverse correlation during braking events"
+    }
+  ],
+  "systemLevelAnalysis": {
+    "engine": {
+      "totalAnomalies": 1450,
+      "criticalAnomalies": 85,
+      "averageResolutionTime": "5.2 hours",
+      "topAnomalyType": "OutOfRange"
+    },
+    "transmission": {
+      "totalAnomalies": 680,
+      "criticalAnomalies": 32,
+      "averageResolutionTime": "3.8 hours",
+      "topAnomalyType": "RateOfChange"
+    },
+    "brake": {
+      "totalAnomalies": 340,
+      "criticalAnomalies": 18,
+      "averageResolutionTime": "2.1 hours",
+      "topAnomalyType": "PatternDeviation"
+    }
+  },
+  "insights": [
+    "Engine system shows highest anomaly frequency during peak operating hours",
+    "Critical anomalies are resolved faster due to priority handling",
+    "Strong correlation between engine RPM and temperature suggests shared root causes",
+    "Seasonal patterns indicate need for weather-adjusted thresholds"
+  ],
+  "recommendations": [
+    {
+      "priority": "High",
+      "category": "Threshold Optimization",
+      "description": "Adjust engine RPM thresholds during 2-4 PM peak hours",
+      "expectedImpact": "Reduce false positives by 12%"
+    },
+    {
+      "priority": "Medium",
+      "category": "Correlation Analysis",
+      "description": "Implement cross-signal validation for engine RPM and temperature",
+      "expectedImpact": "Improve detection accuracy by 8%"
+    }
+  ]
+}

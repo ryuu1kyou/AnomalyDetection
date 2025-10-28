@@ -1,0 +1,16 @@
+{
+  "id": "9fa85f64-5717-4562-b3fc-2c963f66afac",
+  "entityId": "signal-001",
+  "entityType": "CanSignal",
+  "type": "ParameterModification",
+  "customParameters": {
+    "MaxValue": "9000"
+  },
+  "originalParameters": {
+    "MaxValue": "8000"
+  },
+  "customizationReason": "Adjust signal range for Toyota specific requirements",
+  "status": "Draft",
+  "createdAt": "2024-01-20T15:30:00Z",
+  "createdBy": "engineer@toyota.com"
+}

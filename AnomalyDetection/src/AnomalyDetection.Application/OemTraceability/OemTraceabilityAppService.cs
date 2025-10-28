@@ -4,12 +4,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.Application.Contracts.OemTraceability;
 using AnomalyDetection.Application.Contracts.OemTraceability.Dtos;
+using AnomalyDetection.AuditLogging;
 using AnomalyDetection.MultiTenancy;
 using AnomalyDetection.OemTraceability;
 using AnomalyDetection.OemTraceability.Models;
 using AnomalyDetection.OemTraceability.Services;
+using AnomalyDetection.Permissions;
 using Microsoft.AspNetCore.Authorization;
-using Volo.Abp;
+using Microsoft.EntityFrameworkCore;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Users;
 
@@ -18,29 +21,34 @@ namespace AnomalyDetection.Application.OemTraceability;
 /// <summary>
 /// OEMトレーサビリティアプリケーションサービス実装
 /// </summary>
-[Authorize]
+[Authorize(AnomalyDetectionPermissions.OemTraceability.Default)]
 public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityAppService
 {
     private readonly TraceabilityQueryService _traceabilityQueryService;
     private readonly IOemCustomizationRepository _customizationRepository;
     private readonly IOemApprovalRepository _approvalRepository;
+    private readonly IAuditLogService _auditLogService;
 
     public OemTraceabilityAppService(
         TraceabilityQueryService traceabilityQueryService,
         IOemCustomizationRepository customizationRepository,
-        IOemApprovalRepository approvalRepository)
+        IOemApprovalRepository approvalRepository,
+        IAuditLogService auditLogService)
     {
         _traceabilityQueryService = traceabilityQueryService;
         _customizationRepository = customizationRepository;
         _approvalRepository = approvalRepository;
+        _auditLogService = auditLogService;
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.ViewTraceability)]
     public async Task<OemTraceabilityDto> GetOemTraceabilityAsync(Guid entityId, string entityType)
     {
         var result = await _traceabilityQueryService.TraceAcrossOemsAsync(entityId, entityType);
         return ObjectMapper.Map<OemTraceabilityResult, OemTraceabilityDto>(result);
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.CreateCustomization)]
     public async Task<Guid> CreateOemCustomizationAsync(CreateOemCustomizationDto input)
     {
         var oemCode = new OemCode(input.OemCode, input.OemCode); // Assuming code and name are the same for simplicity
@@ -56,9 +64,24 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
             input.CustomizationReason);
 
         await _customizationRepository.InsertAsync(customization);
+
+        // 監査ログを記録
+        await _auditLogService.LogCreateAsync(
+            customization.Id,
+            "OemCustomization",
+            customization,
+            new Dictionary<string, object>
+            {
+                ["EntityType"] = input.EntityType,
+                ["EntityId"] = input.EntityId,
+                ["OemCode"] = input.OemCode,
+                ["CustomizationType"] = input.Type.ToString()
+            });
+
         return customization.Id;
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.EditCustomization)]
     public async Task<OemCustomizationDto> UpdateOemCustomizationAsync(Guid id, UpdateOemCustomizationDto input)
     {
         var customization = await _customizationRepository.GetAsync(id);
@@ -69,6 +92,7 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         return ObjectMapper.Map<OemCustomization, OemCustomizationDto>(customization);
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.ViewCustomization)]
     public async Task<OemCustomizationDto> GetOemCustomizationAsync(Guid id)
     {
         var customization = await _customizationRepository.GetAsync(id);
@@ -80,31 +104,71 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         string? entityType = null, 
         CustomizationStatus? status = null)
     {
-        List<OemCustomization> customizations;
+        // Use optimized query with proper filtering at database level
+        var queryable = await _customizationRepository.GetQueryableAsync();
 
         if (!string.IsNullOrEmpty(oemCode))
         {
-            customizations = await _customizationRepository.GetByOemAsync(oemCode);
-        }
-        else
-        {
-            customizations = await _customizationRepository.GetListAsync();
+            queryable = queryable.Where(c => c.OemCode.Code == oemCode);
         }
 
-        // Apply filters
         if (!string.IsNullOrEmpty(entityType))
         {
-            customizations = customizations.Where(c => c.EntityType == entityType).ToList();
+            queryable = queryable.Where(c => c.EntityType == entityType);
         }
 
         if (status.HasValue)
         {
-            customizations = customizations.Where(c => c.Status == status.Value).ToList();
+            queryable = queryable.Where(c => c.Status == status.Value);
         }
+
+        var customizations = await queryable
+            .OrderByDescending(c => c.CreationTime)
+            .ToListAsync();
 
         return ObjectMapper.Map<List<OemCustomization>, List<OemCustomizationDto>>(customizations);
     }
 
+    /// <summary>
+    /// ページネーション対応のOEMカスタマイズ取得
+    /// </summary>
+    public async Task<PagedResultDto<OemCustomizationDto>> GetOemCustomizationsPagedAsync(
+        int skipCount = 0,
+        int maxResultCount = 10,
+        string? oemCode = null,
+        string? entityType = null,
+        CustomizationStatus? status = null)
+    {
+        var queryable = await _customizationRepository.GetQueryableAsync();
+
+        if (!string.IsNullOrEmpty(oemCode))
+        {
+            queryable = queryable.Where(c => c.OemCode.Code == oemCode);
+        }
+
+        if (!string.IsNullOrEmpty(entityType))
+        {
+            queryable = queryable.Where(c => c.EntityType == entityType);
+        }
+
+        if (status.HasValue)
+        {
+            queryable = queryable.Where(c => c.Status == status.Value);
+        }
+
+        var totalCount = await queryable.CountAsync();
+
+        var customizations = await queryable
+            .OrderByDescending(c => c.CreationTime)
+            .Skip(skipCount)
+            .Take(maxResultCount)
+            .ToListAsync();
+
+        var dtos = ObjectMapper.Map<List<OemCustomization>, List<OemCustomizationDto>>(customizations);
+        return new PagedResultDto<OemCustomizationDto>(totalCount, dtos);
+    }
+
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.SubmitCustomization)]
     public async Task<OemCustomizationDto> SubmitForApprovalAsync(Guid id)
     {
         var customization = await _customizationRepository.GetAsync(id);
@@ -115,6 +179,7 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         return ObjectMapper.Map<OemCustomization, OemCustomizationDto>(customization);
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.ApproveCustomization)]
     public async Task<OemCustomizationDto> ApproveCustomizationAsync(Guid id, string? approvalNotes = null)
     {
         var customization = await _customizationRepository.GetAsync(id);
@@ -125,6 +190,7 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         return ObjectMapper.Map<OemCustomization, OemCustomizationDto>(customization);
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.RejectCustomization)]
     public async Task<OemCustomizationDto> RejectCustomizationAsync(Guid id, string rejectionNotes)
     {
         var customization = await _customizationRepository.GetAsync(id);
@@ -135,6 +201,7 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         return ObjectMapper.Map<OemCustomization, OemCustomizationDto>(customization);
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.ManageApprovals)]
     public async Task<Guid> CreateOemApprovalAsync(CreateOemApprovalDto input)
     {
         var oemCode = new OemCode(input.OemCode, input.OemCode);
@@ -152,6 +219,21 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
             input.Priority);
 
         await _approvalRepository.InsertAsync(approval);
+
+        // 監査ログを記録
+        await _auditLogService.LogCreateAsync(
+            approval.Id,
+            "OemApproval",
+            approval,
+            new Dictionary<string, object>
+            {
+                ["EntityType"] = input.EntityType,
+                ["EntityId"] = input.EntityId,
+                ["OemCode"] = input.OemCode,
+                ["ApprovalType"] = input.Type.ToString(),
+                ["Priority"] = input.Priority
+            });
+
         return approval.Id;
     }
 
@@ -183,6 +265,7 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         return dtos;
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.ManageApprovals)]
     public async Task<OemApprovalDto> ApproveAsync(Guid id, string? approvalNotes = null)
     {
         var approval = await _approvalRepository.GetAsync(id);
@@ -198,6 +281,7 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
         return dto;
     }
 
+    [Authorize(AnomalyDetectionPermissions.OemTraceability.ManageApprovals)]
     public async Task<OemApprovalDto> RejectApprovalAsync(Guid id, string rejectionNotes)
     {
         var approval = await _approvalRepository.GetAsync(id);

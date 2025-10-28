@@ -1,0 +1,117 @@
+{
+  "baselineSignal": {
+    "signalId": "signal-001",
+    "signalName": "EngineRPM",
+    "oemCode": "Toyota"
+  },
+  "comparisonSignal": {
+    "signalId": "signal-honda-001",
+    "signalName": "EngineRPM_Honda",
+    "oemCode": "Honda"
+  },
+  "comparisonPeriod": {
+    "startDate": "2024-01-01T00:00:00Z",
+    "endDate": "2024-01-31T23:59:59Z",
+    "duration": "LastMonth"
+  },
+  "thresholdDifferences": [
+    {
+      "parameterName": "UpperThreshold",
+      "baselineValue": 8000,
+      "comparisonValue": 7500,
+      "difference": -500,
+      "differencePercentage": -6.25,
+      "impactLevel": "Medium",
+      "recommendation": "Consider lowering upper threshold for better compatibility"
+    },
+    {
+      "parameterName": "LowerThreshold",
+      "baselineValue": 500,
+      "comparisonValue": 600,
+      "difference": 100,
+      "differencePercentage": 20.0,
+      "impactLevel": "Low",
+      "recommendation": "Threshold difference is acceptable"
+    }
+  ],
+  "conditionDifferences": [
+    {
+      "conditionType": "DetectionCondition",
+      "baselineCondition": "value > upperThreshold OR value < lowerThreshold",
+      "comparisonCondition": "value > upperThreshold OR value < lowerThreshold",
+      "differenceType": "None",
+      "impactLevel": "None"
+    },
+    {
+      "conditionType": "TriggerCondition",
+      "baselineCondition": "consecutive_violations >= 3",
+      "comparisonCondition": "consecutive_violations >= 2",
+      "differenceType": "ParameterDifference",
+      "impactLevel": "Medium"
+    }
+  ],
+  "resultDifferences": {
+    "detectionAccuracyDifference": {
+      "baselineAccuracy": 94.5,
+      "comparisonAccuracy": 91.2,
+      "difference": -3.3,
+      "impactLevel": "Low"
+    },
+    "falsePositiveRateDifference": {
+      "baselineFPR": 2.1,
+      "comparisonFPR": 3.8,
+      "difference": 1.7,
+      "impactLevel": "Medium"
+    },
+    "falseNegativeRateDifference": {
+      "baselineFNR": 3.4,
+      "comparisonFNR": 5.0,
+      "difference": 1.6,
+      "impactLevel": "Medium"
+    },
+    "executionTimeDifference": {
+      "baselineTime": 12.5,
+      "comparisonTime": 15.2,
+      "difference": 2.7,
+      "unit": "ms",
+      "impactLevel": "Low"
+    }
+  },
+  "statisticalSummary": {
+    "correlationCoefficient": 0.87,
+    "varianceAnalysis": {
+      "baselineVariance": 145.2,
+      "comparisonVariance": 178.9,
+      "varianceRatio": 1.23
+    },
+    "confidenceInterval": {
+      "lower": 0.82,
+      "upper": 0.92,
+      "confidenceLevel": 95
+    }
+  },
+  "recommendations": [
+    {
+      "type": "ThresholdAdjustment",
+      "priority": "High",
+      "description": "Adjust upper threshold to 7750 for better balance between systems",
+      "implementationSteps": [
+        "Update threshold parameter in detection logic",
+        "Test with historical data",
+        "Monitor performance for 1 week"
+      ],
+      "expectedImpact": "Reduce false positive rate by 1.2%"
+    },
+    {
+      "type": "ConditionChange",
+      "priority": "Medium",
+      "description": "Consider reducing consecutive violations threshold to 2",
+      "implementationSteps": [
+        "Update trigger condition parameter",
+        "Validate with test scenarios",
+        "Deploy to staging environment"
+      ],
+      "expectedImpact": "Improve detection sensitivity by 8%"
+    }
+  ]
+}

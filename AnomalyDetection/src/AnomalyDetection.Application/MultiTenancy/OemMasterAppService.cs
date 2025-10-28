@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.MultiTenancy.Dtos;
+using AnomalyDetection.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Entities;
-using Volo.Abp.Domain.Repositories;
 
 namespace AnomalyDetection.MultiTenancy;
 
-[Authorize]
+[Authorize(AnomalyDetectionPermissions.TenantManagement.ManageOemMaster)]
 public class OemMasterAppService : ApplicationService, IOemMasterAppService
 {
     private readonly IOemMasterRepository _oemMasterRepository;

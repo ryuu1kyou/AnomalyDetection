@@ -10,7 +10,11 @@
     "test": "ng test",
     "lint": "ng lint",
     "symlinks:setup": "cd scripts && pwsh ./setup-symlinks.ps1",
-    "symlinks:remove": "cd scripts && pwsh ./remove-symlinks.ps1"
+    "symlinks:remove": "cd scripts && pwsh ./remove-symlinks.ps1",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "e2e": "cypress run",
+    "e2e:open": "cypress open"
   },
   "private": true,
   "dependencies": {
@@ -58,6 +62,7 @@
     "@types/jasmine": "~3.6.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "cypress": "^15.5.0",
     "eslint": "^8.0.0",
     "jasmine-core": "~4.0.0",
     "karma": "~6.3.0",

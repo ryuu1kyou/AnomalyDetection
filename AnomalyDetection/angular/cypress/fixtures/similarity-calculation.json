@@ -1,0 +1,57 @@
+{
+  "signal1": {
+    "signalId": "signal-001",
+    "signalName": "EngineRPM",
+    "oemCode": "Toyota"
+  },
+  "signal2": {
+    "signalId": "signal-honda-001",
+    "signalName": "EngineRPM_Honda",
+    "oemCode": "Honda"
+  },
+  "overallSimilarityScore": 0.92,
+  "similarityBreakdown": {
+    "canIdSimilarity": 0.85,
+    "signalNameSimilarity": 0.95,
+    "systemTypeSimilarity": 1.0,
+    "valueRangeSimilarity": 0.88,
+    "dataLengthSimilarity": 1.0,
+    "cycleTimeSimilarity": 0.90,
+    "oemCodeSimilarity": 0.0
+  },
+  "weightedScores": {
+    "canIdWeight": 0.15,
+    "signalNameWeight": 0.20,
+    "systemTypeWeight": 0.25,
+    "valueRangeWeight": 0.20,
+    "dataLengthWeight": 0.10,
+    "cycleTimeWeight": 0.10
+  },
+  "recommendationLevel": "Highly",
+  "matchedAttributes": [
+    "SignalName",
+    "SystemType",
+    "DataLength"
+  ],
+  "differentAttributes": [
+    {
+      "attribute": "CanId",
+      "signal1Value": "0x123",
+      "signal2Value": "0x124",
+      "difference": "Minor ID difference",
+      "impactLevel": "Low"
+    },
+    {
+      "attribute": "ValueRange",
+      "signal1Value": "0-8000",
+      "signal2Value": "0-7500",
+      "difference": "Slightly lower maximum",
+      "impactLevel": "Medium"
+    }
+  ],
+  "calculationMetadata": {
+    "calculationTime": "45ms",
+    "algorithmVersion": "2.1.0",
+    "confidenceLevel": 0.94
+  }
+}

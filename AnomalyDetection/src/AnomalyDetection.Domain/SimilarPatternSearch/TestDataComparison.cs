@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Volo.Abp.Domain.Values;
+using DifferenceType = AnomalyDetection.SimilarPatternSearch.DifferenceType;
+using ImpactLevel = AnomalyDetection.SimilarPatternSearch.ImpactLevel;
+using RecommendationType = AnomalyDetection.SimilarPatternSearch.RecommendationType;
+using RecommendationPriority = AnomalyDetection.SimilarPatternSearch.RecommendationPriority;
 
 namespace AnomalyDetection.SimilarPatternSearch;
 
@@ -522,121 +526,3 @@ public class ComparisonRecommendation : ValueObject
     }
 }
 
-/// <summary>
-/// 差異タイプ
-/// </summary>
-public enum DifferenceType
-{
-    /// <summary>
-    /// 値が異なる
-    /// </summary>
-    ValueDifference = 1,
-    
-    /// <summary>
-    /// 条件が異なる
-    /// </summary>
-    ConditionDifference = 2,
-    
-    /// <summary>
-    /// 設定が欠落
-    /// </summary>
-    MissingSetting = 3,
-    
-    /// <summary>
-    /// 追加設定
-    /// </summary>
-    AdditionalSetting = 4,
-    
-    /// <summary>
-    /// 形式が異なる
-    /// </summary>
-    FormatDifference = 5
-}
-
-/// <summary>
-/// 影響度レベル
-/// </summary>
-public enum ImpactLevel
-{
-    /// <summary>
-    /// 低影響
-    /// </summary>
-    Low = 1,
-    
-    /// <summary>
-    /// 中影響
-    /// </summary>
-    Medium = 2,
-    
-    /// <summary>
-    /// 高影響
-    /// </summary>
-    High = 3,
-    
-    /// <summary>
-    /// 重大影響
-    /// </summary>
-    Critical = 4
-}
-
-/// <summary>
-/// 推奨事項タイプ
-/// </summary>
-public enum RecommendationType
-{
-    /// <summary>
-    /// 閾値調整
-    /// </summary>
-    ThresholdAdjustment = 1,
-    
-    /// <summary>
-    /// 条件変更
-    /// </summary>
-    ConditionChange = 2,
-    
-    /// <summary>
-    /// パラメータ追加
-    /// </summary>
-    ParameterAddition = 3,
-    
-    /// <summary>
-    /// 設定削除
-    /// </summary>
-    SettingRemoval = 4,
-    
-    /// <summary>
-    /// 検証推奨
-    /// </summary>
-    ValidationRecommended = 5,
-    
-    /// <summary>
-    /// 注意事項
-    /// </summary>
-    Caution = 6
-}
-
-/// <summary>
-/// 推奨事項優先度
-/// </summary>
-public enum RecommendationPriority
-{
-    /// <summary>
-    /// 低優先度
-    /// </summary>
-    Low = 1,
-    
-    /// <summary>
-    /// 中優先度
-    /// </summary>
-    Medium = 2,
-    
-    /// <summary>
-    /// 高優先度
-    /// </summary>
-    High = 3,
-    
-    /// <summary>
-    /// 緊急
-    /// </summary>
-    Urgent = 4
-}

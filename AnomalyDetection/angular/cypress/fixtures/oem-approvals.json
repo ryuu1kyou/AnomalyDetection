@@ -1,0 +1,43 @@
+{
+  "items": [
+    {
+      "id": "6fa85f64-5717-4562-b3fc-2c963f66afa9",
+      "entityId": "logic-001",
+      "entityType": "DetectionLogic",
+      "type": "CustomizationApproval",
+      "requestedBy": "engineer@toyota.com",
+      "requestedAt": "2024-01-14T14:20:00Z",
+      "status": "Pending",
+      "approvalReason": "Threshold adjustment for Toyota specific requirements",
+      "priority": 2,
+      "dueDate": "2024-01-21T23:59:59Z"
+    },
+    {
+      "id": "7fa85f64-5717-4562-b3fc-2c963f66afaa",
+      "entityId": "signal-003",
+      "entityType": "CanSignal",
+      "type": "LogicDeployment",
+      "requestedBy": "engineer@toyota.com",
+      "requestedAt": "2024-01-15T11:30:00Z",
+      "status": "Pending",
+      "approvalReason": "Deploy new detection logic for brake system",
+      "priority": 1,
+      "dueDate": "2024-01-18T23:59:59Z"
+    },
+    {
+      "id": "8fa85f64-5717-4562-b3fc-2c963f66afab",
+      "entityId": "logic-002",
+      "entityType": "DetectionLogic",
+      "type": "CustomizationApproval",
+      "requestedBy": "engineer@toyota.com",
+      "requestedAt": "2024-01-10T08:45:00Z",
+      "status": "Approved",
+      "approvedBy": "approver@toyota.com",
+      "approvedAt": "2024-01-12T10:30:00Z",
+      "approvalReason": "Parameter optimization for engine monitoring",
+      "priority": 3,
+      "dueDate": "2024-01-17T23:59:59Z"
+    }
+  ],
+  "totalCount": 3
+}

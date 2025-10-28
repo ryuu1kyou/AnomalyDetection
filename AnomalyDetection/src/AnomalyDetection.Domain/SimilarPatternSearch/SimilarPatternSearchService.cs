@@ -6,6 +6,10 @@ using AnomalyDetection.CanSignals;
 using AnomalyDetection.AnomalyDetection;
 using Volo.Abp.Domain.Services;
 using Microsoft.Extensions.Logging;
+using DifferenceType = AnomalyDetection.SimilarPatternSearch.DifferenceType;
+using ImpactLevel = AnomalyDetection.SimilarPatternSearch.ImpactLevel;
+using RecommendationType = AnomalyDetection.SimilarPatternSearch.RecommendationType;
+using RecommendationPriority = AnomalyDetection.SimilarPatternSearch.RecommendationPriority;
 
 namespace AnomalyDetection.SimilarPatternSearch;
 
@@ -217,31 +221,71 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
     }
 
     /// <summary>
-    /// 推奨レベルを決定する
+    /// 推奨レベルを決定する（最適化版）
     /// </summary>
     public RecommendationLevel DetermineRecommendationLevel(
         double similarityScore,
         SimilarityBreakdown breakdown,
         IEnumerable<AttributeDifference> differences)
     {
-        var differencesList = differences?.ToList() ?? new List<AttributeDifference>();
+        var differencesList = differences?.ToList() ?? [];
         var significantDifferences = differencesList.Count(d => d.IsSignificant);
-
-        // 類似度が非常に高い場合
-        if (similarityScore >= 0.95 && significantDifferences == 0)
+        
+        // 重要な属性の類似度を重視した判定
+        var criticalSimilarities = new[]
+        {
+            breakdown.CanIdSimilarity,
+            breakdown.SignalNameSimilarity,
+            breakdown.SystemTypeSimilarity
+        };
+        
+        var averageCriticalSimilarity = criticalSimilarities.Average();
+        var minCriticalSimilarity = criticalSimilarities.Min();
+        
+        // 詳細属性の類似度
+        var detailedSimilarities = new[]
+        {
+            breakdown.ValueRangeSimilarity,
+            breakdown.DataLengthSimilarity,
+            breakdown.CycleSimilarity
+        };
+        
+        var averageDetailedSimilarity = detailedSimilarities.Average();
+        
+        // 最適化された判定ロジック
+        
+        // 非常に高い推奨: 全体的に高い類似度で重要な差異がない
+        if (similarityScore >= 0.95 && 
+            averageCriticalSimilarity >= 0.9 && 
+            minCriticalSimilarity >= 0.8 && 
+            significantDifferences == 0)
             return RecommendationLevel.Highly;
 
-        // 類似度が高く、重要な差異が少ない場合
-        if (similarityScore >= 0.85 && significantDifferences <= 1)
+        // 高推奨: 重要属性が高い類似度で、差異が最小限
+        if (similarityScore >= 0.85 && 
+            averageCriticalSimilarity >= 0.8 && 
+            minCriticalSimilarity >= 0.6 && 
+            significantDifferences <= 1)
             return RecommendationLevel.High;
 
-        // 類似度が中程度で、重要な差異が適度な場合
-        if (similarityScore >= 0.7 && significantDifferences <= 2)
+        // 中推奨: 重要属性が中程度以上で、差異が許容範囲
+        if (similarityScore >= 0.7 && 
+            averageCriticalSimilarity >= 0.6 && 
+            minCriticalSimilarity >= 0.4 && 
+            significantDifferences <= 2)
             return RecommendationLevel.Medium;
 
-        // 類似度が低いか、重要な差異が多い場合
-        if (similarityScore >= 0.5 && significantDifferences <= 3)
+        // 低推奨: 最低限の類似度があり、差異が多くない
+        if (similarityScore >= 0.5 && 
+            averageCriticalSimilarity >= 0.4 && 
+            significantDifferences <= 3)
             return RecommendationLevel.Low;
+
+        // 特別ケース: 詳細属性が非常に類似している場合は推奨度を上げる
+        if (similarityScore >= 0.6 && 
+            averageDetailedSimilarity >= 0.8 && 
+            significantDifferences <= 2)
+            return RecommendationLevel.Medium;
 
         // それ以外は推奨しない
         return RecommendationLevel.NotRecommended;
@@ -306,12 +350,45 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         return (matched, differences);
     }
 
-    private SimilarityWeights DetermineWeights(SimilaritySearchCriteria criteria)
+    private static SimilarityWeights DetermineWeights(SimilaritySearchCriteria criteria)
     {
+        // 動的重み付け: 比較対象に応じて重みを調整
         if (criteria.HasDetailedComparisons())
-            return SimilarityWeights.CreateDetailedComparison();
+        {
+            // 詳細比較時は技術的属性により重みを置く
+            return new SimilarityWeights(
+                canIdWeight: 0.20,        // CAN IDの重要度を下げる
+                signalNameWeight: 0.25,   // 信号名は重要
+                systemTypeWeight: 0.15,   // システム種別
+                valueRangeWeight: 0.20,   // 値範囲を重視
+                dataLengthWeight: 0.10,   // データ長
+                cycleWeight: 0.07,        // 周期
+                oemCodeWeight: 0.03);     // OEMコードは参考程度
+        }
+        else if (criteria.CompareOemCode)
+        {
+            // OEM比較時はOEMコードの重みを上げる
+            return new SimilarityWeights(
+                canIdWeight: 0.30,
+                signalNameWeight: 0.30,
+                systemTypeWeight: 0.20,
+                valueRangeWeight: 0.05,
+                dataLengthWeight: 0.05,
+                cycleWeight: 0.02,
+                oemCodeWeight: 0.08);     // OEMコードの重みを上げる
+        }
         else
-            return SimilarityWeights.CreateBasicComparison();
+        {
+            // 基本比較時は主要属性に集中
+            return new SimilarityWeights(
+                canIdWeight: 0.35,        // CAN IDを最重視
+                signalNameWeight: 0.35,   // 信号名を最重視
+                systemTypeWeight: 0.30,   // システム種別も重要
+                valueRangeWeight: 0.0,
+                dataLengthWeight: 0.0,
+                cycleWeight: 0.0,
+                oemCodeWeight: 0.0);
+        }
     }
 
     private double CalculateCanIdSimilarity(string canId1, string canId2)
@@ -322,7 +399,7 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         return canId1.Equals(canId2, StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.0;
     }
 
-    private double CalculateStringSimilarity(string str1, string str2)
+    private static double CalculateStringSimilarity(string str1, string str2)
     {
         if (string.IsNullOrEmpty(str1) || string.IsNullOrEmpty(str2))
             return 0.0;
@@ -330,14 +407,141 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         if (str1.Equals(str2, StringComparison.OrdinalIgnoreCase))
             return 1.0;
 
-        // レーベンシュタイン距離を使用した類似度計算
-        var distance = CalculateLevenshteinDistance(str1.ToLower(), str2.ToLower());
-        var maxLength = Math.Max(str1.Length, str2.Length);
+        var s1 = str1.ToLower();
+        var s2 = str2.ToLower();
+
+        // 複数のアルゴリズムを組み合わせて最適な類似度を計算
         
+        // 1. レーベンシュタイン距離ベースの類似度
+        var levenshteinSimilarity = CalculateLevenshteinSimilarity(s1, s2);
+        
+        // 2. Jaro-Winkler類似度（名前の類似性に適している）
+        var jaroWinklerSimilarity = CalculateJaroWinklerSimilarity(s1, s2);
+        
+        // 3. 共通部分文字列の類似度
+        var substringSimilarity = CalculateSubstringSimilarity(s1, s2);
+        
+        // 4. トークンベースの類似度（アンダースコアやハイフンで分割）
+        var tokenSimilarity = CalculateTokenSimilarity(s1, s2);
+        
+        // 重み付き平均で最終的な類似度を計算
+        return (levenshteinSimilarity * 0.3 + 
+                jaroWinklerSimilarity * 0.3 + 
+                substringSimilarity * 0.2 + 
+                tokenSimilarity * 0.2);
+    }
+
+    private static double CalculateLevenshteinSimilarity(string s1, string s2)
+    {
+        var distance = CalculateLevenshteinDistance(s1, s2);
+        var maxLength = Math.Max(s1.Length, s2.Length);
         return maxLength == 0 ? 1.0 : 1.0 - (double)distance / maxLength;
     }
 
-    private int CalculateLevenshteinDistance(string str1, string str2)
+    private static double CalculateJaroWinklerSimilarity(string s1, string s2)
+    {
+        if (s1 == s2) return 1.0;
+        
+        var len1 = s1.Length;
+        var len2 = s2.Length;
+        
+        if (len1 == 0 || len2 == 0) return 0.0;
+        
+        var matchWindow = Math.Max(len1, len2) / 2 - 1;
+        if (matchWindow < 0) matchWindow = 0;
+        
+        var s1Matches = new bool[len1];
+        var s2Matches = new bool[len2];
+        
+        var matches = 0;
+        var transpositions = 0;
+        
+        // 一致する文字を見つける
+        for (int i = 0; i < len1; i++)
+        {
+            var start = Math.Max(0, i - matchWindow);
+            var end = Math.Min(i + matchWindow + 1, len2);
+            
+            for (int j = start; j < end; j++)
+            {
+                if (s2Matches[j] || s1[i] != s2[j]) continue;
+                s1Matches[i] = true;
+                s2Matches[j] = true;
+                matches++;
+                break;
+            }
+        }
+        
+        if (matches == 0) return 0.0;
+        
+        // 転置を計算
+        var k = 0;
+        for (int i = 0; i < len1; i++)
+        {
+            if (!s1Matches[i]) continue;
+            while (!s2Matches[k]) k++;
+            if (s1[i] != s2[k]) transpositions++;
+            k++;
+        }
+        
+        var jaro = ((double)matches / len1 + (double)matches / len2 + 
+                   (matches - transpositions / 2.0) / matches) / 3.0;
+        
+        // Winkler拡張: 共通プレフィックスにボーナスを与える
+        var prefix = 0;
+        for (int i = 0; i < Math.Min(len1, len2) && i < 4; i++)
+        {
+            if (s1[i] == s2[i]) prefix++;
+            else break;
+        }
+        
+        return jaro + (0.1 * prefix * (1.0 - jaro));
+    }
+
+    private static double CalculateSubstringSimilarity(string s1, string s2)
+    {
+        var longestCommonSubstring = FindLongestCommonSubstring(s1, s2);
+        var maxLength = Math.Max(s1.Length, s2.Length);
+        return maxLength == 0 ? 1.0 : (double)longestCommonSubstring / maxLength;
+    }
+
+    private static int FindLongestCommonSubstring(string s1, string s2)
+    {
+        var len1 = s1.Length;
+        var len2 = s2.Length;
+        var dp = new int[len1 + 1, len2 + 1];
+        var maxLength = 0;
+        
+        for (int i = 1; i <= len1; i++)
+        {
+            for (int j = 1; j <= len2; j++)
+            {
+                if (s1[i - 1] == s2[j - 1])
+                {
+                    dp[i, j] = dp[i - 1, j - 1] + 1;
+                    maxLength = Math.Max(maxLength, dp[i, j]);
+                }
+            }
+        }
+        
+        return maxLength;
+    }
+
+    private static double CalculateTokenSimilarity(string s1, string s2)
+    {
+        var tokens1 = s1.Split(['_', '-', ' '], StringSplitOptions.RemoveEmptyEntries);
+        var tokens2 = s2.Split(['_', '-', ' '], StringSplitOptions.RemoveEmptyEntries);
+        
+        if (tokens1.Length == 0 && tokens2.Length == 0) return 1.0;
+        if (tokens1.Length == 0 || tokens2.Length == 0) return 0.0;
+        
+        var commonTokens = tokens1.Intersect(tokens2, StringComparer.OrdinalIgnoreCase).Count();
+        var totalTokens = Math.Max(tokens1.Length, tokens2.Length);
+        
+        return (double)commonTokens / totalTokens;
+    }
+
+    private static int CalculateLevenshteinDistance(string str1, string str2)
     {
         var matrix = new int[str1.Length + 1, str2.Length + 1];
 
@@ -361,21 +565,52 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         return matrix[str1.Length, str2.Length];
     }
 
-    private double CalculateValueRangeSimilarity(SignalValueRange range1, SignalValueRange range2)
+    private static double CalculateValueRangeSimilarity(SignalValueRange range1, SignalValueRange range2)
     {
         if (range1 == null || range2 == null)
             return 0.0;
 
+        // 完全一致の場合
+        if (Math.Abs(range1.MinValue - range2.MinValue) < double.Epsilon && 
+            Math.Abs(range1.MaxValue - range2.MaxValue) < double.Epsilon)
+            return 1.0;
+
+        // 重複範囲の計算
         var minOverlap = Math.Max(range1.MinValue, range2.MinValue);
         var maxOverlap = Math.Min(range1.MaxValue, range2.MaxValue);
         
         if (minOverlap > maxOverlap)
-            return 0.0; // 重複なし
+        {
+            // 重複がない場合、距離に基づいて類似度を計算
+            var gap = minOverlap - maxOverlap;
+            var range1Size = range1.MaxValue - range1.MinValue;
+            var range2Size = range2.MaxValue - range2.MinValue;
+            var avgRangeSize = (range1Size + range2Size) / 2.0;
+            
+            // 距離が平均範囲サイズの10%以内なら部分的な類似度を与える
+            if (avgRangeSize > 0 && gap / avgRangeSize <= 0.1)
+                return Math.Max(0.0, 0.3 - (gap / avgRangeSize) * 3.0);
+            
+            return 0.0;
+        }
 
+        // 重複がある場合の類似度計算
         var overlapRange = maxOverlap - minOverlap;
-        var totalRange = Math.Max(range1.MaxValue, range2.MaxValue) - Math.Min(range1.MinValue, range2.MinValue);
+        var union = Math.Max(range1.MaxValue, range2.MaxValue) - Math.Min(range1.MinValue, range2.MinValue);
         
-        return totalRange == 0 ? 1.0 : overlapRange / totalRange;
+        if (union == 0) return 1.0;
+        
+        // Jaccard係数ベースの類似度
+        var jaccardSimilarity = overlapRange / union;
+        
+        // 範囲サイズの類似度も考慮
+        var size1 = range1.MaxValue - range1.MinValue;
+        var size2 = range2.MaxValue - range2.MinValue;
+        var sizeSimilarity = size1 == 0 && size2 == 0 ? 1.0 :
+            1.0 - Math.Abs(size1 - size2) / Math.Max(size1, size2);
+        
+        // 重み付き平均
+        return jaccardSimilarity * 0.7 + sizeSimilarity * 0.3;
     }
 
     private double CalculateDataLengthSimilarity(int length1, int length2)
@@ -389,15 +624,48 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         return maxLength == 0 ? 1.0 : 1.0 - (double)difference / maxLength;
     }
 
-    private double CalculateCycleSimilarity(int cycle1, int cycle2)
+    private static double CalculateCycleSimilarity(int cycle1, int cycle2)
     {
         if (cycle1 == cycle2)
             return 1.0;
 
+        if (cycle1 <= 0 || cycle2 <= 0)
+            return 0.0;
+
         var difference = Math.Abs(cycle1 - cycle2);
         var maxCycle = Math.Max(cycle1, cycle2);
+        var minCycle = Math.Min(cycle1, cycle2);
         
-        return maxCycle == 0 ? 1.0 : 1.0 - (double)difference / maxCycle;
+        // 標準的なCAN周期（10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1000ms）を考慮
+        var standardCycles = new[] { 10, 20, 50, 100, 200, 500, 1000 };
+        
+        // 両方が標準周期の場合、より高い類似度を与える
+        var isStandard1 = standardCycles.Contains(cycle1);
+        var isStandard2 = standardCycles.Contains(cycle2);
+        
+        if (isStandard1 && isStandard2)
+        {
+            // 標準周期間の類似度は特別に計算
+            var ratio = (double)maxCycle / minCycle;
+            if (ratio <= 2.0) return 0.8; // 2倍以内なら高い類似度
+            if (ratio <= 5.0) return 0.6; // 5倍以内なら中程度
+            if (ratio <= 10.0) return 0.4; // 10倍以内なら低い類似度
+        }
+        
+        // 相対的な差異による類似度計算
+        var relativeDifference = (double)difference / maxCycle;
+        
+        // 10%以内の差異なら非常に高い類似度
+        if (relativeDifference <= 0.1) return 0.95;
+        
+        // 25%以内の差異なら高い類似度
+        if (relativeDifference <= 0.25) return 0.8;
+        
+        // 50%以内の差異なら中程度の類似度
+        if (relativeDifference <= 0.5) return 0.6;
+        
+        // それ以外は線形減少
+        return Math.Max(0.0, 1.0 - relativeDifference);
     }
 
     private IEnumerable<ThresholdDifference> AnalyzeThresholdDifferences(
@@ -449,7 +717,7 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
                 "Missing Condition",
                 condition,
                 "",
-                DifferenceType.MissingSetting,
+                DifferenceType.ConditionDifference,
                 true,
                 "Condition exists in source but not in target"));
         }
@@ -460,7 +728,7 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
                 "Additional Condition",
                 "",
                 condition,
-                DifferenceType.AdditionalSetting,
+                DifferenceType.ConditionDifference,
                 false,
                 "Condition exists in target but not in source"));
         }
@@ -502,7 +770,7 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         var recommendations = new List<ComparisonRecommendation>();
 
         var significantThresholdDiffs = thresholdDifferences.Where(d => d.IsSignificant).ToList();
-        if (significantThresholdDiffs.Any())
+        if (significantThresholdDiffs.Count > 0)
         {
             recommendations.Add(new ComparisonRecommendation(
                 RecommendationType.ThresholdAdjustment,
@@ -512,10 +780,10 @@ public class SimilarPatternSearchService : DomainService, ISimilarPatternSearchS
         }
 
         var significantConditionDiffs = conditionDifferences.Where(d => d.IsSignificant).ToList();
-        if (significantConditionDiffs.Any())
+        if (significantConditionDiffs.Count > 0)
         {
             recommendations.Add(new ComparisonRecommendation(
-                RecommendationType.ConditionChange,
+                RecommendationType.DetectionConditionChange,
                 RecommendationPriority.Medium,
                 "Consider updating detection conditions to align with target signal",
                 $"Found {significantConditionDiffs.Count} significant condition differences"));

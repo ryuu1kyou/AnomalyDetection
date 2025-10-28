@@ -12,6 +12,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { OemTraceabilityService } from '../../services/oem-traceability.service';
+import { PermissionService } from '../../../shared/services/permission.service';
+import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import {
   OemTraceabilityResult,
   OemUsageInfo,
@@ -34,7 +36,8 @@ import {
     MatIconModule,
     MatChipsModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    HasPermissionDirective
   ],
   templateUrl: './oem-traceability-dashboard.component.html',
   styleUrls: ['./oem-traceability-dashboard.component.scss']
@@ -54,7 +57,8 @@ export class OemTraceabilityDashboardComponent implements OnInit {
 
   constructor(
     private oemTraceabilityService: OemTraceabilityService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public permissionService: PermissionService
   ) {}
 
   ngOnInit(): void {
