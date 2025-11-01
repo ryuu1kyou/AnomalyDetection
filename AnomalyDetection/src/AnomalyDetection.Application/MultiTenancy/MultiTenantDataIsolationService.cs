@@ -31,7 +31,7 @@ public class MultiTenantDataIsolationService : ApplicationService
         var result = new MultiTenantDataIsolationResult
         {
             CurrentTenantId = _currentTenant.Id,
-            CurrentTenantName = _currentTenant.Name,
+            CurrentTenantName = _currentTenant.Name ?? string.Empty,
             TestExecutedAt = DateTime.UtcNow
         };
 
@@ -112,7 +112,7 @@ public class MultiTenantDataIsolationService : ApplicationService
                                    !AreDataSetsEqual(beforeSwitchData, result.AfterSwitchData);
 
             result.IsSuccess = true;
-            result.Message = result.IsDataIsolated 
+            result.Message = result.IsDataIsolated
                 ? "テナント切り替え時のデータ分離が正常に動作しています。"
                 : "注意: テナント切り替え前後でデータが同じです。";
 
@@ -174,15 +174,15 @@ public class MultiTenantDataIsolationService : ApplicationService
 public class MultiTenantDataIsolationResult
 {
     public Guid? CurrentTenantId { get; set; }
-    public string CurrentTenantName { get; set; }
+    public string CurrentTenantName { get; set; } = string.Empty;
     public bool IsHostTenant { get; set; }
     public int CurrentTenantDataCount { get; set; }
     public List<TenantDataSummary> CurrentTenantData { get; set; } = new();
     public int OemMasterCount { get; set; }
     public int? AllTenantsCount { get; set; }
     public bool IsSuccess { get; set; }
-    public string Message { get; set; }
-    public string ErrorDetails { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string ErrorDetails { get; set; } = string.Empty;
     public DateTime TestExecutedAt { get; set; }
 }
 
@@ -195,14 +195,14 @@ public class TenantSwitchVerificationResult
     public List<TenantDataSummary> AfterSwitchData { get; set; } = new();
     public bool IsDataIsolated { get; set; }
     public bool IsSuccess { get; set; }
-    public string Message { get; set; }
-    public string ErrorDetails { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string ErrorDetails { get; set; } = string.Empty;
     public DateTime TestExecutedAt { get; set; }
 }
 
 public class TenantDataSummary
 {
-    public string EntityType { get; set; }
+    public string EntityType { get; set; } = string.Empty;
     public int Count { get; set; }
     public Guid? TenantId { get; set; }
 }

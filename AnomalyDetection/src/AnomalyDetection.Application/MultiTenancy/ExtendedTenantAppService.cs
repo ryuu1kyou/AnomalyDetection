@@ -41,7 +41,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         );
 
         var dtos = ObjectMapper.Map<List<ExtendedTenant>, List<ExtendedTenantDto>>(items);
-        
+
         // Set additional properties
         foreach (var dto in dtos)
         {
@@ -77,14 +77,14 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         }
 
         // Validate OEM Master if provided
-        OemMaster oemMaster = null;
+        OemMaster? oemMaster = null;
         if (input.OemMasterId.HasValue)
         {
             oemMaster = await _oemMasterRepository.GetAsync(input.OemMasterId.Value);
         }
 
-        var oemCode = oemMaster?.OemCode ?? new OemCode(input.OemCode, input.OemName);
-        
+        var oemCode = oemMaster?.OemCode ?? new OemCode(input.OemCode ?? "UNKNOWN", input.OemName ?? "Unknown OEM");
+
         var tenant = new ExtendedTenant(
             GuidGenerator.Create(),
             input.Name,
@@ -100,7 +100,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         }
 
         await _extendedTenantRepository.InsertAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -111,7 +111,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
     public async Task<ExtendedTenantDto> UpdateAsync(Guid id, UpdateExtendedTenantDto input)
     {
         var tenant = await _extendedTenantRepository.GetAsync(id);
-        
+
         // Check if new name conflicts with existing tenant
         if (tenant.Name != input.Name)
         {
@@ -126,7 +126,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         tenant.SetExpiration(input.ExpirationDate);
 
         await _extendedTenantRepository.UpdateAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -144,7 +144,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         var tenant = await _extendedTenantRepository.GetAsync(id);
         tenant.Activate();
         await _extendedTenantRepository.UpdateAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -156,7 +156,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         var tenant = await _extendedTenantRepository.GetAsync(id);
         tenant.Deactivate();
         await _extendedTenantRepository.UpdateAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -168,7 +168,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         var tenant = await _extendedTenantRepository.GetAsync(id);
         tenant.AddFeature(input.FeatureName, input.FeatureValue, input.IsEnabled);
         await _extendedTenantRepository.UpdateAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -180,7 +180,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         var tenant = await _extendedTenantRepository.GetAsync(id);
         tenant.UpdateFeature(featureName, input.FeatureValue, input.IsEnabled);
         await _extendedTenantRepository.UpdateAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -192,7 +192,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         var tenant = await _extendedTenantRepository.GetAsync(id);
         tenant.RemoveFeature(featureName);
         await _extendedTenantRepository.UpdateAsync(tenant);
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();
@@ -203,9 +203,9 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
     {
         var activeTenants = await _extendedTenantRepository.GetActiveTenantsAsync();
         var validTenants = activeTenants.Where(t => t.IsValidForUse()).ToList();
-        
+
         var result = new List<TenantSwitchDto>();
-        
+
         // Add host tenant (null tenant)
         result.Add(new TenantSwitchDto
         {
@@ -213,7 +213,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
             TenantName = "Host",
             OemCode = "HOST"
         });
-        
+
         // Add valid tenants
         result.AddRange(validTenants.Select(t => new TenantSwitchDto
         {
@@ -221,7 +221,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
             TenantName = t.Name,
             OemCode = t.OemCode.Code
         }));
-        
+
         return result;
     }
 
@@ -259,7 +259,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
                 throw new BusinessException("Cannot switch to inactive or expired tenant");
             }
         }
-        
+
         // The actual tenant switching would be handled by the frontend
         // or a specialized tenant switching service
     }
@@ -268,16 +268,16 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
     {
         var activeTenants = await _extendedTenantRepository.GetActiveTenantsAsync();
         var validTenants = activeTenants.Where(t => t.IsValidForUse()).ToList();
-        
+
         var dtos = ObjectMapper.Map<List<ExtendedTenant>, List<ExtendedTenantDto>>(validTenants);
-        
+
         foreach (var dto in dtos)
         {
             var tenant = validTenants.First(x => x.Id == dto.Id);
             dto.IsExpired = tenant.IsExpired();
             dto.IsValidForUse = tenant.IsValidForUse();
         }
-        
+
         return new ListResultDto<ExtendedTenantDto>(dtos);
     }
 
@@ -288,7 +288,7 @@ public class ExtendedTenantAppService : ApplicationService, IExtendedTenantAppSe
         {
             throw new EntityNotFoundException(typeof(ExtendedTenant), name);
         }
-        
+
         var dto = ObjectMapper.Map<ExtendedTenant, ExtendedTenantDto>(tenant);
         dto.IsExpired = tenant.IsExpired();
         dto.IsValidForUse = tenant.IsValidForUse();

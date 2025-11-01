@@ -30,7 +30,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         // Apply filters
         if (!string.IsNullOrEmpty(input.Filter))
         {
-            queryable = queryable.Where(x => 
+            queryable = queryable.Where(x =>
                 x.Identity.Name.Contains(input.Filter) ||
                 x.Specification.Description.Contains(input.Filter));
         }
@@ -91,7 +91,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
     public async Task<CanAnomalyDetectionLogicDto> CreateAsync(CreateDetectionLogicDto input)
     {
         var logic = ObjectMapper.Map<CreateDetectionLogicDto, CanAnomalyDetectionLogic>(input);
-        
+
         logic = await _detectionLogicRepository.InsertAsync(logic, autoSave: true);
         return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);
     }
@@ -100,10 +100,10 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
     public async Task<CanAnomalyDetectionLogicDto> UpdateAsync(Guid id, UpdateDetectionLogicDto input)
     {
         var logic = await _detectionLogicRepository.GetAsync(id);
-        
+
         // Update logic properties based on input
         // This is a simplified implementation
-        
+
         logic = await _detectionLogicRepository.UpdateAsync(logic, autoSave: true);
         return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);
     }
@@ -152,10 +152,10 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Approve)]
-    public async Task ApproveAsync(Guid id, string notes = null)
+    public async Task ApproveAsync(Guid id, string? notes = null)
     {
         var logic = await _detectionLogicRepository.GetAsync(id);
-        logic.Approve(CurrentUser.Id ?? Guid.Empty, notes);
+        logic.Approve(CurrentUser.Id ?? Guid.Empty, notes ?? string.Empty);
         await _detectionLogicRepository.UpdateAsync(logic, autoSave: true);
     }
 
@@ -190,10 +190,10 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         return await Task.FromResult(new Dictionary<string, object>());
     }
 
-    public async Task<List<string>> ValidateImplementationAsync(Guid id)
+    public Task<List<string>> ValidateImplementationAsync(Guid id)
     {
         // TODO: Implement validation logic
-        return await Task.FromResult(new List<string>());
+        return Task.FromResult(new List<string>());
     }
 
     public async Task<Dictionary<string, object>> GetExecutionStatisticsAsync(Guid id)
@@ -202,40 +202,40 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         return new Dictionary<string, object>
         {
             ["ExecutionCount"] = logic.ExecutionCount,
-            ["LastExecutedAt"] = logic.LastExecutedAt,
+            ["LastExecutedAt"] = logic.LastExecutedAt as object ?? DBNull.Value,
             ["AverageExecutionTime"] = logic.GetAverageExecutionTime()
         };
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Create)]
-    public async Task<CanAnomalyDetectionLogicDto> CloneAsync(Guid id, string newName)
+    public Task<CanAnomalyDetectionLogicDto> CloneAsync(Guid id, string newName)
     {
         // TODO: Implement clone logic
         throw new NotImplementedException();
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.ManageTemplates)]
-    public async Task<CanAnomalyDetectionLogicDto> CreateFromTemplateAsync(DetectionType detectionType, Dictionary<string, object> parameters)
+    public Task<CanAnomalyDetectionLogicDto> CreateFromTemplateAsync(DetectionType detectionType, Dictionary<string, object> parameters)
     {
         // TODO: Implement template creation logic
         throw new NotImplementedException();
     }
 
-    public async Task<List<Dictionary<string, object>>> GetTemplatesAsync(DetectionType detectionType)
+    public Task<List<Dictionary<string, object>>> GetTemplatesAsync(DetectionType detectionType)
     {
         // TODO: Implement template retrieval logic
-        return await Task.FromResult(new List<Dictionary<string, object>>());
+        return Task.FromResult(new List<Dictionary<string, object>>());
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Export)]
-    public async Task<byte[]> ExportAsync(Guid id, string format)
+    public Task<byte[]> ExportAsync(Guid id, string format)
     {
         // TODO: Implement export logic
         throw new NotImplementedException();
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Import)]
-    public async Task<CanAnomalyDetectionLogicDto> ImportAsync(byte[] fileContent, string fileName)
+    public Task<CanAnomalyDetectionLogicDto> ImportAsync(byte[] fileContent, string fileName)
     {
         // TODO: Implement import logic
         throw new NotImplementedException();
@@ -246,7 +246,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         var queryable = await _detectionLogicRepository.GetQueryableAsync();
         var logics = await AsyncExecuter.ToListAsync(
             queryable.Where(x => x.SignalMappings.Any(m => m.CanSignalId == canSignalId)));
-        
+
         var dtos = ObjectMapper.Map<List<CanAnomalyDetectionLogic>, List<CanAnomalyDetectionLogicDto>>(logics);
         return new ListResultDto<CanAnomalyDetectionLogicDto>(dtos);
     }

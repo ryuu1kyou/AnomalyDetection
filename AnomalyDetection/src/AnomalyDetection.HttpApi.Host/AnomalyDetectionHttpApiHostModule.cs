@@ -61,6 +61,34 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         var configuration = context.Services.GetConfiguration();
 
+        // Disable client library check for API-only application
+        try
+        {
+            var assembly = typeof(AbpAspNetCoreMvcModule).Assembly;
+            var optionsType = assembly.GetType("Volo.Abp.AspNetCore.Mvc.UI.Libs.AbpMvcLibsOptions");
+            if (optionsType != null)
+            {
+                var configureMethod = typeof(ServiceConfigurationContext).GetMethod("Configure");
+                if (configureMethod != null)
+                {
+                    var genericMethod = configureMethod.MakeGenericMethod(optionsType);
+                    genericMethod.Invoke(context, new object[] {
+                        new Action<object>(options => {
+                            var checkLibsProperty = optionsType.GetProperty("CheckLibs");
+                            if (checkLibsProperty != null)
+                            {
+                                checkLibsProperty.SetValue(options, false);
+                            }
+                        })
+                    });
+                }
+            }
+        }
+        catch
+        {
+            // If reflection fails, continue without disabling the check
+        }
+
         PreConfigure<OpenIddictBuilder>(builder =>
         {
             builder.AddValidation(options =>
@@ -103,7 +131,7 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
             {
                 options.DisableTransportSecurityRequirement = true;
             });
-            
+
             Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
@@ -119,7 +147,6 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
         ConfigureVirtualFileSystem(context);
         ConfigureCors(context, configuration);
     }
-
     private void ConfigureAuthentication(ServiceConfigurationContext context)
     {
         context.Services.ForwardIdentityAuthenticationForBearer(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);

@@ -40,26 +40,25 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     {
         // 対象信号を取得
         var targetSignal = await _canSignalRepository.GetAsync(request.TargetSignalId);
-        
+
         // 候補信号を最適化されたクエリで取得
         IEnumerable<CanSignal> candidateSignals;
         if (request.CandidateSignalIds?.Any() == true)
         {
             var queryable = await _canSignalRepository.GetQueryableAsync();
-            candidateSignals = await queryable
-                .Where(s => request.CandidateSignalIds.Contains(s.Id))
-                .ToListAsync();
+            candidateSignals = await AsyncExecuter.ToListAsync(
+                queryable.Where(s => request.CandidateSignalIds.Contains(s.Id)));
         }
         else
         {
             // アクティブな信号のみを効率的に取得
             var queryable = await _canSignalRepository.GetQueryableAsync();
-            candidateSignals = await queryable
-                .Where(s => s.Status == SignalStatus.Active)
-                .OrderBy(s => s.SystemType)
-                .ThenBy(s => s.Identifier.SignalName)
-                .Take(1000) // 大量データ対策として制限
-                .ToListAsync();
+            candidateSignals = await AsyncExecuter.ToListAsync(
+                queryable
+                    .Where(s => s.Status == SignalStatus.Active)
+                    .OrderBy(s => s.SystemType)
+                    .ThenBy(s => s.Identifier.SignalName)
+                    .Take(1000)); // 大量データ対策として制限
         }
 
         // 検索条件をドメインオブジェクトに変換
@@ -93,11 +92,11 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
 
         // 検出結果を取得
         var sourceResults = await GetAnomalyDetectionResultsAsync(
-            request.SourceSignalId, request.StartDate, request.EndDate, 
+            request.SourceSignalId, request.StartDate, request.EndDate,
             request.AnomalyLevelFilter, request.MaxResults);
-            
+
         var targetResults = await GetAnomalyDetectionResultsAsync(
-            request.TargetSignalId, request.StartDate, request.EndDate, 
+            request.TargetSignalId, request.StartDate, request.EndDate,
             request.AnomalyLevelFilter, request.MaxResults);
 
         // 比較を実行
@@ -116,7 +115,7 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     {
         // 対象信号を取得
         var targetSignal = await _canSignalRepository.GetAsync(request.SignalId);
-        
+
         // デフォルトの検索条件で類似信号を検索
         var criteria = SimilaritySearchCriteria.CreateDefault()
             .WithMaxResults(request.MaxRecommendations * 2); // 多めに取得してフィルタリング
@@ -209,7 +208,7 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     {
         // 実装は後で追加（検索履歴の統計分析）
         await Task.CompletedTask;
-        
+
         return new SimilarPatternSearchStatisticsDto
         {
             SignalId = signalId,
@@ -236,7 +235,7 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
         int maxResults)
     {
         var queryable = await _anomalyDetectionResultRepository.GetQueryableAsync();
-        
+
         var query = queryable.Where(r => r.CanSignalId == signalId);
 
         if (startDate.HasValue)
@@ -249,15 +248,15 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
             query = query.Where(r => anomalyLevelFilter.Contains(r.AnomalyLevel));
 
         // Use async execution for better performance
-        return await query.OrderByDescending(r => r.DetectedAt)
-                   .Take(maxResults)
-                   .ToListAsync();
+        return await AsyncExecuter.ToListAsync(
+            query.OrderByDescending(r => r.DetectedAt)
+                 .Take(maxResults));
     }
 
     private async Task<SimilarSignalInfoDto> GetSignalInfoAsync(Guid signalId)
     {
         var signal = await _canSignalRepository.GetAsync(signalId);
-        
+
         return new SimilarSignalInfoDto
         {
             SignalName = signal.Identifier.SignalName,
@@ -287,7 +286,7 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     }
 
     private static SimilarSignalResultDto MapToSimilarSignalResultDto(
-        SimilarSignalResult result, 
+        SimilarSignalResult result,
         SimilarSignalInfoDto signalInfo)
     {
         return new SimilarSignalResultDto
@@ -439,11 +438,11 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     }
 
     private static Dictionary<string, object> GenerateRecommendedSettings(
-        SimilarSignalResult result, 
+        SimilarSignalResult result,
         RecommendationType recommendationType)
     {
         var settings = new Dictionary<string, object>();
-        
+
         // 推奨タイプに基づいて設定を生成
         switch (recommendationType)
         {
@@ -458,13 +457,13 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
                 settings["GeneralRecommendation"] = result.RecommendationReason;
                 break;
         }
-        
+
         return settings;
     }
 
     private static List<DetailedComparisonItemDto> GenerateDetailedComparisons(
-        CanSignal signal1, 
-        CanSignal signal2, 
+        CanSignal signal1,
+        CanSignal signal2,
         SimilarityBreakdown breakdown)
     {
         var items = new List<DetailedComparisonItemDto>();

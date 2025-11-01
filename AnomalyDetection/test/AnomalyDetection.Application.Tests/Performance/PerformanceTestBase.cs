@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,12 +10,9 @@ using Volo.Abp.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace AnomalyDetection.Performance;
+namespace AnomalyDetection.Application.Tests.Performance;
 
-/// <summary>
-/// パフォーマンステストの基底クラス
-/// </summary>
-public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
+public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase<AnomalyDetectionApplicationTestModule>
 {
     protected readonly ITestOutputHelper Output;
     protected readonly ILogger Logger;
@@ -29,17 +27,17 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
     /// メソッドの実行時間を測定
     /// </summary>
     protected async Task<PerformanceResult> MeasureExecutionTimeAsync(
-        Func<Task> action, 
+        Func<Task> action,
         string operationName,
         int expectedMaxMilliseconds = 1000)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             await action();
             stopwatch.Stop();
-            
+
             var result = new PerformanceResult
             {
                 OperationName = operationName,
@@ -54,7 +52,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
         catch (Exception ex)
         {
             stopwatch.Stop();
-            
+
             var result = new PerformanceResult
             {
                 OperationName = operationName,
@@ -84,7 +82,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
         for (int i = 0; i < iterations; i++)
         {
             var stopwatch = Stopwatch.StartNew();
-            
+
             try
             {
                 await action();
@@ -178,7 +176,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
     protected void AssertPerformanceRequirement(PerformanceResult result)
     {
         result.IsSuccess.ShouldBeTrue($"Operation '{result.OperationName}' failed: {result.Exception?.Message}");
-        result.ExecutionTimeMs.ShouldBeLessThanOrEqualTo(result.ExpectedMaxMs, 
+        result.ExecutionTimeMs.ShouldBeLessThanOrEqualTo(result.ExpectedMaxMs,
             $"Operation '{result.OperationName}' took {result.ExecutionTimeMs}ms, expected max {result.ExpectedMaxMs}ms");
     }
 
@@ -190,14 +188,14 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
         statistics.SuccessCount.ShouldBeGreaterThan(0, "No successful operations");
         statistics.AverageMs.ShouldBeLessThanOrEqualTo(statistics.ExpectedMaxMs,
             $"Average execution time {statistics.AverageMs}ms exceeded expected max {statistics.ExpectedMaxMs}ms");
-        
+
         // 95%の操作が期待時間内に完了することを確認
         var sortedTimes = statistics.GetAllExecutionTimes().OrderBy(t => t).ToList();
         if (sortedTimes.Count > 0)
         {
             var percentile95Index = (int)(sortedTimes.Count * 0.95);
             var percentile95Time = sortedTimes[Math.Min(percentile95Index, sortedTimes.Count - 1)];
-            percentile95Time.ShouldBeLessThanOrEqualTo(statistics.ExpectedMaxMs * 1.5, // 95%ile allows 50% more time
+            percentile95Time.ShouldBeLessThanOrEqualTo((long)(statistics.ExpectedMaxMs * 1.5), // 95%ile allows 50% more time
                 $"95th percentile time {percentile95Time}ms exceeded threshold");
         }
     }
@@ -223,7 +221,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
         for (int i = 0; i < operationCount; i++)
         {
             var stopwatch = Stopwatch.StartNew();
-            
+
             try
             {
                 await action();
@@ -244,10 +242,10 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
     private static double CalculateMedian(List<long> values)
     {
         if (values.Count == 0) return 0;
-        
+
         var sorted = values.OrderBy(x => x).ToList();
         var count = sorted.Count;
-        
+
         if (count % 2 == 0)
         {
             return (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0;
@@ -262,7 +260,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
     {
         var message = $"Performance: {result.OperationName} - {result.ExecutionTimeMs}ms " +
                      $"(Expected: <={result.ExpectedMaxMs}ms, Success: {result.IsSuccess})";
-        
+
         Output.WriteLine(message);
         Logger.LogInformation(message);
     }
@@ -272,7 +270,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
         var message = $"Performance Stats: {statistics.OperationName} - " +
                      $"Avg: {statistics.AverageMs:F1}ms, Min: {statistics.MinMs}ms, Max: {statistics.MaxMs}ms, " +
                      $"Median: {statistics.MedianMs:F1}ms, Success: {statistics.SuccessCount}/{statistics.Iterations}";
-        
+
         Output.WriteLine(message);
         Logger.LogInformation(message);
     }
@@ -284,7 +282,7 @@ public abstract class PerformanceTestBase : AnomalyDetectionApplicationTestBase
                      $"Throughput: {result.ThroughputOpsPerSecond:F2} ops/sec, " +
                      $"Avg Response: {result.AverageResponseTimeMs:F1}ms, " +
                      $"Success: {result.SuccessCount}/{result.TotalOperations}";
-        
+
         Output.WriteLine(message);
         Logger.LogInformation(message);
     }

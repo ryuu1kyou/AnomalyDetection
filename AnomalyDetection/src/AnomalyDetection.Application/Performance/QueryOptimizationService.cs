@@ -45,16 +45,16 @@ public class QueryOptimizationService : ApplicationService
         int skipCount = 0,
         int maxResultCount = 10,
         string? filter = null,
-        SystemType? systemType = null,
+        CanSystemType? systemType = null,
         SignalStatus? status = null,
         bool? isStandard = null)
     {
         var queryable = await _canSignalRepository.GetQueryableAsync();
-        
+
         // フィルタリング
         if (!string.IsNullOrEmpty(filter))
         {
-            queryable = queryable.Where(s => 
+            queryable = queryable.Where(s =>
                 EF.Functions.Like(s.Identifier.SignalName, $"%{filter}%") ||
                 EF.Functions.Like(s.Description, $"%{filter}%"));
         }
@@ -116,7 +116,7 @@ public class QueryOptimizationService : ApplicationService
         // フィルタリング
         if (!string.IsNullOrEmpty(filter))
         {
-            queryable = queryable.Where(l => 
+            queryable = queryable.Where(l =>
                 EF.Functions.Like(l.Identity.Name, $"%{filter}%") ||
                 EF.Functions.Like(l.Specification.Description, $"%{filter}%"));
         }
@@ -230,7 +230,7 @@ public class QueryOptimizationService : ApplicationService
         // フィルタリング
         if (!string.IsNullOrEmpty(filter))
         {
-            queryable = queryable.Where(p => 
+            queryable = queryable.Where(p =>
                 EF.Functions.Like(p.Name, $"%{filter}%") ||
                 EF.Functions.Like(p.ProjectCode, $"%{filter}%") ||
                 EF.Functions.Like(p.VehicleModel, $"%{filter}%"));
@@ -306,7 +306,7 @@ public class QueryOptimizationService : ApplicationService
     /// </summary>
     public async Task<List<CanSignal>> GetSimilarSignalsOptimizedAsync(
         Guid targetSignalId,
-        SystemType? systemType = null,
+        CanSystemType? systemType = null,
         int maxResults = 100)
     {
         var queryable = await _canSignalRepository.GetQueryableAsync();
@@ -342,31 +342,28 @@ public class QueryOptimizationService : ApplicationService
         var end = endDate ?? DateTime.UtcNow;
 
         // 並列実行で複数の統計を同時取得
-        var tasks = new[]
-        {
-            GetSignalCountBySystemTypeAsync(),
-            GetDetectionResultCountByLevelAsync(start, end),
-            GetActiveProjectCountAsync(),
-            GetPendingCustomizationCountAsync(),
-            GetRecentDetectionResultsAsync(10)
-        };
+        var task1 = GetSignalCountBySystemTypeAsync();
+        var task2 = GetDetectionResultCountByLevelAsync(start, end);
+        var task3 = GetActiveProjectCountAsync();
+        var task4 = GetPendingCustomizationCountAsync();
+        var task5 = GetRecentDetectionResultsAsync(10);
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(task1, task2, task3, task4, task5);
 
         return new DashboardStatistics
         {
-            SignalCountBySystemType = await tasks[0],
-            DetectionResultCountByLevel = await tasks[1],
-            ActiveProjectCount = await tasks[2],
-            PendingCustomizationCount = await tasks[3],
-            RecentDetectionResults = await tasks[4],
+            SignalCountBySystemType = await task1,
+            DetectionResultCountByLevel = await task2,
+            ActiveProjectCount = await task3,
+            PendingCustomizationCount = await task4,
+            RecentDetectionResults = await task5,
             GeneratedAt = DateTime.UtcNow
         };
     }
 
     #region Private Helper Methods
 
-    private async Task<Dictionary<SystemType, int>> GetSignalCountBySystemTypeAsync()
+    private async Task<Dictionary<CanSystemType, int>> GetSignalCountBySystemTypeAsync()
     {
         var queryable = await _canSignalRepository.GetQueryableAsync();
         return await queryable
@@ -417,7 +414,7 @@ public class QueryOptimizationService : ApplicationService
 /// </summary>
 public class DashboardStatistics
 {
-    public Dictionary<SystemType, int> SignalCountBySystemType { get; set; } = new();
+    public Dictionary<CanSystemType, int> SignalCountBySystemType { get; set; } = new();
     public Dictionary<AnomalyLevel, int> DetectionResultCountByLevel { get; set; } = new();
     public int ActiveProjectCount { get; set; }
     public int PendingCustomizationCount { get; set; }

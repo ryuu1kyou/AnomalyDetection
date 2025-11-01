@@ -1,0 +1,27 @@
+  蠕ｩ蜈・ｯｾ雎｡縺ｮ繝励Ο繧ｸ繧ｧ繧ｯ繝医ｒ豎ｺ螳壹＠縺ｦ縺・∪縺・..
+  蠕ｩ蜈・ｯｾ雎｡縺ｮ縺吶∋縺ｦ縺ｮ繝励Ο繧ｸ繧ｧ繧ｯ繝医・譛譁ｰ縺ｧ縺吶・
+  AnomalyDetection.Domain.Shared -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Domain.Shared\bin\Debug\net9.0\AnomalyDetection.Domain.Shared.dll
+  AnomalyDetection.TestBase -> c:\work\net\AnomalyDetection\AnomalyDetection\test\AnomalyDetection.TestBase\bin\Debug\net9.0\AnomalyDetection.TestBase.dll
+  AnomalyDetection.Application.Contracts -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application.Contracts\bin\Debug\net9.0\AnomalyDetection.Application.Contracts.dll
+  AnomalyDetection.Domain -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Domain\bin\Debug\net9.0\AnomalyDetection.Domain.dll
+  AnomalyDetection.EntityFrameworkCore -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.EntityFrameworkCore\bin\Debug\net9.0\AnomalyDetection.EntityFrameworkCore.dll
+  AnomalyDetection.Domain.Tests -> c:\work\net\AnomalyDetection\AnomalyDetection\test\AnomalyDetection.Domain.Tests\bin\Debug\net9.0\AnomalyDetection.Domain.Tests.dll
+  AnomalyDetection.HttpApi -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.HttpApi\bin\Debug\net9.0\AnomalyDetection.HttpApi.dll
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(253,49): error CS1001: 隴伜挨蟄舌′縺ゅｊ縺ｾ縺帙ｓ [c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(253,59): error CS1001: 隴伜挨蟄舌′縺ゅｊ縺ｾ縺帙ｓ [c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(253,59): error CS1003: 讒区枚繧ｨ繝ｩ繝ｼ縺ｧ縺吶・,' 縺悟ｿ・ｦ√〒縺・[c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(254,5): error CS1519: Invalid token '}' in a member declaration [c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+  AnomalyDetection.DbMigrator -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.DbMigrator\bin\Debug\net9.0\AnomalyDetection.DbMigrator.dll
+  AnomalyDetection.HttpApi.Client -> c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.HttpApi.Client\bin\Debug\net9.0\AnomalyDetection.HttpApi.Client.dll
+  AnomalyDetection.HttpApi.Client.ConsoleTestApp -> c:\work\net\AnomalyDetection\AnomalyDetection\test\AnomalyDetection.HttpApi.Client.ConsoleTestApp\bin\Debug\net9.0\AnomalyDetection.HttpApi.Client.ConsoleTestApp.dll
+
+繝薙Ν繝峨↓螟ｱ謨励＠縺ｾ縺励◆縲・
+
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(253,49): error CS1001: 隴伜挨蟄舌′縺ゅｊ縺ｾ縺帙ｓ [c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(253,59): error CS1001: 隴伜挨蟄舌′縺ゅｊ縺ｾ縺帙ｓ [c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(253,59): error CS1003: 讒区枚繧ｨ繝ｩ繝ｼ縺ｧ縺吶・,' 縺悟ｿ・ｦ√〒縺・[c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\Projects\AnomalyDetectionProjectAppService.cs(254,5): error CS1519: Invalid token '}' in a member declaration [c:\work\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+    0 蛟九・隴ｦ蜻・
+    4 繧ｨ繝ｩ繝ｼ
+
+邨碁℃譎る俣 00:00:03.48

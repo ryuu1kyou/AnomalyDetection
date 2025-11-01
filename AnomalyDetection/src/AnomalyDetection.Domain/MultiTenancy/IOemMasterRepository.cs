@@ -8,7 +8,7 @@ namespace AnomalyDetection.MultiTenancy;
 
 public interface IOemMasterRepository : IRepository<OemMaster, Guid>
 {
-    Task<OemMaster> FindByOemCodeAsync(string oemCode, CancellationToken cancellationToken = default);
+    Task<OemMaster?> FindByOemCodeAsync(string oemCode, CancellationToken cancellationToken = default);
     Task<List<OemMaster>> GetActiveOemsAsync(CancellationToken cancellationToken = default);
     Task<List<OemMaster>> GetByCountryAsync(string country, CancellationToken cancellationToken = default);
     Task<bool> IsOemCodeExistsAsync(string oemCode, Guid? excludeId = null, CancellationToken cancellationToken = default);

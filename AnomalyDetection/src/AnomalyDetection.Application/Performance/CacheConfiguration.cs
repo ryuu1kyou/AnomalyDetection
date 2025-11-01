@@ -1,6 +1,9 @@
+using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Caching;
 using Volo.Abp.Modularity;
+using AnomalyDetection.CanSignals;
 
 namespace AnomalyDetection.Performance;
 
@@ -27,7 +30,7 @@ public static class CacheConfiguration
         {
             // キャッシュキーのプレフィックス
             options.KeyPrefix = "AnomalyDetection:";
-            
+
             // デフォルトの有効期限
             options.GlobalCacheEntryOptions.SlidingExpiration = TimeSpan.FromMinutes(20);
             options.GlobalCacheEntryOptions.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
@@ -43,7 +46,7 @@ public static class CacheConfiguration
         {
             // メモリキャッシュのサイズ制限
             options.SizeLimit = 1000;
-            
+
             // 圧縮レベル
             options.CompactionPercentage = 0.25;
         });
@@ -57,7 +60,7 @@ public static class CacheConfiguration
         // キャッシングサービスを登録
         context.Services.AddTransient<CachingService>();
         context.Services.AddTransient<CacheInvalidationService>();
-        
+
         // キャッシュイベントハンドラーを登録
         context.Services.AddTransient<OemMasterCacheEventHandler>();
         context.Services.AddTransient<CanSignalCacheEventHandler>();
@@ -90,7 +93,7 @@ public class CacheInvalidationService
     /// <summary>
     /// CAN信号関連のキャッシュを無効化
     /// </summary>
-    public async Task InvalidateCanSignalRelatedCacheAsync(SystemType systemType, Guid? tenantId = null)
+    public async Task InvalidateCanSignalRelatedCacheAsync(CanSystemType systemType, Guid? tenantId = null)
     {
         await _cachingService.InvalidateSignalStatisticsCacheAsync(systemType, tenantId);
         await _cachingService.InvalidateSystemCategoryCacheAsync(systemType);
@@ -99,7 +102,7 @@ public class CacheInvalidationService
     /// <summary>
     /// システムカテゴリ関連のキャッシュを無効化
     /// </summary>
-    public async Task InvalidateSystemCategoryRelatedCacheAsync(SystemType systemType)
+    public async Task InvalidateSystemCategoryRelatedCacheAsync(CanSystemType systemType)
     {
         await _cachingService.InvalidateSystemCategoryCacheAsync(systemType);
         await _cachingService.InvalidateSignalStatisticsCacheAsync(systemType);
@@ -111,7 +114,7 @@ public class CacheInvalidationService
     public async Task InvalidateAllCacheAsync()
     {
         // 各システムタイプの統計キャッシュを無効化
-        foreach (SystemType systemType in Enum.GetValues<SystemType>())
+        foreach (CanSystemType systemType in Enum.GetValues<CanSystemType>())
         {
             await _cachingService.InvalidateSignalStatisticsCacheAsync(systemType);
             await _cachingService.InvalidateSystemCategoryCacheAsync(systemType);

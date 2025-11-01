@@ -26,7 +26,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         // Multi-tenancy value objects
         builder.Ignore<OemFeature>();
         builder.Ignore<TenantFeature>();
-        
+
         // CAN Signal value objects
         builder.Ignore<SignalIdentifier>();
         builder.Ignore<SignalSpecification>();
@@ -34,7 +34,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         builder.Ignore<SignalTiming>();
         builder.Ignore<SignalVersion>();
         builder.Ignore<SystemCategoryConfiguration>();
-        
+
         // Detection Logic value objects
         builder.Ignore<DetectionLogicIdentity>();
         builder.Ignore<LogicVersion>();
@@ -43,11 +43,11 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         builder.Ignore<SafetyClassification>();
         builder.Ignore<ParameterConstraints>();
         builder.Ignore<SignalMappingConfiguration>();
-        
+
         // Detection Result value objects
         builder.Ignore<DetectionInputData>();
         builder.Ignore<DetectionDetails>();
-        
+
         // Project value objects
         builder.Ignore<ProjectConfiguration>();
         builder.Ignore<NotificationSettings>();
@@ -63,7 +63,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         builder.Entity<OemMaster>(b =>
         {
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "OemMasters", AnomalyDetectionConsts.DbSchema);
-            
+
             // Owned Collection: Features (configure before ConfigureByConvention)
             b.OwnsMany(x => x.Features, features =>
             {
@@ -78,7 +78,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                 features.Property(x => x.CreatedAt).IsRequired();
                 features.Property(x => x.UpdatedAt);
             });
-            
+
             b.ConfigureByConvention();
 
             // Value Object: OemCode
@@ -112,7 +112,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         builder.Entity<ExtendedTenant>(b =>
         {
             b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "ExtendedTenants", AnomalyDetectionConsts.DbSchema);
-            
+
             // Owned Collection: Features (configure before ConfigureByConvention)
             b.OwnsMany(x => x.Features, features =>
             {
@@ -129,7 +129,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                 features.Property(x => x.CreatedBy).HasMaxLength(256);
                 features.Property(x => x.UpdatedBy).HasMaxLength(256);
             });
-            
+
             b.ConfigureByConvention();
 
             // Value Object: OemCode
@@ -260,19 +260,14 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.Status);
             b.HasIndex(x => x.IsStandard);
             b.HasIndex(x => x.EffectiveDate);
-            
+
             // Composite indexes for common query patterns
             b.HasIndex(x => new { x.SystemType, x.Status });
             b.HasIndex(x => new { x.IsStandard, x.Status });
             b.HasIndex(x => new { x.SystemType, x.IsStandard, x.Status });
-            
-            // Indexes for similarity search optimization
-            b.HasIndex("Identifier_CanId");
-            b.HasIndex("Identifier_SignalName");
-            b.HasIndex("OemCode_Code");
-            b.HasIndex("Specification_DataType");
-            b.HasIndex("Timing_CycleTimeMs");
-            
+
+            // Note: Indexes on owned type properties are created through their configuration above
+
             // Composite index for frequent filtering
             b.HasIndex(x => new { x.TenantId, x.SystemType, x.Status });
         });
@@ -297,8 +292,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
 
                 config.Property(x => x.CustomSettings)
                     .HasConversion(
-                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>())
                     .HasColumnName("CustomSettings");
             });
 
@@ -426,19 +421,15 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.SourceLogicId);
             b.HasIndex(x => x.VehiclePhaseId);
             b.HasIndex(x => x.ApprovedAt);
-            
+
             // Composite indexes for common query patterns
             b.HasIndex(x => new { x.Status, x.SharingLevel });
             b.HasIndex(x => new { x.TenantId, x.Status });
             b.HasIndex(x => new { x.TenantId, x.SharingLevel });
-            
-            // Indexes for detection logic search
-            b.HasIndex("Identity_Name");
-            b.HasIndex("Identity_OemCode_Code");
-            b.HasIndex("Specification_DetectionType");
-            b.HasIndex("Specification_TargetSystemType");
-            b.HasIndex("Safety_AsilLevel");
-            
+
+            // Note: Indexes on owned type properties (Identity, Specification, Safety) 
+            // are created through their respective OwnsOne configurations
+
             // Performance indexes for execution tracking
             b.HasIndex(x => x.ExecutionCount);
             b.HasIndex(x => x.LastExecutedAt);
@@ -465,8 +456,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             // Value Object: ParameterConstraints (stored as JSON)
             b.Property(x => x.Constraints)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<ParameterConstraints>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<ParameterConstraints>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .HasColumnName("Constraints");
 
             // Foreign Key (shadow property)
@@ -502,8 +493,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             // Value Object: SignalMappingConfiguration (stored as JSON)
             b.Property(x => x.Configuration)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<SignalMappingConfiguration>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<SignalMappingConfiguration>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .HasColumnName("Configuration");
 
             // Indexes
@@ -531,8 +522,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                 input.Property(x => x.Timestamp).HasColumnName("InputTimestamp");
                 input.Property(x => x.AdditionalData)
                     .HasConversion(
-                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                     .HasColumnName("InputAdditionalData");
             });
 
@@ -547,8 +538,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                 details.Property(x => x.ExecutionTimeMs).HasColumnName("ExecutionTimeMs");
                 details.Property(x => x.Parameters)
                     .HasConversion(
-                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                     .HasColumnName("DetectionParameters");
             });
 
@@ -597,18 +588,18 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.CanSignalId);
             b.HasIndex(x => x.IsShared);
             b.HasIndex(x => x.SharedAt);
-            
+
             // Composite indexes for common query patterns
             b.HasIndex(x => new { x.DetectedAt, x.AnomalyLevel });
             b.HasIndex(x => new { x.CanSignalId, x.DetectedAt });
             b.HasIndex(x => new { x.DetectionLogicId, x.DetectedAt });
             b.HasIndex(x => new { x.AnomalyLevel, x.ResolutionStatus });
             b.HasIndex(x => new { x.TenantId, x.DetectedAt, x.AnomalyLevel });
-            
+
             // Covering indexes for frequent queries
             b.HasIndex(x => new { x.CanSignalId, x.DetectedAt, x.AnomalyLevel, x.ConfidenceScore });
             b.HasIndex(x => new { x.DetectionLogicId, x.DetectedAt, x.AnomalyLevel, x.ResolutionStatus });
-            
+
             // Indexes for analytics and reporting
             b.HasIndex(x => new { x.AnomalyType, x.DetectedAt });
             b.HasIndex(x => new { x.IsValidated, x.IsFalsePositiveFlag, x.DetectedAt });
@@ -653,8 +644,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
                     .HasColumnName("Tags");
                 config.Property(x => x.CustomSettings)
                     .HasConversion(
-                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                     .HasColumnName("CustomSettings");
                 config.Property(x => x.Notes)
                     .HasConversion(
@@ -744,8 +735,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             // Value Object: MilestoneConfiguration (stored as JSON)
             b.Property(x => x.Configuration)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<MilestoneConfiguration>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<MilestoneConfiguration>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .HasColumnName("Configuration");
 
             // Indexes
@@ -782,8 +773,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             // Value Object: MemberConfiguration (stored as JSON)
             b.Property(x => x.Configuration)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<MemberConfiguration>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<MemberConfiguration>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .HasColumnName("Configuration");
 
             // Indexes
@@ -828,13 +819,13 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.Type).IsRequired();
             b.Property(x => x.CustomParameters)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .IsRequired();
             b.Property(x => x.OriginalParameters)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .IsRequired();
             b.Property(x => x.CustomizationReason).IsRequired().HasMaxLength(1000);
             b.Property(x => x.ApprovedBy);
@@ -847,13 +838,13 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.Status);
             b.HasIndex(x => x.ApprovedAt);
             b.HasIndex(x => x.Type);
-            
+
             // Composite indexes for OEM traceability queries
             b.HasIndex(x => new { x.TenantId, x.Status });
             b.HasIndex(x => new { x.EntityType, x.Status });
-            b.HasIndex("OemCode_Code");
+            // Note: Index on OemCode.Code is defined in the OemCode OwnsOne configuration
             b.HasIndex(x => new { x.Type, x.Status, x.ApprovedAt });
-            
+
             // Covering index for customization listing
             b.HasIndex(x => new { x.TenantId, x.EntityType, x.Status, x.CreationTime });
         });
@@ -894,8 +885,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.ApprovalNotes).HasMaxLength(2000);
             b.Property(x => x.ApprovalData)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .IsRequired();
             b.Property(x => x.DueDate);
             b.Property(x => x.Priority).IsRequired();
@@ -908,14 +899,14 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.DueDate);
             b.HasIndex(x => x.Priority);
             b.HasIndex(x => x.Type);
-            
+
             // Composite indexes for approval workflow queries
             b.HasIndex(x => new { x.TenantId, x.Status });
             b.HasIndex(x => new { x.Status, x.DueDate });
             b.HasIndex(x => new { x.Status, x.Priority });
-            b.HasIndex("OemCode_Code");
+            // Note: Index on OemCode.Code is defined in the OemCode OwnsOne configuration
             b.HasIndex(x => new { x.Type, x.Status, x.RequestedAt });
-            
+
             // Covering indexes for approval dashboard
             b.HasIndex(x => new { x.TenantId, x.Status, x.DueDate, x.Priority });
             b.HasIndex(x => new { x.RequestedBy, x.Status, x.RequestedAt });
@@ -944,8 +935,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.NewValues).HasMaxLength(8000);
             b.Property(x => x.Metadata)
                 .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions)null))
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null)!)
                 .IsRequired();
             b.Property(x => x.IpAddress).HasMaxLength(45); // IPv6 support
             b.Property(x => x.UserAgent).HasMaxLength(500);

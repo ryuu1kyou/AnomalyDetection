@@ -12,7 +12,7 @@ using Xunit;
 
 namespace AnomalyDetection.Application.Tests.AuditLogging;
 
-public class AuditLogServiceTests : AnomalyDetectionApplicationTestBase
+public class AuditLogServiceTests : AnomalyDetectionApplicationTestBase<AnomalyDetectionApplicationTestModule>
 {
     private readonly IAuditLogService _auditLogService;
     private readonly IAnomalyDetectionAuditLogRepository _auditLogRepository;
@@ -26,7 +26,7 @@ public class AuditLogServiceTests : AnomalyDetectionApplicationTestBase
         _currentTenant = GetRequiredService<ICurrentTenant>();
         _currentUser = GetRequiredService<ICurrentUser>();
         _httpContextAccessor = GetRequiredService<IHttpContextAccessor>();
-        
+
         _auditLogService = new AuditLogService(
             _auditLogRepository,
             _currentTenant,

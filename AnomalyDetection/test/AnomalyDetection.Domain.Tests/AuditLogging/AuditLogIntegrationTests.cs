@@ -10,7 +10,7 @@ using Xunit;
 
 namespace AnomalyDetection.Domain.Tests.AuditLogging;
 
-public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase
+public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase<AnomalyDetectionDomainTestModule>
 {
     private readonly ILocalEventBus _localEventBus;
 
@@ -48,11 +48,11 @@ public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase
         customization.Status.ShouldBe(CustomizationStatus.Approved);
         customization.ApprovedBy.ShouldBe(approvedBy);
         customization.ApprovalNotes.ShouldBe(approvalNotes);
-        
+
         // Verify that the domain event was added
         var domainEvents = customization.GetLocalEvents();
         domainEvents.ShouldNotBeEmpty();
-        domainEvents.ShouldContain(e => e is OemCustomizationApprovedEvent);
+        domainEvents.ShouldContain(e => e.GetType() == typeof(OemCustomizationApprovedEvent));
     }
 
     [Fact]
@@ -84,11 +84,11 @@ public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase
         customization.Status.ShouldBe(CustomizationStatus.Rejected);
         customization.ApprovedBy.ShouldBe(rejectedBy);
         customization.ApprovalNotes.ShouldBe(rejectionNotes);
-        
+
         // Verify that the domain event was added
         var domainEvents = customization.GetLocalEvents();
         domainEvents.ShouldNotBeEmpty();
-        domainEvents.ShouldContain(e => e is OemCustomizationRejectedEvent);
+        domainEvents.ShouldContain(e => e.GetType() == typeof(OemCustomizationRejectedEvent));
     }
 
     [Fact]
@@ -116,10 +116,10 @@ public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase
         approval.Status.ShouldBe(ApprovalStatus.Approved);
         approval.ApprovedBy.ShouldBe(approvedBy);
         approval.ApprovalNotes.ShouldBe(approvalNotes);
-        
+
         // Verify that the domain event was added
         var domainEvents = approval.GetLocalEvents();
         domainEvents.ShouldNotBeEmpty();
-        domainEvents.ShouldContain(e => e is OemApprovalCompletedEvent);
+        domainEvents.ShouldContain(e => e.GetType() == typeof(OemApprovalCompletedEvent));
     }
 }

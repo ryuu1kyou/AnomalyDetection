@@ -18,8 +18,10 @@ namespace AnomalyDetection.Performance;
 /// </summary>
 public class CachingService : ApplicationService
 {
-    private readonly IDistributedCache<OemMasterCacheItem> _oemMasterCache;
-    private readonly IDistributedCache<CanSystemCategoryCacheItem> _systemCategoryCache;
+    private readonly IDistributedCache<OemMasterCacheItem> _oemMasterSingleCache;
+    private readonly IDistributedCache<OemMasterListCacheItem> _oemMasterListCache;
+    private readonly IDistributedCache<CanSystemCategoryCacheItem> _systemCategorySingleCache;
+    private readonly IDistributedCache<CanSystemCategoryListCacheItem> _systemCategoryListCache;
     private readonly IDistributedCache<SignalStatisticsCacheItem> _signalStatisticsCache;
     private readonly IRepository<OemMaster, Guid> _oemMasterRepository;
     private readonly IRepository<CanSystemCategory, Guid> _systemCategoryRepository;
@@ -39,16 +41,20 @@ public class CachingService : ApplicationService
     private static readonly TimeSpan StatisticsCacheExpiration = TimeSpan.FromMinutes(15);
 
     public CachingService(
-        IDistributedCache<OemMasterCacheItem> oemMasterCache,
-        IDistributedCache<CanSystemCategoryCacheItem> systemCategoryCache,
+        IDistributedCache<OemMasterCacheItem> oemMasterSingleCache,
+        IDistributedCache<OemMasterListCacheItem> oemMasterListCache,
+        IDistributedCache<CanSystemCategoryCacheItem> systemCategorySingleCache,
+        IDistributedCache<CanSystemCategoryListCacheItem> systemCategoryListCache,
         IDistributedCache<SignalStatisticsCacheItem> signalStatisticsCache,
         IRepository<OemMaster, Guid> oemMasterRepository,
         IRepository<CanSystemCategory, Guid> systemCategoryRepository,
         IRepository<CanSignal, Guid> canSignalRepository,
         ILogger<CachingService> logger)
     {
-        _oemMasterCache = oemMasterCache;
-        _systemCategoryCache = systemCategoryCache;
+        _oemMasterSingleCache = oemMasterSingleCache;
+        _oemMasterListCache = oemMasterListCache;
+        _systemCategorySingleCache = systemCategorySingleCache;
+        _systemCategoryListCache = systemCategoryListCache;
         _signalStatisticsCache = signalStatisticsCache;
         _oemMasterRepository = oemMasterRepository;
         _systemCategoryRepository = systemCategoryRepository;
@@ -62,10 +68,10 @@ public class CachingService : ApplicationService
     public async Task<OemMaster?> GetOemMasterAsync(Guid id)
     {
         var cacheKey = string.Format(OEM_MASTER_CACHE_KEY, id);
-        
+
         try
         {
-            var cachedItem = await _oemMasterCache.GetAsync(cacheKey);
+            var cachedItem = await _oemMasterSingleCache.GetAsync(cacheKey);
             if (cachedItem != null)
             {
                 _logger.LogDebug("OEM Master cache hit for ID: {Id}", id);
@@ -77,7 +83,7 @@ public class CachingService : ApplicationService
             if (entity != null)
             {
                 var cacheItem = OemMasterCacheItem.FromEntity(entity);
-                await _oemMasterCache.SetAsync(cacheKey, cacheItem, new DistributedCacheEntryOptions
+                await _oemMasterSingleCache.SetAsync(cacheKey, cacheItem, new DistributedCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = MasterDataCacheExpiration
                 });
@@ -100,7 +106,7 @@ public class CachingService : ApplicationService
     {
         try
         {
-            var cachedItems = await _oemMasterCache.GetAsync(ALL_OEM_MASTERS_CACHE_KEY);
+            var cachedItems = await _oemMasterListCache.GetAsync(ALL_OEM_MASTERS_CACHE_KEY);
             if (cachedItems != null)
             {
                 _logger.LogDebug("All OEM Masters cache hit");
@@ -112,7 +118,7 @@ public class CachingService : ApplicationService
             if (entities.Any())
             {
                 var cacheItem = OemMasterListCacheItem.FromEntityList(entities);
-                await _oemMasterCache.SetAsync(ALL_OEM_MASTERS_CACHE_KEY, cacheItem, new DistributedCacheEntryOptions
+                await _oemMasterListCache.SetAsync(ALL_OEM_MASTERS_CACHE_KEY, cacheItem, new DistributedCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = MasterDataCacheExpiration
                 });
@@ -130,13 +136,13 @@ public class CachingService : ApplicationService
     /// <summary>
     /// システムカテゴリをキャッシュから取得
     /// </summary>
-    public async Task<CanSystemCategory?> GetSystemCategoryAsync(SystemType systemType)
+    public async Task<CanSystemCategory?> GetSystemCategoryAsync(CanSystemType systemType)
     {
         var cacheKey = string.Format(SYSTEM_CATEGORY_CACHE_KEY, systemType);
-        
+
         try
         {
-            var cachedItem = await _systemCategoryCache.GetAsync(cacheKey);
+            var cachedItem = await _systemCategorySingleCache.GetAsync(cacheKey);
             if (cachedItem != null)
             {
                 _logger.LogDebug("System Category cache hit for type: {SystemType}", systemType);
@@ -148,7 +154,7 @@ public class CachingService : ApplicationService
             if (entity != null)
             {
                 var cacheItem = CanSystemCategoryCacheItem.FromEntity(entity);
-                await _systemCategoryCache.SetAsync(cacheKey, cacheItem, new DistributedCacheEntryOptions
+                await _systemCategorySingleCache.SetAsync(cacheKey, cacheItem, new DistributedCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = MasterDataCacheExpiration
                 });
@@ -170,7 +176,7 @@ public class CachingService : ApplicationService
     {
         try
         {
-            var cachedItems = await _systemCategoryCache.GetAsync(ALL_SYSTEM_CATEGORIES_CACHE_KEY);
+            var cachedItems = await _systemCategoryListCache.GetAsync(ALL_SYSTEM_CATEGORIES_CACHE_KEY);
             if (cachedItems != null)
             {
                 _logger.LogDebug("All System Categories cache hit");
@@ -182,7 +188,7 @@ public class CachingService : ApplicationService
             if (entities.Any())
             {
                 var cacheItem = CanSystemCategoryListCacheItem.FromEntityList(entities);
-                await _systemCategoryCache.SetAsync(ALL_SYSTEM_CATEGORIES_CACHE_KEY, cacheItem, new DistributedCacheEntryOptions
+                await _systemCategoryListCache.SetAsync(ALL_SYSTEM_CATEGORIES_CACHE_KEY, cacheItem, new DistributedCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = MasterDataCacheExpiration
                 });
@@ -203,7 +209,7 @@ public class CachingService : ApplicationService
     public async Task<SignalStatistics> GetSignalStatisticsAsync(CanSystemType systemType, Guid? tenantId = null)
     {
         var cacheKey = string.Format(SIGNAL_STATISTICS_CACHE_KEY, systemType, tenantId ?? Guid.Empty);
-        
+
         try
         {
             var cachedItem = await _signalStatisticsCache.GetAsync(cacheKey);
@@ -215,7 +221,7 @@ public class CachingService : ApplicationService
 
             _logger.LogDebug("Signal Statistics cache miss for type: {SystemType}, tenant: {TenantId}", systemType, tenantId);
             var statistics = await CalculateSignalStatisticsAsync(systemType, tenantId);
-            
+
             var cacheItem = SignalStatisticsCacheItem.FromStatistics(statistics);
             await _signalStatisticsCache.SetAsync(cacheKey, cacheItem, new DistributedCacheEntryOptions
             {
@@ -237,26 +243,26 @@ public class CachingService : ApplicationService
     public async Task InvalidateOemMasterCacheAsync(Guid id)
     {
         var cacheKey = string.Format(OEM_MASTER_CACHE_KEY, id);
-        await _oemMasterCache.RemoveAsync(cacheKey);
-        await _oemMasterCache.RemoveAsync(ALL_OEM_MASTERS_CACHE_KEY);
+        await _oemMasterSingleCache.RemoveAsync(cacheKey);
+        await _oemMasterListCache.RemoveAsync(ALL_OEM_MASTERS_CACHE_KEY);
         _logger.LogInformation("Invalidated OEM Master cache for ID: {Id}", id);
     }
 
     /// <summary>
     /// システムカテゴリキャッシュを無効化
     /// </summary>
-    public async Task InvalidateSystemCategoryCacheAsync(SystemType systemType)
+    public async Task InvalidateSystemCategoryCacheAsync(CanSystemType systemType)
     {
         var cacheKey = string.Format(SYSTEM_CATEGORY_CACHE_KEY, systemType);
-        await _systemCategoryCache.RemoveAsync(cacheKey);
-        await _systemCategoryCache.RemoveAsync(ALL_SYSTEM_CATEGORIES_CACHE_KEY);
+        await _systemCategorySingleCache.RemoveAsync(cacheKey);
+        await _systemCategoryListCache.RemoveAsync(ALL_SYSTEM_CATEGORIES_CACHE_KEY);
         _logger.LogInformation("Invalidated System Category cache for type: {SystemType}", systemType);
     }
 
     /// <summary>
     /// 信号統計キャッシュを無効化
     /// </summary>
-    public async Task InvalidateSignalStatisticsCacheAsync(SystemType? systemType = null, Guid? tenantId = null)
+    public async Task InvalidateSignalStatisticsCacheAsync(CanSystemType? systemType = null, Guid? tenantId = null)
     {
         if (systemType.HasValue)
         {
@@ -266,19 +272,19 @@ public class CachingService : ApplicationService
         else
         {
             // 全ての統計キャッシュを無効化（パターンマッチングが必要な場合）
-            foreach (SystemType type in Enum.GetValues<SystemType>())
+            foreach (CanSystemType type in Enum.GetValues<CanSystemType>())
             {
                 var cacheKey = string.Format(SIGNAL_STATISTICS_CACHE_KEY, type, tenantId ?? Guid.Empty);
                 await _signalStatisticsCache.RemoveAsync(cacheKey);
             }
         }
-        
+
         _logger.LogInformation("Invalidated Signal Statistics cache for type: {SystemType}, tenant: {TenantId}", systemType, tenantId);
     }
 
     #region Private Methods
 
-    private async Task<SignalStatistics> CalculateSignalStatisticsAsync(SystemType systemType, Guid? tenantId)
+    private async Task<SignalStatistics> CalculateSignalStatisticsAsync(CanSystemType systemType, Guid? tenantId)
     {
         var queryable = await _canSignalRepository.GetQueryableAsync();
         var query = queryable.Where(s => s.SystemType == systemType);
@@ -340,14 +346,18 @@ public class OemMasterCacheItem : CacheItemBase
     public OemMaster ToEntity()
     {
         // 注意: これは簡略化された変換です。実際の実装では完全なエンティティ復元が必要
-        return new OemMaster(
+        var entity = new OemMaster(
+            Id,
             new OemCode(OemCode, OemName),
             CompanyName,
-            Country)
+            Country);
+
+        if (!IsActive)
         {
-            Id = Id,
-            IsActive = IsActive
-        };
+            entity.Deactivate();
+        }
+
+        return entity;
     }
 }
 
@@ -378,7 +388,7 @@ public class OemMasterListCacheItem : CacheItemBase
 public class CanSystemCategoryCacheItem : CacheItemBase
 {
     public Guid Id { get; set; }
-    public SystemType SystemType { get; set; }
+    public CanSystemType SystemType { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; }
@@ -399,12 +409,21 @@ public class CanSystemCategoryCacheItem : CacheItemBase
 
     public CanSystemCategory ToEntity()
     {
-        return new CanSystemCategory(SystemType, Name, Description)
+        var entity = new CanSystemCategory(
+            Id,
+            null, // tenantId
+            SystemType,
+            Name,
+            Description);
+
+        entity.UpdateDisplayOrder(DisplayOrder);
+
+        if (!IsActive)
         {
-            Id = Id,
-            IsActive = IsActive,
-            DisplayOrder = DisplayOrder
-        };
+            entity.Deactivate();
+        }
+
+        return entity;
     }
 }
 
@@ -434,7 +453,7 @@ public class CanSystemCategoryListCacheItem : CacheItemBase
 /// </summary>
 public class SignalStatisticsCacheItem : CacheItemBase
 {
-    public SystemType SystemType { get; set; }
+    public CanSystemType SystemType { get; set; }
     public Guid? TenantId { get; set; }
     public int TotalCount { get; set; }
     public int ActiveCount { get; set; }
@@ -473,7 +492,7 @@ public class SignalStatisticsCacheItem : CacheItemBase
 /// </summary>
 public class SignalStatistics
 {
-    public SystemType SystemType { get; set; }
+    public CanSystemType SystemType { get; set; }
     public Guid? TenantId { get; set; }
     public int TotalCount { get; set; }
     public int ActiveCount { get; set; }

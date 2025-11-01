@@ -89,7 +89,7 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
     public async Task<AnomalyDetectionResultDto> CreateAsync(CreateDetectionResultDto input)
     {
         var result = ObjectMapper.Map<CreateDetectionResultDto, AnomalyDetectionResult>(input);
-        
+
         result = await _resultRepository.InsertAsync(result, autoSave: true);
         return ObjectMapper.Map<AnomalyDetectionResult, AnomalyDetectionResultDto>(result);
     }
@@ -98,10 +98,10 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
     public async Task<AnomalyDetectionResultDto> UpdateAsync(Guid id, UpdateDetectionResultDto input)
     {
         var result = await _resultRepository.GetAsync(id);
-        
+
         result.UpdateAnomalyLevel(input.AnomalyLevel, input.UpdateReason);
         result.UpdateConfidenceScore(input.ConfidenceScore, input.UpdateReason);
-        
+
         result = await _resultRepository.UpdateAsync(result, autoSave: true);
         return ObjectMapper.Map<AnomalyDetectionResult, AnomalyDetectionResultDto>(result);
     }
@@ -176,8 +176,8 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
 
     public async Task<ListResultDto<AnomalyDetectionResultDto>> GetHighPriorityAsync()
     {
-        var results = await _resultRepository.GetListAsync(x => 
-            x.AnomalyLevel >= AnomalyLevel.Critical && 
+        var results = await _resultRepository.GetListAsync(x =>
+            x.AnomalyLevel >= AnomalyLevel.Critical &&
             x.ResolutionStatus == ResolutionStatus.Open);
 
         var dtos = ObjectMapper.Map<List<AnomalyDetectionResult>, List<AnomalyDetectionResultDto>>(results);
@@ -185,7 +185,7 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionResults.Resolve)]
-    public async Task MarkAsInvestigatingAsync(Guid id, string notes = null)
+    public async Task MarkAsInvestigatingAsync(Guid id, string? notes = null)
     {
         var result = await _resultRepository.GetAsync(id);
         result.MarkAsInvestigating(CurrentUser.Id ?? Guid.Empty, notes);
@@ -247,22 +247,22 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionResults.BulkOperations)]
-    public async Task BulkUpdateResolutionStatusAsync(List<Guid> ids, ResolutionStatus status, string notes = null)
+    public async Task BulkUpdateResolutionStatusAsync(List<Guid> ids, ResolutionStatus status, string? notes = null)
     {
         foreach (var id in ids)
         {
             var result = await _resultRepository.GetAsync(id);
-            
+
             switch (status)
             {
                 case ResolutionStatus.InProgress:
                     result.MarkAsInvestigating(CurrentUser.Id ?? Guid.Empty, notes);
                     break;
                 case ResolutionStatus.Resolved:
-                    result.Resolve(CurrentUser.Id ?? Guid.Empty, notes);
+                    result.Resolve(CurrentUser.Id ?? Guid.Empty, notes ?? string.Empty);
                     break;
             }
-            
+
             await _resultRepository.UpdateAsync(result);
         }
     }
@@ -278,33 +278,33 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
         }
     }
 
-    public async Task<Dictionary<string, object>> GetStatisticsAsync(GetDetectionResultsInput input)
+    public Task<Dictionary<string, object>> GetStatisticsAsync(GetDetectionResultsInput input)
     {
         // TODO: Implement statistics calculation
-        return new Dictionary<string, object>();
+        return Task.FromResult(new Dictionary<string, object>());
     }
 
-    public async Task<byte[]> ExportAsync(GetDetectionResultsInput input, string format)
+    public Task<byte[]> ExportAsync(GetDetectionResultsInput input, string format)
     {
         // TODO: Implement export functionality
         throw new NotImplementedException();
     }
 
-    public async Task<List<Dictionary<string, object>>> GetTimelineAsync(Guid? canSignalId = null, Guid? detectionLogicId = null, DateTime? fromDate = null, DateTime? toDate = null)
+    public Task<List<Dictionary<string, object>>> GetTimelineAsync(Guid? canSignalId = null, Guid? detectionLogicId = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
         // TODO: Implement timeline functionality
-        return new List<Dictionary<string, object>>();
+        return Task.FromResult(new List<Dictionary<string, object>>());
     }
 
-    public async Task<Dictionary<string, object>> GetCorrelationAnalysisAsync(List<Guid> resultIds)
+    public Task<Dictionary<string, object>> GetCorrelationAnalysisAsync(List<Guid> resultIds)
     {
         // TODO: Implement correlation analysis
-        return new Dictionary<string, object>();
+        return Task.FromResult(new Dictionary<string, object>());
     }
 
-    public async Task<ListResultDto<AnomalyDetectionResultDto>> GetSimilarResultsAsync(Guid id, int count = 5)
+    public Task<ListResultDto<AnomalyDetectionResultDto>> GetSimilarResultsAsync(Guid id, int count = 5)
     {
         // TODO: Implement similar results logic
-        return new ListResultDto<AnomalyDetectionResultDto>(new List<AnomalyDetectionResultDto>());
+        return Task.FromResult(new ListResultDto<AnomalyDetectionResultDto>(new List<AnomalyDetectionResultDto>()));
     }
 }

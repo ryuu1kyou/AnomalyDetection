@@ -12,12 +12,12 @@ namespace AnomalyDetection.MultiTenancy;
 
 public class ExtendedTenantRepository : EfCoreRepository<AnomalyDetectionDbContext, ExtendedTenant, Guid>, IExtendedTenantRepository
 {
-    public ExtendedTenantRepository(IDbContextProvider<AnomalyDetectionDbContext> dbContextProvider) 
+    public ExtendedTenantRepository(IDbContextProvider<AnomalyDetectionDbContext> dbContextProvider)
         : base(dbContextProvider)
     {
     }
 
-    public async Task<ExtendedTenant> FindByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<ExtendedTenant?> FindByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         var dbSet = await GetDbSetAsync();
         return await dbSet.FirstOrDefaultAsync(x => x.Name == name, cancellationToken);
@@ -45,12 +45,12 @@ public class ExtendedTenantRepository : EfCoreRepository<AnomalyDetectionDbConte
     {
         var dbSet = await GetDbSetAsync();
         var query = dbSet.Where(x => x.Name == name);
-        
+
         if (excludeId.HasValue)
         {
             query = query.Where(x => x.Id != excludeId.Value);
         }
-        
+
         return await query.AnyAsync(cancellationToken);
     }
 
@@ -58,7 +58,7 @@ public class ExtendedTenantRepository : EfCoreRepository<AnomalyDetectionDbConte
     {
         var dbSet = await GetDbSetAsync();
         var now = DateTime.UtcNow;
-        
+
         return await dbSet
             .Where(x => x.ExpirationDate.HasValue && x.ExpirationDate.Value < now)
             .OrderBy(x => x.ExpirationDate)

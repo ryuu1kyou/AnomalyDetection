@@ -12,7 +12,7 @@ using Xunit;
 
 namespace AnomalyDetection.Application.Tests.Security;
 
-public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
+public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase<AnomalyDetectionApplicationTestModule>
 {
     private readonly IAuditLogService _auditLogService;
     private readonly IAnomalyDetectionAuditLogRepository _auditLogRepository;
@@ -20,11 +20,11 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
     public AuditLogSecurityTests()
     {
         _auditLogRepository = GetRequiredService<IAnomalyDetectionAuditLogRepository>();
-        
+
         var currentTenant = GetRequiredService<ICurrentTenant>();
         var currentUser = GetRequiredService<ICurrentUser>();
         var httpContextAccessor = GetRequiredService<IHttpContextAccessor>();
-        
+
         _auditLogService = new AuditLogService(
             _auditLogRepository,
             currentTenant,
@@ -39,11 +39,11 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         var userId = Guid.NewGuid();
         var userName = "testuser";
         var email = "test@example.com";
-        
+
         // Mock current user
         var currentUser = GetRequiredService<ICurrentUser>();
         // Note: In a real test, you would properly mock the current user
-        
+
         var entityId = Guid.NewGuid();
         var entityType = "TestEntity";
         var action = AuditLogAction.Create;
@@ -62,7 +62,7 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         result.EntityType.ShouldBe(entityType);
         result.Action.ShouldBe(action);
         result.Description.ShouldBe(description);
-        
+
         // Verify user information is recorded in metadata
         if (result.Metadata.ContainsKey("UserId"))
         {
@@ -76,10 +76,10 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         // Arrange
         var tenantId = Guid.NewGuid();
         var tenantName = "TestTenant";
-        
+
         // Mock current tenant
         var currentTenant = GetRequiredService<ICurrentTenant>();
-        
+
         var entityId = Guid.NewGuid();
         var entityType = "TestEntity";
         var action = AuditLogAction.Create;
@@ -97,7 +97,7 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
             // Assert
             result.ShouldNotBeNull();
             result.TenantId.ShouldBe(tenantId);
-            
+
             // Verify tenant information is recorded in metadata
             if (result.Metadata.ContainsKey("TenantId"))
             {
@@ -116,15 +116,15 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         // Arrange
         var ipAddress = "192.168.1.100";
         var userAgent = "Mozilla/5.0 Test Browser";
-        
+
         // Mock HTTP context
         var httpContext = new DefaultHttpContext();
         httpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse(ipAddress);
         httpContext.Request.Headers["User-Agent"] = userAgent;
-        
+
         var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
         httpContextAccessor.HttpContext.Returns(httpContext);
-        
+
         var auditLogService = new AuditLogService(
             _auditLogRepository,
             GetRequiredService<ICurrentTenant>(),
@@ -184,7 +184,7 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         var entityType = "User";
         var action = AuditLogAction.Update;
         var description = "User password updated";
-        
+
         var sensitiveData = new
         {
             Username = "testuser",
@@ -203,7 +203,7 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         // Assert
         result.ShouldNotBeNull();
         result.NewValues.ShouldNotBeNull();
-        
+
         // In a real implementation, you would verify that sensitive data is sanitized
         // For example, passwords should be masked or removed from the audit log
         result.NewValues.ShouldNotContain("supersecretpassword123");
@@ -217,7 +217,7 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
         var entityType = "LargeEntity";
         var action = AuditLogAction.Create;
         var description = "Large entity created";
-        
+
         // Create a large object that might exceed database limits
         var largeData = new Dictionary<string, object>();
         for (int i = 0; i < 1000; i++)
@@ -235,7 +235,7 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase
 
         result.ShouldNotBeNull();
         result.NewValues.ShouldNotBeNull();
-        
+
         // In a real implementation, you might truncate or compress large data
         // to fit within database constraints
     }

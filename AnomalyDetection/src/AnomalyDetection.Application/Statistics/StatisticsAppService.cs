@@ -38,53 +38,40 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
     public async Task<DetectionStatisticsDto> GetDetectionStatisticsAsync(GetDetectionStatisticsInput input)
     {
         var queryable = await _detectionResultRepository.GetQueryableAsync();
-        
+
         // Apply filters
-        if (input.StartDate.HasValue)
-        {
-            queryable = queryable.Where(x => x.DetectedAt >= input.StartDate.Value);
-        }
-        
-        if (input.EndDate.HasValue)
-        {
-            queryable = queryable.Where(x => x.DetectedAt <= input.EndDate.Value);
-        }
-        
+        queryable = queryable.Where(x => x.DetectedAt >= input.FromDate);
+        queryable = queryable.Where(x => x.DetectedAt <= input.ToDate);
+
         if (input.CanSignalId.HasValue)
         {
             queryable = queryable.Where(x => x.CanSignalId == input.CanSignalId.Value);
         }
-        
+
         if (input.DetectionLogicId.HasValue)
         {
             queryable = queryable.Where(x => x.DetectionLogicId == input.DetectionLogicId.Value);
         }
-        
-        if (input.AnomalyLevel.HasValue)
+
+        if (input.AnomalyLevels?.Any() == true)
         {
-            queryable = queryable.Where(x => x.AnomalyLevel == input.AnomalyLevel.Value);
+            queryable = queryable.Where(x => input.AnomalyLevels.Contains(x.AnomalyLevel));
         }
 
         var results = await AsyncExecuter.ToListAsync(queryable);
-        
+
         return new DetectionStatisticsDto
         {
             TotalDetections = results.Count,
-            AnomalyLevelCounts = results.GroupBy(x => x.AnomalyLevel)
+            FromDate = input.FromDate,
+            ToDate = input.ToDate,
+            DetectionsByAnomalyLevel = results.GroupBy(x => x.AnomalyLevel)
                 .ToDictionary(g => g.Key, g => g.Count()),
-            ResolutionStatusCounts = results.GroupBy(x => x.ResolutionStatus)
-                .ToDictionary(g => g.Key, g => g.Count()),
-            DetectionsByDate = results.GroupBy(x => x.DetectedAt.Date)
-                .ToDictionary(g => g.Key, g => g.Count()),
-            AverageConfidenceScore = results.Any() ? results.Average(x => x.ConfidenceScore) : 0,
-            TopSignalsByDetectionCount = results.GroupBy(x => x.CanSignalId)
-                .OrderByDescending(g => g.Count())
-                .Take(10)
-                .ToDictionary(g => g.Key, g => g.Count()),
-            TopLogicsByDetectionCount = results.GroupBy(x => x.DetectionLogicId)
-                .OrderByDescending(g => g.Count())
-                .Take(10)
-                .ToDictionary(g => g.Key, g => g.Count())
+            TotalResolvedDetections = results.Count(x => x.ResolutionStatus == ResolutionStatus.Resolved),
+            TotalFalsePositives = results.Count(x => x.ResolutionStatus == ResolutionStatus.FalsePositive),
+            TotalOpenDetections = results.Count(x => x.ResolutionStatus == ResolutionStatus.Open),
+            ResolutionRate = results.Any() ? (double)results.Count(x => x.ResolutionStatus == ResolutionStatus.Resolved) / results.Count * 100 : 0,
+            FalsePositiveRate = results.Any() ? (double)results.Count(x => x.ResolutionStatus == ResolutionStatus.FalsePositive) / results.Count * 100 : 0
         };
     }
 
@@ -93,48 +80,41 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
     {
         var reportId = Guid.NewGuid();
         var generatedAt = DateTime.UtcNow;
-        
+
         // Get detection statistics
         var detectionStats = await GetDetectionStatisticsAsync(new GetDetectionStatisticsInput
         {
-            StartDate = input.StartDate,
-            EndDate = input.EndDate,
-            CanSignalId = input.CanSignalId,
-            DetectionLogicId = input.DetectionLogicId,
-            AnomalyLevel = input.AnomalyLevel
+            FromDate = input.FromDate,
+            ToDate = input.ToDate,
+            SystemTypes = input.IncludedSystems,
+            AnomalyLevels = input.IncludedAnomalyLevels
         });
-        
+
         // Get signal statistics
         var signalCount = await _canSignalRepository.CountAsync();
         var activeSignalCount = await _canSignalRepository.CountAsync(x => x.Status == SignalStatus.Active);
-        
+
         // Get logic statistics
         var logicCount = await _detectionLogicRepository.CountAsync();
         var approvedLogicCount = await _detectionLogicRepository.CountAsync(x => x.Status == DetectionLogicStatus.Approved);
-        
+
         // Get project statistics
         var projectCount = await _projectRepository.CountAsync();
         var activeProjectCount = await _projectRepository.CountAsync(x => x.Status == ProjectStatus.Active);
-        
+
         return new SystemAnomalyReportDto
         {
             ReportId = reportId,
-            ReportName = input.ReportName ?? $"System Anomaly Report - {generatedAt:yyyy-MM-dd}",
+            ReportName = input.ReportName,
             GeneratedAt = generatedAt,
-            GeneratedBy = CurrentUser.UserName ?? "System",
-            StartDate = input.StartDate,
-            EndDate = input.EndDate,
-            DetectionStatistics = detectionStats,
-            SystemOverview = new SystemOverviewDto
-            {
-                TotalSignals = signalCount,
-                ActiveSignals = activeSignalCount,
-                TotalDetectionLogics = logicCount,
-                ApprovedDetectionLogics = approvedLogicCount,
-                TotalProjects = projectCount,
-                ActiveProjects = activeProjectCount
-            },
-            Summary = GenerateReportSummary(detectionStats, signalCount, logicCount, projectCount)
+            GeneratedBy = CurrentUser.Id ?? Guid.Empty,
+            GeneratedByUserName = CurrentUser.UserName ?? "System",
+            FromDate = input.FromDate,
+            ToDate = input.ToDate,
+            IncludedSystems = input.IncludedSystems,
+            IncludedAnomalyLevels = input.IncludedAnomalyLevels,
+            IncludeResolvedDetections = input.IncludeResolvedDetections,
+            IncludeFalsePositives = input.IncludeFalsePositives
         };
     }
 
@@ -144,17 +124,17 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
         var today = DateTime.UtcNow.Date;
         var last30Days = today.AddDays(-30);
         var last7Days = today.AddDays(-7);
-        
+
         // Get recent detection counts
         var totalDetections = await _detectionResultRepository.CountAsync();
         var detectionsLast30Days = await _detectionResultRepository.CountAsync(x => x.DetectedAt >= last30Days);
         var detectionsLast7Days = await _detectionResultRepository.CountAsync(x => x.DetectedAt >= last7Days);
         var detectionsToday = await _detectionResultRepository.CountAsync(x => x.DetectedAt >= today);
-        
+
         // Get critical anomalies
-        var criticalAnomalies = await _detectionResultRepository.CountAsync(x => 
-            x.AnomalyLevel == AnomalyLevel.Critical && x.ResolutionStatus == ResolutionStatus.Unresolved);
-        
+        var criticalAnomalies = await _detectionResultRepository.CountAsync(x =>
+            x.AnomalyLevel == AnomalyLevel.Critical && x.ResolutionStatus == ResolutionStatus.Open);
+
         // Get system counts
         var totalSignals = await _canSignalRepository.CountAsync();
         var activeSignals = await _canSignalRepository.CountAsync(x => x.Status == SignalStatus.Active);
@@ -162,31 +142,39 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
         var approvedLogics = await _detectionLogicRepository.CountAsync(x => x.Status == DetectionLogicStatus.Approved);
         var totalProjects = await _projectRepository.CountAsync();
         var activeProjects = await _projectRepository.CountAsync(x => x.Status == ProjectStatus.Active);
-        
-        // Get trend data for the last 7 days
-        var trendData = new Dictionary<DateTime, int>();
-        for (int i = 6; i >= 0; i--)
+
+        // Build KPI cards
+        var kpiCards = new List<KpiCardDto>
         {
-            var date = today.AddDays(-i);
-            var count = await _detectionResultRepository.CountAsync(x => 
-                x.DetectedAt >= date && x.DetectedAt < date.AddDays(1));
-            trendData[date] = count;
-        }
-        
+            new KpiCardDto
+            {
+                Title = "Total Detections",
+                Value = totalDetections.ToString(),
+                TrendDirection = "Stable",
+                Color = "Info",
+                Icon = "chart-line"
+            },
+            new KpiCardDto
+            {
+                Title = "Critical Anomalies",
+                Value = criticalAnomalies.ToString(),
+                TrendDirection = "Down",
+                Color = criticalAnomalies > 0 ? "Danger" : "Success",
+                Icon = "exclamation-triangle"
+            },
+            new KpiCardDto
+            {
+                Title = "Active Signals",
+                Value = activeSignals.ToString(),
+                TrendDirection = "Up",
+                Color = "Success",
+                Icon = "signal"
+            }
+        };
+
         return new DashboardStatisticsDto
         {
-            TotalDetections = totalDetections,
-            DetectionsLast30Days = detectionsLast30Days,
-            DetectionsLast7Days = detectionsLast7Days,
-            DetectionsToday = detectionsToday,
-            CriticalAnomalies = criticalAnomalies,
-            TotalSignals = totalSignals,
-            ActiveSignals = activeSignals,
-            TotalDetectionLogics = totalLogics,
-            ApprovedDetectionLogics = approvedLogics,
-            TotalProjects = totalProjects,
-            ActiveProjects = activeProjects,
-            DetectionTrend = trendData,
+            KpiCards = kpiCards,
             LastUpdated = DateTime.UtcNow
         };
     }
@@ -257,29 +245,21 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
     {
         var summary = $"System Report Summary:\n";
         summary += $"- Total Detections: {stats.TotalDetections}\n";
-        summary += $"- Average Confidence Score: {stats.AverageConfidenceScore:F2}\n";
+        summary += $"- Resolution Rate: {stats.ResolutionRate:F2}%\n";
+        summary += $"- False Positive Rate: {stats.FalsePositiveRate:F2}%\n";
         summary += $"- Total CAN Signals: {signalCount}\n";
         summary += $"- Total Detection Logics: {logicCount}\n";
         summary += $"- Total Projects: {projectCount}\n";
-        
-        if (stats.AnomalyLevelCounts.Any())
+
+        if (stats.DetectionsByAnomalyLevel.Any())
         {
             summary += "\nAnomaly Level Distribution:\n";
-            foreach (var kvp in stats.AnomalyLevelCounts.OrderByDescending(x => x.Value))
+            foreach (var kvp in stats.DetectionsByAnomalyLevel.OrderByDescending(x => x.Value))
             {
                 summary += $"- {kvp.Key}: {kvp.Value} ({(double)kvp.Value / stats.TotalDetections * 100:F1}%)\n";
             }
         }
-        
-        if (stats.ResolutionStatusCounts.Any())
-        {
-            summary += "\nResolution Status Distribution:\n";
-            foreach (var kvp in stats.ResolutionStatusCounts.OrderByDescending(x => x.Value))
-            {
-                summary += $"- {kvp.Key}: {kvp.Value} ({(double)kvp.Value / stats.TotalDetections * 100:F1}%)\n";
-            }
-        }
-        
+
         return summary;
     }
 }

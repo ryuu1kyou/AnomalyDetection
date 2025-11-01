@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EntityFrameworkCore;
+using AnomalyDetection.EntityFrameworkCore;
 
 namespace AnomalyDetection.Application.Monitoring
 {
@@ -81,7 +83,7 @@ namespace AnomalyDetection.Application.Monitoring
             {
                 _logger.LogError(ex, "Health check failed with exception");
                 _monitoringService.TrackException(ex, "HealthCheck");
-                
+
                 return new HealthCheckResult(
                     HealthStatus.Unhealthy,
                     $"Health check failed: {ex.Message}",
@@ -95,10 +97,10 @@ namespace AnomalyDetection.Application.Monitoring
             try
             {
                 var startTime = DateTimeOffset.UtcNow;
-                
+
                 using var dbContext = await _dbContextProvider.GetDbContextAsync();
                 var connection = dbContext.Database.GetDbConnection();
-                
+
                 if (connection.State != System.Data.ConnectionState.Open)
                 {
                     await connection.OpenAsync(cancellationToken);
@@ -107,7 +109,7 @@ namespace AnomalyDetection.Application.Monitoring
                 using var command = connection.CreateCommand();
                 command.CommandText = "SELECT 1";
                 command.CommandTimeout = 5;
-                
+
                 var result = await command.ExecuteScalarAsync(cancellationToken);
                 var duration = DateTimeOffset.UtcNow - startTime;
 
@@ -123,7 +125,7 @@ namespace AnomalyDetection.Application.Monitoring
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Database health check failed");
-                
+
                 return new HealthCheckItem
                 {
                     IsHealthy = false,
@@ -139,7 +141,7 @@ namespace AnomalyDetection.Application.Monitoring
             {
                 var startTime = DateTimeOffset.UtcNow;
                 var database = _redis.GetDatabase();
-                
+
                 await database.PingAsync();
                 var duration = DateTimeOffset.UtcNow - startTime;
 
@@ -155,7 +157,7 @@ namespace AnomalyDetection.Application.Monitoring
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Redis health check failed");
-                
+
                 return new HealthCheckItem
                 {
                     IsHealthy = false,
@@ -171,7 +173,7 @@ namespace AnomalyDetection.Application.Monitoring
             {
                 var process = System.Diagnostics.Process.GetCurrentProcess();
                 var totalMemory = GC.GetTotalMemory(false);
-                
+
                 // 概算のシステムメモリ使用率（実際の実装では WMI や /proc/meminfo を使用）
                 var memoryUsagePercent = (double)process.WorkingSet64 / (1024 * 1024 * 1024) * 100; // GB単位での概算
 

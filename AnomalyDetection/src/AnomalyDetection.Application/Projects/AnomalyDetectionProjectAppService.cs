@@ -30,7 +30,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         // Apply filters
         if (!string.IsNullOrEmpty(input.Filter))
         {
-            queryable = queryable.Where(x => 
+            queryable = queryable.Where(x =>
                 x.Name.Contains(input.Filter) ||
                 x.ProjectCode.Contains(input.Filter) ||
                 x.Description.Contains(input.Filter));
@@ -61,10 +61,10 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
             queryable = queryable.Where(x => x.StartDate <= input.StartDateTo.Value);
         }
 
-        // Apply sorting
+        // Apply sorting with type specification
         if (!string.IsNullOrEmpty(input.Sorting))
         {
-            queryable = queryable.OrderBy(input.Sorting);
+            queryable = ApplySorting(queryable, input.Sorting);
         }
         else
         {
@@ -80,6 +80,30 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         return new PagedResultDto<AnomalyDetectionProjectDto>(totalCount, dtos);
     }
 
+    private static IQueryable<AnomalyDetectionProject> ApplySorting(
+        IQueryable<AnomalyDetectionProject> queryable,
+        string sorting)
+    {
+        if (string.IsNullOrWhiteSpace(sorting))
+        {
+            return queryable.OrderByDescending(x => x.CreationTime);
+        }
+
+        // Simple sorting - you may need to extend this for more complex cases
+        var parts = sorting.Split(' ');
+        var propertyName = parts[0];
+        var isDescending = parts.Length > 1 && parts[1].Equals("DESC", StringComparison.OrdinalIgnoreCase);
+
+        return propertyName.ToLower() switch
+        {
+            "name" => isDescending ? queryable.OrderByDescending(x => x.Name) : queryable.OrderBy(x => x.Name),
+            "startdate" => isDescending ? queryable.OrderByDescending(x => x.StartDate) : queryable.OrderBy(x => x.StartDate),
+            "enddate" => isDescending ? queryable.OrderByDescending(x => x.EndDate) : queryable.OrderBy(x => x.EndDate),
+            "status" => isDescending ? queryable.OrderByDescending(x => x.Status) : queryable.OrderBy(x => x.Status),
+            _ => queryable.OrderByDescending(x => x.CreationTime)
+        };
+    }
+
     public async Task<AnomalyDetectionProjectDto> GetAsync(Guid id)
     {
         var project = await _projectRepository.GetAsync(id);
@@ -90,9 +114,9 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<AnomalyDetectionProjectDto> CreateAsync(CreateProjectDto input)
     {
         // Check for project code conflicts
-        var existingProject = await _projectRepository.FirstOrDefaultAsync(x => 
+        var existingProject = await _projectRepository.FirstOrDefaultAsync(x =>
             x.ProjectCode == input.ProjectCode && x.TenantId == CurrentTenant.Id);
-        
+
         if (existingProject != null)
         {
             throw new BusinessException("Project:DuplicateProjectCode")
@@ -100,7 +124,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         }
 
         var project = ObjectMapper.Map<CreateProjectDto, AnomalyDetectionProject>(input);
-        
+
         project = await _projectRepository.InsertAsync(project, autoSave: true);
         return ObjectMapper.Map<AnomalyDetectionProject, AnomalyDetectionProjectDto>(project);
     }
@@ -109,19 +133,12 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<AnomalyDetectionProjectDto> UpdateAsync(Guid id, UpdateProjectDto input)
     {
         var project = await _projectRepository.GetAsync(id);
-        
-        // Check for project code conflicts (excluding current project)
-        var existingProject = await _projectRepository.FirstOrDefaultAsync(x => 
-            x.ProjectCode == input.ProjectCode && x.Id != id && x.TenantId == CurrentTenant.Id);
-        
-        if (existingProject != null)
-        {
-            throw new BusinessException("Project:DuplicateProjectCode")
-                .WithData("ProjectCode", input.ProjectCode);
-        }
+
+        // ProjectCode is immutable and cannot be changed after creation
+        // No need to check for conflicts
 
         ObjectMapper.Map(input, project);
-        
+
         project = await _projectRepository.UpdateAsync(project, autoSave: true);
         return ObjectMapper.Map<AnomalyDetectionProject, AnomalyDetectionProjectDto>(project);
     }
@@ -165,7 +182,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         var queryable = await _projectRepository.GetQueryableAsync();
         var projects = await AsyncExecuter.ToListAsync(
             queryable.Where(x => x.Members.Any(m => m.UserId == userId && m.IsActive)));
-        
+
         var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
@@ -179,10 +196,10 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
 
     public async Task<ListResultDto<AnomalyDetectionProjectDto>> GetOverdueProjectsAsync()
     {
-        var projects = await _projectRepository.GetListAsync(x => 
-            x.EndDate.HasValue && x.EndDate.Value < DateTime.UtcNow && 
+        var projects = await _projectRepository.GetListAsync(x =>
+            x.EndDate.HasValue && x.EndDate.Value < DateTime.UtcNow &&
             x.Status != ProjectStatus.Completed && x.Status != ProjectStatus.Cancelled);
-        
+
         var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
@@ -191,7 +208,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task StartProjectAsync(Guid id, StartProjectDto input)
     {
         var project = await _projectRepository.GetAsync(id);
-        project.Start(input.ActualStartDate);
+        project.StartProject();
         await _projectRepository.UpdateAsync(project, autoSave: true);
     }
 
@@ -207,7 +224,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task ResumeProjectAsync(Guid id, ResumeProjectDto input)
     {
         var project = await _projectRepository.GetAsync(id);
-        project.Resume(input.ResumeDate);
+        project.ResumeProject();
         await _projectRepository.UpdateAsync(project, autoSave: true);
     }
 
@@ -215,7 +232,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task CompleteProjectAsync(Guid id, CompleteProjectDto input)
     {
         var project = await _projectRepository.GetAsync(id);
-        project.Complete(input.CompletionDate, input.CompletionNotes);
+        project.CompleteProject();
         await _projectRepository.UpdateAsync(project, autoSave: true);
     }
 
@@ -223,7 +240,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task CancelProjectAsync(Guid id, CancelProjectDto input)
     {
         var project = await _projectRepository.GetAsync(id);
-        project.Cancel(input.CancellationReason);
+        project.CancelProject(input.Reason);
         await _projectRepository.UpdateAsync(project, autoSave: true);
     }
 
@@ -231,7 +248,11 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task UpdateProgressAsync(Guid id, UpdateProjectProgressDto input)
     {
         var project = await _projectRepository.GetAsync(id);
-        project.UpdateProgress(input.ProgressPercentage, input.ProgressNotes);
+        project.UpdateProgress(input.TotalTasks, input.CompletedTasks);
+        if (!string.IsNullOrEmpty(input.Notes))
+        {
+            project.Configuration.AddNote(input.Notes);
+        }
         await _projectRepository.UpdateAsync(project, autoSave: true);
     }
 
@@ -249,9 +270,15 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ProjectMilestoneDto> AddMilestoneAsync(Guid projectId, CreateProjectMilestoneDto input)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        var milestone = project.AddMilestone(input.Name, input.Description, input.DueDate, input.DisplayOrder);
-        
+        var milestone = new ProjectMilestone(
+            input.Name,
+            input.DueDate,
+            input.Description,
+            input.DisplayOrder);
+
+        project.AddMilestone(milestone);
         await _projectRepository.UpdateAsync(project, autoSave: true);
+
         return ObjectMapper.Map<ProjectMilestone, ProjectMilestoneDto>(milestone);
     }
 
@@ -259,8 +286,17 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ProjectMilestoneDto> UpdateMilestoneAsync(Guid projectId, string milestoneName, UpdateProjectMilestoneDto input)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        var milestone = project.UpdateMilestone(milestoneName, input.Description, input.DueDate, input.DisplayOrder);
-        
+        project.UpdateMilestone(milestoneName, input.DueDate, input.Status);
+
+        var milestone = project.Milestones.FirstOrDefault(m => m.Name == milestoneName);
+        if (milestone == null)
+            throw new Volo.Abp.BusinessException("Milestone not found");
+
+        if (!string.IsNullOrEmpty(input.Description))
+        {
+            milestone.UpdateDescription(input.Description);
+        }
+
         await _projectRepository.UpdateAsync(project, autoSave: true);
         return ObjectMapper.Map<ProjectMilestone, ProjectMilestoneDto>(milestone);
     }
@@ -286,7 +322,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         var overdueMilestones = project.Milestones
             .Where(m => m.DueDate < DateTime.UtcNow && m.Status != MilestoneStatus.Completed)
             .ToList();
-        
+
         var dtos = ObjectMapper.Map<List<ProjectMilestone>, List<ProjectMilestoneDto>>(overdueMilestones);
         return new ListResultDto<ProjectMilestoneDto>(dtos);
     }
@@ -295,7 +331,12 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task CompleteMilestoneAsync(Guid projectId, string milestoneName)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        project.CompleteMilestone(milestoneName, CurrentUser.Id);
+        var milestone = project.Milestones.FirstOrDefault(m => m.Name == milestoneName);
+        if (milestone == null)
+            throw new Volo.Abp.BusinessException("Milestone not found");
+
+        milestone.UpdateStatus(MilestoneStatus.Completed, CurrentUser.Id);
+        project.RecalculateProgress();
         await _projectRepository.UpdateAsync(project, autoSave: true);
     }
 
@@ -305,8 +346,9 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ProjectMemberDto> AddMemberAsync(Guid projectId, CreateProjectMemberDto input)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        var member = project.AddMember(input.UserId, input.Role, input.Notes);
-        
+        var member = new ProjectMember(input.UserId, input.Role, input.Notes);
+        project.AddMember(member);
+
         await _projectRepository.UpdateAsync(project, autoSave: true);
         return ObjectMapper.Map<ProjectMember, ProjectMemberDto>(member);
     }
@@ -315,8 +357,17 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ProjectMemberDto> UpdateMemberAsync(Guid projectId, Guid userId, UpdateProjectMemberDto input)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        var member = project.UpdateMember(userId, input.Role, input.Notes);
-        
+        project.UpdateMemberRole(userId, input.Role);
+
+        var member = project.Members.FirstOrDefault(m => m.UserId == userId);
+        if (member == null)
+            throw new Volo.Abp.BusinessException("Member not found");
+
+        if (!string.IsNullOrEmpty(input.Notes))
+        {
+            member.UpdateNotes(input.Notes);
+        }
+
         await _projectRepository.UpdateAsync(project, autoSave: true);
         return ObjectMapper.Map<ProjectMember, ProjectMemberDto>(member);
     }
@@ -340,7 +391,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     {
         var project = await _projectRepository.GetAsync(projectId);
         var activeMembers = project.Members.Where(m => m.IsActive).ToList();
-        
+
         var dtos = ObjectMapper.Map<List<ProjectMember>, List<ProjectMemberDto>>(activeMembers);
         return new ListResultDto<ProjectMemberDto>(dtos);
     }
@@ -359,38 +410,51 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<Dictionary<string, object>> GetDashboardDataAsync(Guid id)
     {
         var project = await _projectRepository.GetAsync(id);
-        
+
+        var daysRemaining = project.EndDate.HasValue ? (project.EndDate.Value - DateTime.UtcNow).Days : (int?)null;
+        var creatorName = project.CreatorId.HasValue ? await GetUserNameAsync(project.CreatorId.Value) : null;
+
         return new Dictionary<string, object>
         {
             ["ProjectId"] = project.Id,
             ["ProjectName"] = project.Name,
             ["Status"] = project.Status.ToString(),
-            ["Progress"] = project.GetProgressPercentage(),
+            ["Progress"] = project.ProgressPercentage,
             ["TotalMilestones"] = project.Milestones.Count,
             ["CompletedMilestones"] = project.Milestones.Count(m => m.Status == MilestoneStatus.Completed),
             ["OverdueMilestones"] = project.Milestones.Count(m => m.DueDate < DateTime.UtcNow && m.Status != MilestoneStatus.Completed),
             ["TotalMembers"] = project.Members.Count,
             ["ActiveMembers"] = project.Members.Count(m => m.IsActive),
-            ["DaysRemaining"] = project.EndDate.HasValue ? (project.EndDate.Value - DateTime.UtcNow).Days : (int?)null,
-            ["IsOverdue"] = project.EndDate.HasValue && project.EndDate.Value < DateTime.UtcNow && project.Status != ProjectStatus.Completed
+            ["DaysRemaining"] = daysRemaining!,
+            ["IsOverdue"] = project.EndDate.HasValue && project.EndDate.Value < DateTime.UtcNow && project.Status != ProjectStatus.Completed,
+            ["CreatorName"] = creatorName!
         };
+    }
+
+    private Task<string?> GetUserNameAsync(Guid userId)
+    {
+        // TODO: Implement user name lookup
+        return Task.FromResult<string?>(null);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.ViewReports)]
     public async Task<Dictionary<string, object>> GetStatisticsAsync(Guid id)
     {
         var project = await _projectRepository.GetAsync(id);
-        
+
+        var duration = project.EndDate.HasValue
+            ? (project.EndDate.Value - project.StartDate).Days
+            : (int?)null;
+        var actualDuration = project.Status == ProjectStatus.Completed
+            ? (DateTime.UtcNow - project.StartDate).Days
+            : (int?)null;
+
         return new Dictionary<string, object>
         {
             ["CreatedDate"] = project.CreationTime,
-            ["LastModifiedDate"] = project.LastModificationTime,
-            ["Duration"] = project.EndDate.HasValue && project.StartDate.HasValue 
-                ? (project.EndDate.Value - project.StartDate.Value).Days 
-                : (int?)null,
-            ["ActualDuration"] = project.Status == ProjectStatus.Completed && project.StartDate.HasValue
-                ? (DateTime.UtcNow - project.StartDate.Value).Days
-                : (int?)null
+            ["LastModifiedDate"] = project.LastModificationTime as object ?? DBNull.Value,
+            ["Duration"] = duration!,
+            ["ActualDuration"] = actualDuration!
         };
     }
 
@@ -413,9 +477,9 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<List<Dictionary<string, object>>> GetTimelineAsync(Guid id)
     {
         var project = await _projectRepository.GetAsync(id);
-        
+
         var timeline = new List<Dictionary<string, object>>();
-        
+
         // Add project creation
         timeline.Add(new Dictionary<string, object>
         {
@@ -423,7 +487,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
             ["Event"] = "Project Created",
             ["Description"] = $"Project '{project.Name}' was created"
         });
-        
+
         // Add milestones
         foreach (var milestone in project.Milestones.OrderBy(m => m.DueDate))
         {
@@ -435,42 +499,42 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
                 ["Status"] = milestone.Status.ToString()
             });
         }
-        
+
         return timeline.OrderBy(t => (DateTime)t["Date"]).ToList();
     }
 
     public async Task<double> GetHealthScoreAsync(Guid id)
     {
         var project = await _projectRepository.GetAsync(id);
-        
+
         double score = 100.0;
-        
+
         // Deduct points for overdue milestones
-        var overdueMilestones = project.Milestones.Count(m => 
+        var overdueMilestones = project.Milestones.Count(m =>
             m.DueDate < DateTime.UtcNow && m.Status != MilestoneStatus.Completed);
         score -= overdueMilestones * 10;
-        
+
         // Deduct points if project is overdue
-        if (project.EndDate.HasValue && project.EndDate.Value < DateTime.UtcNow && 
+        if (project.EndDate.HasValue && project.EndDate.Value < DateTime.UtcNow &&
             project.Status != ProjectStatus.Completed)
         {
             score -= 20;
         }
-        
+
         // Deduct points based on progress vs time elapsed
-        if (project.StartDate.HasValue && project.EndDate.HasValue)
+        if (project.EndDate.HasValue)
         {
-            var totalDuration = (project.EndDate.Value - project.StartDate.Value).TotalDays;
-            var elapsedDuration = (DateTime.UtcNow - project.StartDate.Value).TotalDays;
+            var totalDuration = (project.EndDate.Value - project.StartDate).TotalDays;
+            var elapsedDuration = (DateTime.UtcNow - project.StartDate).TotalDays;
             var expectedProgress = Math.Min(100, (elapsedDuration / totalDuration) * 100);
-            var actualProgress = project.GetProgressPercentage();
-            
+            var actualProgress = project.ProgressPercentage;
+
             if (actualProgress < expectedProgress)
             {
                 score -= (expectedProgress - actualProgress) * 0.5;
             }
         }
-        
+
         return Math.Max(0, Math.Min(100, score));
     }
 }

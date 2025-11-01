@@ -7,14 +7,14 @@ namespace AnomalyDetection.MultiTenancy;
 public class OemMaster : FullAuditedAggregateRoot<Guid>
 {
     public OemCode OemCode { get; private set; }
-    public string CompanyName { get; private set; }
-    public string Country { get; private set; }
-    public string ContactEmail { get; private set; }
-    public string ContactPhone { get; private set; }
+    public string CompanyName { get; private set; } = string.Empty;
+    public string Country { get; private set; } = string.Empty;
+    public string ContactEmail { get; private set; } = string.Empty;
+    public string ContactPhone { get; private set; } = string.Empty;
     public bool IsActive { get; private set; }
     public DateTime? EstablishedDate { get; private set; }
-    public string Description { get; private set; }
-    
+    public string Description { get; private set; } = string.Empty;
+
     // Features and capabilities
     private readonly List<OemFeature> _features = new();
     public IReadOnlyList<OemFeature> Features => _features.AsReadOnly();
@@ -26,33 +26,33 @@ public class OemMaster : FullAuditedAggregateRoot<Guid>
         OemCode oemCode,
         string companyName,
         string country,
-        string contactEmail = null,
-        string contactPhone = null,
+        string? contactEmail = null,
+        string? contactPhone = null,
         DateTime? establishedDate = null,
-        string description = null) : base(id)
+        string? description = null) : base(id)
     {
         OemCode = oemCode ?? throw new ArgumentNullException(nameof(oemCode));
         CompanyName = ValidateCompanyName(companyName);
         Country = ValidateCountry(country);
-        ContactEmail = contactEmail;
-        ContactPhone = contactPhone;
+        ContactEmail = contactEmail ?? string.Empty;
+        ContactPhone = contactPhone ?? string.Empty;
         EstablishedDate = establishedDate;
-        Description = description;
+        Description = description ?? string.Empty;
         IsActive = true;
     }
 
     public void UpdateBasicInfo(
         string companyName,
         string country,
-        string contactEmail = null,
-        string contactPhone = null,
-        string description = null)
+        string? contactEmail = null,
+        string? contactPhone = null,
+        string? description = null)
     {
         CompanyName = ValidateCompanyName(companyName);
         Country = ValidateCountry(country);
-        ContactEmail = contactEmail;
-        ContactPhone = contactPhone;
-        Description = description;
+        ContactEmail = contactEmail ?? string.Empty;
+        ContactPhone = contactPhone ?? string.Empty;
+        Description = description ?? string.Empty;
     }
 
     public void Activate()
@@ -95,10 +95,10 @@ public class OemMaster : FullAuditedAggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(companyName))
             throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
-            
+
         if (companyName.Length > 200)
             throw new ArgumentException("Company name cannot exceed 200 characters", nameof(companyName));
-            
+
         return companyName.Trim();
     }
 
@@ -106,10 +106,10 @@ public class OemMaster : FullAuditedAggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(country))
             throw new ArgumentException("Country cannot be null or empty", nameof(country));
-            
+
         if (country.Length > 100)
             throw new ArgumentException("Country cannot exceed 100 characters", nameof(country));
-            
+
         return country.Trim();
     }
 }

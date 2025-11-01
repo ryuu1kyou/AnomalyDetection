@@ -12,12 +12,12 @@ namespace AnomalyDetection.MultiTenancy;
 
 public class OemMasterRepository : EfCoreRepository<AnomalyDetectionDbContext, OemMaster, Guid>, IOemMasterRepository
 {
-    public OemMasterRepository(IDbContextProvider<AnomalyDetectionDbContext> dbContextProvider) 
+    public OemMasterRepository(IDbContextProvider<AnomalyDetectionDbContext> dbContextProvider)
         : base(dbContextProvider)
     {
     }
 
-    public async Task<OemMaster> FindByOemCodeAsync(string oemCode, CancellationToken cancellationToken = default)
+    public async Task<OemMaster?> FindByOemCodeAsync(string oemCode, CancellationToken cancellationToken = default)
     {
         var dbSet = await GetDbSetAsync();
         return await dbSet.FirstOrDefaultAsync(x => x.OemCode.Code == oemCode, cancellationToken);
@@ -45,12 +45,12 @@ public class OemMasterRepository : EfCoreRepository<AnomalyDetectionDbContext, O
     {
         var dbSet = await GetDbSetAsync();
         var query = dbSet.Where(x => x.OemCode.Code == oemCode);
-        
+
         if (excludeId.HasValue)
         {
             query = query.Where(x => x.Id != excludeId.Value);
         }
-        
+
         return await query.AnyAsync(cancellationToken);
     }
 }

@@ -7,7 +7,7 @@ using Volo.Abp.AutoMapper;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Modularity;
 using Volo.Abp.TenantManagement;
-using Volo.Abp.Caching.StackExchangeRedis;
+// using Volo.Abp.Caching.StackExchangeRedis; // Redisを無効化
 
 namespace AnomalyDetection;
 
@@ -19,8 +19,8 @@ namespace AnomalyDetection;
     typeof(AbpIdentityApplicationModule),
     typeof(AbpAccountApplicationModule),
     typeof(AbpTenantManagementApplicationModule),
-    typeof(AbpSettingManagementApplicationModule),
-    typeof(AbpCachingStackExchangeRedisModule)
+    typeof(AbpSettingManagementApplicationModule)
+    // typeof(AbpCachingStackExchangeRedisModule) // Redisを無効化
     )]
 public class AnomalyDetectionApplicationModule : AbpModule
 {
@@ -31,9 +31,10 @@ public class AnomalyDetectionApplicationModule : AbpModule
             options.AddMaps<AnomalyDetectionApplicationModule>();
         });
 
-        // キャッシュ設定
-        CacheConfiguration.ConfigureDistributedCache(context);
+        // キャッシュ設定 (Redisは無効化されているためメモリキャッシュを使用)
+        // CacheConfiguration.ConfigureDistributedCache(context); // Redisキャッシュをコメントアウト
         CacheConfiguration.ConfigureMemoryCache(context);
         CacheConfiguration.ConfigureCacheServices(context);
     }
 }
+
