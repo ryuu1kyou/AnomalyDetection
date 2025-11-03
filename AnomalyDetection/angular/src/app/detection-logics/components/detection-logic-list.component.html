@@ -1,0 +1,116 @@
+<div class="logic-list-page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">異常検出ロジック一覧</h2>
+      <p class="page-subtitle">
+        全 {{ totalCount | number }} 件中 最新 {{ detectionLogics.length | number }} 件を表示
+      </p>
+    </div>
+    <button mat-raised-button color="primary" (click)="createLogic()" type="button">
+      <mat-icon>add</mat-icon>
+      新規ロジック作成
+    </button>
+  </div>
+
+  <mat-card class="banner-card" *ngIf="highlightedLogicId">
+    <div class="banner-content">
+      <div>
+        新しい検出ロジック (ID: {{ highlightedLogicId }}) を作成しました。
+      </div>
+      <div class="banner-actions">
+        <a mat-button color="primary" [routerLink]="['/detection-logics', highlightedLogicId]">
+          詳細を開く
+        </a>
+        <button
+          mat-icon-button
+          (click)="dismissCreatedBanner()"
+          type="button"
+          aria-label="通知を閉じる"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <div class="list-state" *ngIf="isLoading">
+    <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    <span>読み込み中...</span>
+  </div>
+
+  <div class="list-state list-state--error" *ngIf="!isLoading && errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
+    <button mat-button color="primary" (click)="reload()" type="button">再読み込み</button>
+  </div>
+
+  <div class="logic-list" *ngIf="!isLoading && !errorMessage && detectionLogics.length">
+    <mat-card
+      class="logic-card"
+      *ngFor="let logic of detectionLogics; trackBy: trackByLogicId"
+      [class.logic-card--highlight]="logic.id === highlightedLogicId"
+    >
+      <mat-card-header>
+        <div mat-card-avatar class="logic-card__avatar">
+          <mat-icon>memory</mat-icon>
+        </div>
+        <mat-card-title>{{ logic.name }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ getDetectionTypeLabel(logic.detectionType) }} ・ バージョン {{ logic.version || 'N/A' }}
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <p class="logic-card__description">
+          {{ logic.description || '説明が設定されていません。' }}
+        </p>
+
+        <div class="logic-card__pills">
+          <span class="status-pill" [ngClass]="statusClassMap[logic.status]">
+            {{ getDetectionLogicStatusLabel(logic.status) }}
+          </span>
+          <span class="status-pill asil-pill">
+            ASIL {{ getAsilLevelLabel(logic.asilLevel) }}
+          </span>
+          <span class="status-pill sharing-pill">
+            {{ getSharingLevelLabel(logic.sharingLevel) }}
+          </span>
+        </div>
+
+        <div class="logic-card__grid">
+          <div>
+            <label>OEM</label>
+            <span>{{ formatOem(logic.oemCode) }}</span>
+          </div>
+          <div>
+            <label>承認</label>
+            <span>
+              {{ logic.approvedAt ? (logic.approvedAt | date: 'yyyy/MM/dd HH:mm') : '未承認' }}
+            </span>
+          </div>
+          <div>
+            <label>実行回数</label>
+            <span>{{ (logic.executionCount ?? 0) | number }}</span>
+          </div>
+          <div>
+            <label>最終実行</label>
+            <span>
+              {{ logic.lastExecutedAt ? (logic.lastExecutedAt | date: 'yyyy/MM/dd HH:mm') : '未実行' }}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button mat-stroked-button color="primary" (click)="viewDetail(logic)" type="button">
+          詳細を表示
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <div class="list-state" *ngIf="!isLoading && !errorMessage && !detectionLogics.length">
+    <mat-icon>info</mat-icon>
+    <span>表示できる検出ロジックがありません。</span>
+  </div>
+</div>

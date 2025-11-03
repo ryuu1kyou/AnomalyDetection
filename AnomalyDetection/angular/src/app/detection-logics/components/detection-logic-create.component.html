@@ -1,0 +1,195 @@
+<mat-card class="logic-create-card">
+  <mat-card-title>テンプレートから検出ロジックを作成</mat-card-title>
+  <mat-card-subtitle>
+    既存の検出テンプレートを選択し、対象となる CAN 信号とパラメーターを設定してロジックを作成します。
+  </mat-card-subtitle>
+
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="logic-create-form">
+      <section class="form-section">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>検出ロジック名</mat-label>
+          <input
+            matInput
+            formControlName="logicName"
+            placeholder="Engine Coolant Temperature Range"
+            autocomplete="off"
+          />
+          <mat-error *ngIf="form.get('logicName')?.hasError('required')">
+            ロジック名は必須です。
+          </mat-error>
+          <mat-error *ngIf="form.get('logicName')?.hasError('maxlength')">
+            200 文字以内で入力してください。
+          </mat-error>
+        </mat-form-field>
+
+        <div class="form-grid-2">
+          <mat-form-field appearance="outline">
+            <mat-label>検出タイプ</mat-label>
+            <mat-select formControlName="detectionType">
+              <mat-option *ngFor="let option of detectionTypeOptions" [value]="option.value">
+                {{ option.label }}
+              </mat-option>
+            </mat-select>
+            <mat-hint *ngIf="selectedDetectionTypeOption as typeOption">
+              {{ typeOption.description }}
+            </mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>テンプレート</mat-label>
+            <mat-select
+              formControlName="templateType"
+              [disabled]="isLoadingTemplates || !templates.length"
+            >
+              <mat-option *ngFor="let template of templates" [value]="template.type">
+                {{ template.name }}
+              </mat-option>
+            </mat-select>
+            <mat-hint *ngIf="selectedTemplate">{{ selectedTemplate.description }}</mat-hint>
+            <ng-container *ngIf="isLoadingTemplates">
+              <mat-hint>
+                <span class="loading-inline">
+                  <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
+                  テンプレートを読み込み中...
+                </span>
+              </mat-hint>
+            </ng-container>
+          </mat-form-field>
+        </div>
+      </section>
+
+      <mat-divider></mat-divider>
+
+      <section class="form-section">
+        <div class="signal-picker">
+          <mat-form-field appearance="outline">
+            <mat-label>CAN 信号を検索</mat-label>
+            <input
+              matInput
+              [formControl]="signalSearchControl"
+              placeholder="Signal 名または CAN ID"
+              autocomplete="off"
+            />
+            <mat-hint>候補は 20 件まで表示されます。絞り込みのために 2 文字以上入力してください。</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>対象 CAN 信号</mat-label>
+            <mat-select formControlName="canSignalId">
+              <mat-option *ngIf="isLoadingSignals" disabled>
+                <span class="loading-inline">
+                  <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
+                  読み込み中...
+                </span>
+              </mat-option>
+              <mat-option *ngFor="let signal of signalOptions" [value]="signal.id">
+                {{ signal.label }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('canSignalId')?.hasError('required')">
+              CAN 信号を選択してください。
+            </mat-error>
+            <mat-error *ngIf="form.get('canSignalId')?.hasError('guid')">
+              有効な GUID 形式で選択してください。
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </section>
+
+      <mat-divider></mat-divider>
+
+      <section class="form-section" *ngIf="selectedTemplate; else templatePlaceholder">
+        <h3 class="section-title">テンプレート パラメーター</h3>
+        <ng-container *ngIf="parameterDefinitions.length; else noParameterHint">
+          <div class="parameter-grid" formGroupName="parameters">
+            <ng-container *ngFor="let parameter of parameterDefinitions; trackBy: trackByParamName">
+              <ng-container *ngIf="parameter.allowedValues?.length; else editableField">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ parameter.name }}</mat-label>
+                  <mat-select [formControlName]="parameter.name">
+                    <mat-option *ngFor="let option of parameter.allowedValues" [value]="option">
+                      {{ option }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-hint>{{ parameter.description }}</mat-hint>
+                  <mat-error *ngIf="form.get('parameters')?.get(parameter.name)?.hasError('required')">
+                    必須項目です。
+                  </mat-error>
+                </mat-form-field>
+              </ng-container>
+
+              <ng-template #editableField>
+                <ng-container [ngSwitch]="parameter.type">
+                  <mat-form-field appearance="outline" *ngSwitchCase="'boolean'">
+                    <mat-label>{{ parameter.name }}</mat-label>
+                    <mat-select [formControlName]="parameter.name">
+                      <mat-option [value]="true">true</mat-option>
+                      <mat-option [value]="false">false</mat-option>
+                    </mat-select>
+                    <mat-hint>{{ parameter.description }}</mat-hint>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" *ngSwitchDefault>
+                    <mat-label>{{ parameter.name }}</mat-label>
+                    <input
+                      matInput
+                      [type]="parameter.type === 'number' || parameter.type === 'integer' ? 'number' : 'text'"
+                      [step]="parameter.type === 'integer' ? 1 : 'any'"
+                      [formControlName]="parameter.name"
+                      autocomplete="off"
+                    />
+                    <mat-hint>
+                      {{ parameter.description }}
+                      <ng-container *ngIf="parameter.minValue !== undefined">
+                        最小: {{ parameter.minValue }}
+                      </ng-container>
+                      <ng-container *ngIf="parameter.maxValue !== undefined">
+                        ／ 最大: {{ parameter.maxValue }}
+                      </ng-container>
+                    </mat-hint>
+                    <mat-error *ngIf="form.get('parameters')?.get(parameter.name)?.hasError('required')">
+                      必須項目です。
+                    </mat-error>
+                    <mat-error *ngIf="form.get('parameters')?.get(parameter.name)?.hasError('min')">
+                      {{ parameter.minValue }} 以上の値を入力してください。
+                    </mat-error>
+                    <mat-error *ngIf="form.get('parameters')?.get(parameter.name)?.hasError('max')">
+                      {{ parameter.maxValue }} 以下の値を入力してください。
+                    </mat-error>
+                  </mat-form-field>
+                </ng-container>
+              </ng-template>
+            </ng-container>
+          </div>
+        </ng-container>
+      </section>
+
+      <ng-template #templatePlaceholder>
+        <p class="text-muted">テンプレートを選択すると設定可能なパラメーターが表示されます。</p>
+      </ng-template>
+
+      <ng-template #noParameterHint>
+        <p class="text-muted">このテンプレートは追加パラメーターを必要としません。</p>
+      </ng-template>
+
+      <div class="actions">
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="form.invalid || isSaving || !selectedTemplate"
+        >
+          <mat-icon>save</mat-icon>
+          テンプレートから作成
+          <mat-progress-spinner
+            *ngIf="isSaving"
+            diameter="20"
+            mode="indeterminate"
+            class="button-spinner"
+          ></mat-progress-spinner>
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

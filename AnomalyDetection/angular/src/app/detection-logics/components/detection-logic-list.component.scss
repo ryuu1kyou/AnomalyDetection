@@ -1,0 +1,164 @@
+.logic-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.page-subtitle {
+  margin: 4px 0 0;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.banner-card {
+  border-left: 4px solid #388e3c;
+  background: #e8f5e9;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  min-height: 120px;
+  text-align: center;
+}
+
+.list-state--error {
+  color: #c62828;
+  flex-direction: column;
+}
+
+.logic-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.logic-card {
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.logic-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
+}
+
+.logic-card--highlight {
+  border: 1px solid #66bb6a;
+  box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.4);
+}
+
+.logic-card__avatar {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.logic-card__description {
+  min-height: 48px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.logic-card__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.status-pill--draft {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-pill--pending {
+  background: #fffde7;
+  color: #f9a825;
+}
+
+.status-pill--approved {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-pill--rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-pill--deprecated {
+  background: #eceff1;
+  color: #455a64;
+}
+
+.asil-pill {
+  background: #ede7f6;
+  color: #5e35b1;
+}
+
+.sharing-pill {
+  background: #e1f5fe;
+  color: #0277bd;
+}
+
+.logic-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.logic-card__grid label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 2px;
+}
+
+.logic-card__grid span {
+  display: block;
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.8);
+}

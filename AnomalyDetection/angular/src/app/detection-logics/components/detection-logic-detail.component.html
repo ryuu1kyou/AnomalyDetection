@@ -1,0 +1,178 @@
+<div class="logic-detail-page">
+  <button mat-button color="primary" [routerLink]="['/detection-logics']" class="back-link" type="button">
+    <mat-icon>arrow_back</mat-icon>
+    一覧に戻る
+  </button>
+
+  <div class="state" *ngIf="isLoading">
+    <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    <span>読み込み中...</span>
+  </div>
+
+  <div class="state state--error" *ngIf="!isLoading && errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
+    <button mat-button color="primary" (click)="reload()" type="button">再読み込み</button>
+  </div>
+
+  <mat-card *ngIf="!isLoading && !errorMessage && logic" class="detail-card">
+    <mat-card-header>
+      <div mat-card-avatar class="detail-card__avatar">
+        <mat-icon>schema</mat-icon>
+      </div>
+      <mat-card-title>{{ logic.name }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ getDetectionTypeLabel(logic.detectionType) }} ・ バージョン {{ logic.version || 'N/A' }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="pill-row">
+        <span class="status-pill" [ngClass]="statusClassMap[logic.status]">
+          {{ getDetectionLogicStatusLabel(logic.status) }}
+        </span>
+        <span class="status-pill asil-pill">
+          ASIL {{ getAsilLevelLabel(logic.asilLevel) }}
+        </span>
+        <span class="status-pill sharing-pill">
+          {{ getSharingLevelLabel(logic.sharingLevel) }}
+        </span>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <section class="section">
+        <h3>概要</h3>
+        <dl>
+          <div>
+            <dt>説明</dt>
+            <dd>{{ logic.description || '説明が設定されていません。' }}</dd>
+          </div>
+          <div>
+            <dt>目的</dt>
+            <dd>{{ logic.purpose || '目的が設定されていません。' }}</dd>
+          </div>
+          <div>
+            <dt>OEM</dt>
+            <dd>{{ formatOem(logic.oemCode) }}</dd>
+          </div>
+          <div>
+            <dt>共有レベル</dt>
+            <dd>{{ getSharingLevelLabel(logic.sharingLevel) }}</dd>
+          </div>
+          <div>
+            <dt>承認</dt>
+            <dd>
+              <ng-container *ngIf="logic.approvedAt; else notApproved">
+                {{ logic.approvedAt | date: 'yyyy/MM/dd HH:mm' }}
+                <span *ngIf="logic.approvedBy"> / {{ logic.approvedBy }}</span>
+              </ng-container>
+              <ng-template #notApproved>未承認</ng-template>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="section">
+        <h3>実行状況</h3>
+        <div class="metadata-grid">
+          <div>
+            <label>実行回数</label>
+            <span>{{ (logic.executionCount ?? 0) | number }}</span>
+          </div>
+          <div>
+            <label>最終実行</label>
+            <span>
+              {{ logic.lastExecutedAt ? (logic.lastExecutedAt | date: 'yyyy/MM/dd HH:mm') : '未実行' }}
+            </span>
+          </div>
+          <div>
+            <label>平均実行時間 (ms)</label>
+            <span>{{ (logic.lastExecutionTimeMs ?? 0) | number: '1.0-2' }}</span>
+          </div>
+          <div>
+            <label>最終更新</label>
+            <span>
+              {{ logic.lastModificationTime ? (logic.lastModificationTime | date: 'yyyy/MM/dd HH:mm') : '未更新' }}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>パラメーター</h3>
+        <ng-container *ngIf="logic.parameters?.length; else noParameters">
+          <div class="list">
+            <div class="list-item" *ngFor="let parameter of logic.parameters; trackBy: trackByParameterId">
+              <div class="list-item__header">
+                <span class="list-item__title">{{ parameter.name }}</span>
+                <span class="status-pill status-pill--ghost">
+                  {{ getParameterDataTypeLabel(parameter.dataType) }}
+                </span>
+                <span class="status-pill status-pill--ghost" *ngIf="parameter.isRequired">必須</span>
+              </div>
+              <div class="list-item__body">
+                <label>値</label>
+                <span>{{ parameter.value || '(未設定)' }}</span>
+              </div>
+              <div class="list-item__body" *ngIf="parameter.description">
+                <label>説明</label>
+                <span>{{ parameter.description }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #noParameters>
+          <p class="muted">登録されたパラメーターはありません。</p>
+        </ng-template>
+      </section>
+
+      <section class="section">
+        <h3>CAN 信号マッピング</h3>
+        <ng-container *ngIf="logic.signalMappings?.length; else noMappings">
+          <div class="list">
+            <div
+              class="list-item"
+              *ngFor="let mapping of logic.signalMappings; trackBy: trackBySignalMappingId"
+            >
+              <div class="list-item__header">
+                <span class="list-item__title">{{ mapping.signalName || mapping.signalRole }}</span>
+                <span class="status-pill status-pill--ghost">
+                  {{ getCanSystemTypeLabel(mapping.systemType) }}
+                </span>
+                <span class="status-pill status-pill--ghost" *ngIf="mapping.isRequired">必須</span>
+              </div>
+              <div class="list-item__body">
+                <label>CAN ID</label>
+                <span>{{ mapping.canId || '未設定' }}</span>
+              </div>
+              <div class="list-item__body">
+                <label>役割</label>
+                <span>{{ mapping.signalRole }}</span>
+              </div>
+              <div class="list-item__body" *ngIf="mapping.description">
+                <label>説明</label>
+                <span>{{ mapping.description }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #noMappings>
+          <p class="muted">関連付けられた CAN 信号はありません。</p>
+        </ng-template>
+      </section>
+
+      <section class="section" *ngIf="logic.logicContent">
+        <h3>ロジック定義</h3>
+        <pre class="logic-content">{{ logic.logicContent }}</pre>
+      </section>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button mat-stroked-button color="primary" [routerLink]="['/detection-logics']" type="button">
+        <mat-icon>arrow_back</mat-icon>
+        一覧に戻る
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

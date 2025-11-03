@@ -25,30 +25,30 @@
 
 ## 要件別一覧
 
-| #   | 要件                          | 判定            | 主対応ファイル/クラス                                                                                             | 主なギャップ / TODO                              |
-| --- | ----------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 1   | マルチテナント基盤            | Covered/Partial | ABP TenantManagement modules,`IMultiTenant` aggregates, `MultiTenantDataIsolationService_Tests.cs`                | テナント切替 UI 完全性未確認                     |
-| 2   | CAN 信号マスタ管理            | Partial         | `CanSignal.cs`, `CanSignalAppService.cs`, `CanSystemCategory.cs`                                                  | Import 処理/TODO、検索高度化、性能テスト         |
-| 3   | 異常検出ロジック開発          | Partial         | `CanAnomalyDetectionLogic.cs`, `CanAnomalyDetectionLogicAppService.cs`                                            | バージョン管理詳細、ロジック実行/テスト結果保存  |
-| 4   | ロジックテンプレート          | Missing         | `ICanAnomalyDetectionLogicAppService.cs` (メソッド定義), AppService TODO                                          | テンプレート生成/取得実装不在                    |
-| 5   | 検出結果管理・分析            | Covered         | `AnomalyDetectionResult.cs`, `AnomalyDetectionResultAppService.cs`, `StatisticsAppService.cs`, `ExportService.cs` | 高度フィルタ完備、Export 実装完了                |
-| 6   | 情報流用・継承                | Partial         | VehiclePhaseId フィールド,`ApprovalType.Inheritance`, OemTraceability                                             | 互換性分析アルゴリズム, 推奨調整表示             |
-| 7   | 車両フェーズ履歴管理          | Partial         | ロジックの VehiclePhase 参照, DTO input                                                                           | フェーズライフサイクルと履歴比較 UI/サービス不足 |
-| 8   | 認証・認可                    | Covered/Partial | OpenIddict 設定, Permissions, Roles (`SafetyEngineer`)                                                            | 監査レポート/権限外操作ログの UI 確認            |
-| 9   | リアルタイム検出処理          | Covered         | `RealTimeDetectionHub`, `RealtimeDetectionHubService.ts`, `detection-results-list.component.ts` SignalR 統合      | 100ms SLA 計測・バックエンド判定サービス統合未   |
-| 10  | 統計・レポート                | Covered         | `StatisticsAppService.cs`, `ExportService.cs`, `dashboard.service.ts`                                             | Schedule TODO、5 秒 SLA テスト無し               |
-| 11  | 多言語対応                    | Partial         | Localization modules,`UseAbpRequestLocalization`                                                                  | UI 全要素国際化検証、ユーザー設定永続化          |
-| 12  | システム統合/API              | Partial         | Swagger, OIDC                                                                                                     | 外部取込/通知専用 API/SLA テスト未               |
-| 13  | パフォーマンス/スケール       | Partial/Missing | `QueryPerformanceTests.cs`, covering indexes コメント                                                             | 同時ユーザー/信号処理/自動スケール試験未         |
-| 14  | セキュリティ/コンプライアンス | Partial/Missing | OpenIddict, Permissions, AuditLogAction                                                                           | 暗号化/バックアップ/脆弱性スキャン/GDPR 処理未   |
-| 15  | 運用・保守                    | Partial         | `docker-compose.monitoring.yml` (Prometheus/Grafana), Alertmanager                                                | アプリメトリクス/5 分以内通知テスト未            |
-| 16  | 最新 CAN 仕様連携             | Missing         | Import TODO (`CanSignalAppService.cs`)                                                                            | 差分検出/適合分析/推奨/ダッシュボード未          |
-| 17  | 異常検出辞書/ナレッジ         | Covered         | `KnowledgeArticle`, `KnowledgeArticleComment`, `KnowledgeBaseAppService`, `KnowledgeArticleRecommendationService` | コメント評価、統計、推奨連携まで実装             |
-| 18  | 機能安全トレーサビリティ      | Partial         | ASIL 関連 (AsilLevel), OemTraceability, SafetyClassification                                                      | 双方向リンク自動化/マトリクス生成/監査レポート未 |
-| 19  | クラウド移行設計              | Partial         | Docker, 環境変数, ステートレス構造                                                                                | GCP サービス互換検証/最小変更移行手順未          |
-| 20  | 詳細分析 (閾値/遅延等)        | Partial         | SimilarPatternSearch\*, ImpactLevel                                                                               | 検出遅延記録/閾値最適化推奨/精度指標算出未       |
-| 21  | OEM 間トレーサビリティ強化    | Covered         | OemTraceability AppService, SharingLevel,`ExportService.cs`                                                       | 差異分析レポート完備、Export 完了                |
-| 22  | 類似比較・履歴データ抽出      | Covered         | SimilarPatternSearchAppService, DTO,`ExportService.cs`                                                            | 可視化(グラフ)/Export 完了、自動推奨あり         |
+| #   | 要件                          | 判定            | 主対応ファイル/クラス                                                                                               | 主なギャップ / TODO                              |
+| --- | ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 1   | マルチテナント基盤            | Covered/Partial | ABP TenantManagement modules,`IMultiTenant` aggregates, `MultiTenantDataIsolationService_Tests.cs`                  | テナント切替 UI 完全性未確認                     |
+| 2   | CAN 信号マスタ管理            | Partial         | `CanSignal.cs`, `CanSignalAppService.cs`, `CanSystemCategory.cs`                                                    | Import 処理/TODO、検索高度化、性能テスト         |
+| 3   | 異常検出ロジック開発          | Partial         | `CanAnomalyDetectionLogic.cs`, `CanAnomalyDetectionLogicAppService.cs`                                              | バージョン管理詳細、ロジック実行/テスト結果保存  |
+| 4   | ロジックテンプレート          | Partial         | `ICanAnomalyDetectionLogicAppService.cs`, `CanAnomalyDetectionLogicAppService.cs`, `DetectionTemplateAppService.cs` | テンプレート作成 UI 実装済、管理 UI/テスト整備残 |
+| 5   | 検出結果管理・分析            | Covered         | `AnomalyDetectionResult.cs`, `AnomalyDetectionResultAppService.cs`, `StatisticsAppService.cs`, `ExportService.cs`   | 高度フィルタ完備、Export 実装完了                |
+| 6   | 情報流用・継承                | Partial         | VehiclePhaseId フィールド,`ApprovalType.Inheritance`, OemTraceability                                               | 互換性分析アルゴリズム, 推奨調整表示             |
+| 7   | 車両フェーズ履歴管理          | Partial         | ロジックの VehiclePhase 参照, DTO input                                                                             | フェーズライフサイクルと履歴比較 UI/サービス不足 |
+| 8   | 認証・認可                    | Covered/Partial | OpenIddict 設定, Permissions, Roles (`SafetyEngineer`)                                                              | 監査レポート/権限外操作ログの UI 確認            |
+| 9   | リアルタイム検出処理          | Covered         | `RealTimeDetectionHub`, `RealtimeDetectionHubService.ts`, `detection-results-list.component.ts` SignalR 統合        | 100ms SLA 計測・バックエンド判定サービス統合未   |
+| 10  | 統計・レポート                | Covered         | `StatisticsAppService.cs`, `ExportService.cs`, `dashboard.service.ts`                                               | Schedule TODO、5 秒 SLA テスト無し               |
+| 11  | 多言語対応                    | Partial         | Localization modules,`UseAbpRequestLocalization`                                                                    | UI 全要素国際化検証、ユーザー設定永続化          |
+| 12  | システム統合/API              | Partial         | Swagger, OIDC                                                                                                       | 外部取込/通知専用 API/SLA テスト未               |
+| 13  | パフォーマンス/スケール       | Partial/Missing | `QueryPerformanceTests.cs`, covering indexes コメント                                                               | 同時ユーザー/信号処理/自動スケール試験未         |
+| 14  | セキュリティ/コンプライアンス | Partial/Missing | OpenIddict, Permissions, AuditLogAction                                                                             | 暗号化/バックアップ/脆弱性スキャン/GDPR 処理未   |
+| 15  | 運用・保守                    | Partial         | `docker-compose.monitoring.yml` (Prometheus/Grafana), Alertmanager                                                  | アプリメトリクス/5 分以内通知テスト未            |
+| 16  | 最新 CAN 仕様連携             | Missing         | Import TODO (`CanSignalAppService.cs`)                                                                              | 差分検出/適合分析/推奨/ダッシュボード未          |
+| 17  | 異常検出辞書/ナレッジ         | Covered         | `KnowledgeArticle`, `KnowledgeArticleComment`, `KnowledgeBaseAppService`, `KnowledgeArticleRecommendationService`   | コメント評価、統計、推奨連携まで実装             |
+| 18  | 機能安全トレーサビリティ      | Partial         | ASIL 関連 (AsilLevel), OemTraceability, SafetyClassification                                                        | 双方向リンク自動化/マトリクス生成/監査レポート未 |
+| 19  | クラウド移行設計              | Partial         | Docker, 環境変数, ステートレス構造                                                                                  | GCP サービス互換検証/最小変更移行手順未          |
+| 20  | 詳細分析 (閾値/遅延等)        | Partial         | SimilarPatternSearch\*, ImpactLevel                                                                                 | 検出遅延記録/閾値最適化推奨/精度指標算出未       |
+| 21  | OEM 間トレーサビリティ強化    | Covered         | OemTraceability AppService, SharingLevel,`ExportService.cs`                                                         | 差異分析レポート完備、Export 完了                |
+| 22  | 類似比較・履歴データ抽出      | Covered         | SimilarPatternSearchAppService, DTO,`ExportService.cs`                                                              | 可視化(グラフ)/Export 完了、自動推奨あり         |
 
 ## 代表的 TODO/未実装コード断片
 
@@ -57,7 +57,7 @@
 - ~~検出結果 Export: `AnomalyDetectionResultAppService.cs` L291-380 Export 実装~~ **✅ 完了**
 - ~~OEM トレーサビリティレポート Export: `OemTraceabilityAppService.cs` L342-423 Export 実装~~ **✅ 完了**
 - ~~SimilarPatternSearch Export: `SimilarPatternSearchAppService.cs` L152-234 Export 実装~~ **✅ 完了**
-- テンプレート: `CanAnomalyDetectionLogicAppService.cs` L217-226 (`// TODO: Implement template ...`)
+- ~~テンプレート: `CanAnomalyDetectionLogicAppService.cs` L217-226 (`// TODO: Implement template ...`)~~ **✅ Backend API 実装完了**
 - CAN Import: `CanSignalAppService.cs` L335 (`// TODO: Implement file import logic`)
 
 ## 実装完了履歴
@@ -167,6 +167,19 @@
 - CSV/JSON/PDF の一貫したフォーマット対応
 - 詳細なメタデータと分析結果の完全保存
 
+### 2025-11-03: Detection Template Creation UI (Req4)
+
+**フロントエンド実装:**
+
+- ✅ `DetectionLogicCreateComponent` (Angular) をリアクティブフォーム化し、テンプレート API と CAN 信号検索サービスを統合
+- ✅ 新規 HTML/SCSS でテンプレート選択、動的パラメーター入力、ステータス表示を実装
+- ✅ 成功時に SnackBar 通知と `detection-logics` 一覧への遷移を追加（`created` クエリで新規ロジックを識別可能）
+
+**未完タスク:**
+
+- テンプレート一覧 UI (管理/編集) と一覧/詳細画面のデータ連携強化
+- バリデーション/エラーハンドリングの統合テスト、E2E テスト
+
 ## リスク分類
 
 ### 高
@@ -196,7 +209,7 @@
 ### Sprint 1-2 (基盤強化) - 一部完了
 
 1. ~~RealTimeDetectionHub + クライアント統合~~ **✅ 完了** + 判定サービス統合 + SLA 計測ミドルウェア (Req9)
-2. DetectionTemplateFactory + CreateFromTemplate 実装 (Req4)
+2. ~~DetectionTemplateFactory + CreateFromTemplate 実装 (Req4)~~ **✅ サービス層 + Angular 作成 UI 完了、テンプレート管理 UI/テスト整備残**
 3. 機能安全最小トレーサビリティ: `SafetyTraceRecord` 集約 + 変更承認ワークフロー (Req18)
 4. ~~ナレッジベース初期: `KnowledgeEntry` 集約, CRUD, Tag/全文検索 (Req17)~~ **✅ 完了 (KnowledgeArticle/Comment + 推奨/統計)**
 
@@ -216,13 +229,13 @@
 
 ## 優先実装タスク (詳細)
 
-| タスク                           | 目的                 | 成功条件                                     | 関連要件   | 状態            |
-| -------------------------------- | -------------------- | -------------------------------------------- | ---------- | --------------- |
-| RealTimeDetectionHub             | リアルタイム結果配信 | 異常検出後 <100ms Hub broadcast / テスト通過 | 9,5        | ✅ フロント完了 |
-| DetectionTemplateFactory         | 標準パターン迅速作成 | 4 種類テンプレート + パラメータ検証          | 4          | ⏳ 未着手       |
-| SafetyTraceRecord + ApprovalFlow | 監査対応             | ASIL B+ 変更時承認必須 & 監査レポ生成        | 18,14      | ⏳ 未着手       |
-| KnowledgeBase MVP                | 事例検索             | CRUD + Tag 検索 + 類似検索(名称/タグ)        | 17         | ⏳ 未着手       |
-| ExportService                    | 共通化               | PDF/CSV 2 形式サポート & 3 ドメイン適用      | 5,10,21,22 | ⏳ 未着手       |
+| タスク                           | 目的                 | 成功条件                                     | 関連要件   | 状態                                |
+| -------------------------------- | -------------------- | -------------------------------------------- | ---------- | ----------------------------------- |
+| RealTimeDetectionHub             | リアルタイム結果配信 | 異常検出後 <100ms Hub broadcast / テスト通過 | 9,5        | ✅ フロント完了                     |
+| DetectionTemplateFactory         | 標準パターン迅速作成 | 4 種類テンプレート + パラメータ検証          | 4          | ✅ Backend 完了 (UI/検証シナリオ残) |
+| SafetyTraceRecord + ApprovalFlow | 監査対応             | ASIL B+ 変更時承認必須 & 監査レポ生成        | 18,14      | ⏳ 未着手                           |
+| KnowledgeBase MVP                | 事例検索             | CRUD + Tag 検索 + 類似検索(名称/タグ)        | 17         | ⏳ 未着手                           |
+| ExportService                    | 共通化               | PDF/CSV 2 形式サポート & 3 ドメイン適用      | 5,10,21,22 | ⏳ 未着手                           |
 
 ## 追加調査推奨
 
@@ -232,11 +245,11 @@
 
 ## 次ステップ (即実装候補)
 
-1. `RealTimeDetectionHub.cs` 雛形追加
-2. `DetectionTemplateFactory.cs` と `CreateFromTemplateAsync` 実装
-3. `KnowledgeEntry.cs` Aggregate と AppService スケルトン
+1. Detection Logic 一覧/詳細 UI を API 連携して実データ表示・ハイライト対応を完了させる。
+2. テンプレート管理画面 (一覧/編集/削除) を追加し、テンプレートメタデータを運用可能にする。
+3. テンプレート作成フローの統合テスト/E2E シナリオを整備し、バリデーション・エラーケースを確認する。
 
-> 要望あれば次ターンで上記コード生成を開始します。どれから着手するか指示してください。
+> 上記タスクのうち着手順を指定いただければ、実装を進めます。
 
 ---
 
