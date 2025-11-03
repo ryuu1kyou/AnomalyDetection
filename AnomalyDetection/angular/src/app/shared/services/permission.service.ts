@@ -1,10 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, distinctUntilChanged } from 'rxjs';
 import { ConfigStateService, PermissionService as AbpPermissionService } from '@abp/ng.core';
-import { PERMISSIONS, hasPermission, hasAnyPermission, hasAllPermissions } from '../constants/permissions';
+import {
+  PERMISSIONS,
+  hasPermission,
+  hasAnyPermission,
+  hasAllPermissions,
+} from '../constants/permissions';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PermissionService {
   constructor(
@@ -45,7 +50,10 @@ export class PermissionService {
    */
   hasAnyPermission$(permissions: string[]): Observable<boolean> {
     return this.configState.getAll$().pipe(
-      map(() => permissions.some(permission => this.abpPermissionService.getGrantedPolicy(permission)))
+      map(() =>
+        permissions.some(permission => this.abpPermissionService.getGrantedPolicy(permission))
+      ),
+      distinctUntilChanged()
     );
   }
 
@@ -54,7 +62,10 @@ export class PermissionService {
    */
   hasAllPermissions$(permissions: string[]): Observable<boolean> {
     return this.configState.getAll$().pipe(
-      map(() => permissions.every(permission => this.abpPermissionService.getGrantedPolicy(permission)))
+      map(() =>
+        permissions.every(permission => this.abpPermissionService.getGrantedPolicy(permission))
+      ),
+      distinctUntilChanged()
     );
   }
 

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>AnomalyDetection.PerformanceBenchmarks.DetectionPerformanceBenchmark-20251102-174644</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.5, Windows 11 (10.0.22631.6060/23H2/2023Update/SunValley3)
+Intel Core i5-8250U CPU 1.60GHz (Max: 1.80GHz) (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET SDK 9.0.305
+  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v3
+  Job-FFJRMS : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>IterationCount=5  LaunchCount=1  RunStrategy=Throughput  
+WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method             </th><th>SampleSize</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>CalculateOptimalThreshold</td><td>100</td><td>12.483 &mu;s</td><td>1.7048 &mu;s</td><td>0.2638 &mu;s</td><td>1.7395</td><td>5.35 KB</td>
+</tr><tr><td>DetectOutliers_IQR</td><td>100</td><td>3.879 &mu;s</td><td>0.8611 &mu;s</td><td>0.1333 &mu;s</td><td>1.2703</td><td>3.9 KB</td>
+</tr><tr><td>DetectOutliers_ZScore</td><td>100</td><td>6.608 &mu;s</td><td>1.3629 &mu;s</td><td>0.3539 &mu;s</td><td>0.4578</td><td>1.42 KB</td>
+</tr><tr><td>CalculateStatistics</td><td>100</td><td>7.993 &mu;s</td><td>1.1092 &mu;s</td><td>0.2881 &mu;s</td><td>1.0376</td><td>3.22 KB</td>
+</tr><tr><td>CalculateOptimalThreshold</td><td>500</td><td>64.954 &mu;s</td><td>7.0887 &mu;s</td><td>1.8409 &mu;s</td><td>6.2256</td><td>19.26 KB</td>
+</tr><tr><td>DetectOutliers_IQR</td><td>500</td><td>22.845 &mu;s</td><td>4.6903 &mu;s</td><td>1.2181 &mu;s</td><td>5.3711</td><td>16.51 KB</td>
+</tr><tr><td>DetectOutliers_ZScore</td><td>500</td><td>37.913 &mu;s</td><td>16.8873 &mu;s</td><td>4.3856 &mu;s</td><td>1.5259</td><td>4.81 KB</td>
+</tr><tr><td>CalculateStatistics</td><td>500</td><td>43.219 &mu;s</td><td>3.8928 &mu;s</td><td>1.0110 &mu;s</td><td>4.5776</td><td>14.16 KB</td>
+</tr><tr><td>CalculateOptimalThreshold</td><td>1000</td><td>161.155 &mu;s</td><td>13.4359 &mu;s</td><td>3.4893 &mu;s</td><td>11.7188</td><td>36.64 KB</td>
+</tr><tr><td>DetectOutliers_IQR</td><td>1000</td><td>72.178 &mu;s</td><td>6.3911 &mu;s</td><td>0.9890 &mu;s</td><td>10.4980</td><td>32.27 KB</td>
+</tr><tr><td>DetectOutliers_ZScore</td><td>1000</td><td>65.681 &mu;s</td><td>9.6167 &mu;s</td><td>2.4974 &mu;s</td><td>2.9297</td><td>9.05 KB</td>
+</tr><tr><td>CalculateStatistics</td><td>1000</td><td>126.579 &mu;s</td><td>32.1699 &mu;s</td><td>8.3544 &mu;s</td><td>9.0332</td><td>27.83 KB</td>
+</tr></tbody></table>
+</body>
+</html>

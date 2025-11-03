@@ -36,14 +36,6 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase<Anomaly
     public async Task AuditLog_Should_Record_User_Information()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var userName = "testuser";
-        var email = "test@example.com";
-
-        // Mock current user
-        var currentUser = GetRequiredService<ICurrentUser>();
-        // Note: In a real test, you would properly mock the current user
-
         var entityId = Guid.NewGuid();
         var entityType = "TestEntity";
         var action = AuditLogAction.Create;

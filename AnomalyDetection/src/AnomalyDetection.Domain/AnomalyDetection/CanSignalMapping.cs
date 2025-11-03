@@ -9,10 +9,10 @@ namespace AnomalyDetection.AnomalyDetection;
 public class CanSignalMapping : Entity
 {
     public Guid CanSignalId { get; private set; }
-    public string SignalRole { get; private set; }
+    public string SignalRole { get; private set; } = string.Empty;
     public bool IsRequired { get; private set; }
-    public string Description { get; private set; }
-    public SignalMappingConfiguration Configuration { get; private set; }
+    public string? Description { get; private set; }
+    public SignalMappingConfiguration Configuration { get; private set; } = new();
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
@@ -22,8 +22,8 @@ public class CanSignalMapping : Entity
         Guid canSignalId,
         string signalRole,
         bool isRequired = true,
-        string description = null,
-        SignalMappingConfiguration configuration = null)
+    string? description = null,
+    SignalMappingConfiguration? configuration = null)
     {
         CanSignalId = canSignalId;
         SignalRole = ValidateSignalRole(signalRole);
@@ -39,7 +39,7 @@ public class CanSignalMapping : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void UpdateDescription(string newDescription)
+    public void UpdateDescription(string? newDescription)
     {
         Description = ValidateDescription(newDescription);
         UpdatedAt = DateTime.UtcNow;
@@ -71,18 +71,18 @@ public class CanSignalMapping : Entity
     {
         if (string.IsNullOrWhiteSpace(role))
             throw new ArgumentException("Signal role cannot be null or empty", nameof(role));
-            
+
         if (role.Length > 50)
             throw new ArgumentException("Signal role cannot exceed 50 characters", nameof(role));
-            
+
         return role.Trim();
     }
 
-    private static string ValidateDescription(string description)
+    private static string? ValidateDescription(string? description)
     {
         if (description != null && description.Length > 500)
             throw new ArgumentException("Description cannot exceed 500 characters", nameof(description));
-            
+
         return description?.Trim();
     }
 
@@ -96,16 +96,16 @@ public class SignalMappingConfiguration : ValueObject
 {
     public double? ScalingFactor { get; private set; }
     public double? Offset { get; private set; }
-    public string FilterExpression { get; private set; }
-    public Dictionary<string, object> CustomProperties { get; private set; }
+    public string? FilterExpression { get; private set; }
+    public Dictionary<string, object> CustomProperties { get; private set; } = new();
 
     protected SignalMappingConfiguration() { }
 
     public SignalMappingConfiguration(
         double? scalingFactor = null,
         double? offset = null,
-        string filterExpression = null,
-        Dictionary<string, object> customProperties = null)
+        string? filterExpression = null,
+        Dictionary<string, object>? customProperties = null)
     {
         ScalingFactor = scalingFactor;
         Offset = offset;
@@ -116,17 +116,17 @@ public class SignalMappingConfiguration : ValueObject
     public double ApplyScaling(double value)
     {
         var scaledValue = value;
-        
+
         if (ScalingFactor.HasValue)
         {
             scaledValue *= ScalingFactor.Value;
         }
-        
+
         if (Offset.HasValue)
         {
             scaledValue += Offset.Value;
         }
-        
+
         return scaledValue;
     }
 
@@ -146,7 +146,7 @@ public class SignalMappingConfiguration : ValueObject
         {
             return (T)value;
         }
-        return default(T);
+        return default!;
     }
 
     public void SetCustomProperty(string key, object value)
@@ -154,11 +154,11 @@ public class SignalMappingConfiguration : ValueObject
         CustomProperties[key] = value;
     }
 
-    private static string ValidateFilterExpression(string expression)
+    private static string? ValidateFilterExpression(string? expression)
     {
         if (expression != null && expression.Length > 1000)
             throw new ArgumentException("Filter expression cannot exceed 1000 characters", nameof(expression));
-            
+
         return expression?.Trim();
     }
 

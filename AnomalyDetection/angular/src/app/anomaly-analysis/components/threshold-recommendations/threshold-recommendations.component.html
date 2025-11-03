@@ -43,6 +43,20 @@
             </mat-error>
           </mat-form-field>
         </div>
+
+        <!-- NEW: ML-based Advanced Recommendations Toggle -->
+        <div class="form-row advanced-toggle">
+          <mat-slide-toggle formControlName="useAdvancedRecommendations" color="primary">
+            <span class="toggle-label">
+              <mat-icon>psychology</mat-icon>
+              Use ML-based Advanced Recommendations
+            </span>
+          </mat-slide-toggle>
+          <div class="toggle-hint" *ngIf="recommendationForm.get('useAdvancedRecommendations')?.value">
+            <mat-icon>info</mat-icon>
+            <span>Advanced mode uses statistical algorithms (Percentile, IQR, Z-score, Modified Z-score) for optimal thresholds</span>
+          </div>
+        </div>
         
         <div class="form-actions">
           <button mat-raised-button color="primary" type="submit" [disabled]="!recommendationForm.valid || isLoading">

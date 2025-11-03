@@ -2,8 +2,16 @@
   "Culture": "en",
   "Texts": {
     "AppName": "AnomalyDetection",
-    "Menu:Home": "Home",
     "LongWelcomeMessage": "Welcome to the application. This is a startup project based on the ABP framework. For more information visit",
+    "Menu:Home": "Home",
+  "Menu:Dashboard": "Dashboard",
+  "Menu:CanSignals": "CAN Signals",
+  "Menu:DetectionLogics": "Detection Logics",
+  "Menu:DetectionResults": "Detection Results",
+  "Menu:Projects": "Projects",
+  "Menu:OemTraceability": "OEM Traceability",
+  "Menu:SimilarComparison": "Similar Comparison",
+  "Menu:AnomalyAnalysis": "Anomaly Analysis",
     "Welcome": "Welcome",
     
     "Permission:AnomalyDetection": "Anomaly Detection",

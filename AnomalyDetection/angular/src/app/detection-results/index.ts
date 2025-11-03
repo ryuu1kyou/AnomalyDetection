@@ -6,6 +6,7 @@ export * from './components/share-result-dialog.component';
 
 // Services
 export * from './services/detection-result.service';
+export * from './services/realtime-detection-hub.service';
 
 // Models
 export * from './models/detection-result.model';

@@ -133,4 +133,40 @@ public class AnomalyAnalysisAppService : ApplicationService, IAnomalyAnalysisApp
 
         return await GetDetectionAccuracyMetricsAsync(request);
     }
+
+    /// <summary>
+    /// ML-based統計的最適化による高度な閾値推奨を取得する
+    /// </summary>
+    [Authorize(AnomalyDetectionPermissions.Analysis.GenerateRecommendations)]
+    public async Task<ThresholdRecommendationResultDto> GetAdvancedThresholdRecommendationsAsync(ThresholdRecommendationRequestDto request)
+    {
+        _logger.LogInformation("Generating ML-based advanced threshold recommendations for detection logic {DetectionLogicId}", request.DetectionLogicId);
+
+        var result = await _anomalyAnalysisService.GenerateAdvancedThresholdRecommendationsAsync(
+            request.DetectionLogicId,
+            request.AnalysisStartDate,
+            request.AnalysisEndDate);
+
+        var dto = ObjectMapper.Map<ThresholdRecommendationResult, ThresholdRecommendationResultDto>(result);
+
+        _logger.LogInformation("Generated {RecommendationCount} ML-based advanced threshold recommendations for detection logic {DetectionLogicId}",
+            dto.Recommendations.Count, request.DetectionLogicId);
+
+        return dto;
+    }
+
+    /// <summary>
+    /// ML-based統計的最適化による高度な閾値推奨を取得する（簡易版）
+    /// </summary>
+    public async Task<ThresholdRecommendationResultDto> GetAdvancedThresholdRecommendationsAsync(Guid detectionLogicId, DateTime startDate, DateTime endDate)
+    {
+        var request = new ThresholdRecommendationRequestDto
+        {
+            DetectionLogicId = detectionLogicId,
+            AnalysisStartDate = startDate,
+            AnalysisEndDate = endDate
+        };
+
+        return await GetAdvancedThresholdRecommendationsAsync(request);
+    }
 }

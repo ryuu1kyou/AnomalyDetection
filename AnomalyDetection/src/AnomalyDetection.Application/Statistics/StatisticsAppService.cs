@@ -7,6 +7,7 @@ using AnomalyDetection.Permissions;
 using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.CanSignals;
 using AnomalyDetection.Projects;
+using AnomalyDetection.Shared.Export;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -21,17 +22,20 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
     private readonly IRepository<CanSignal, Guid> _canSignalRepository;
     private readonly IRepository<CanAnomalyDetectionLogic, Guid> _detectionLogicRepository;
     private readonly IRepository<AnomalyDetectionProject, Guid> _projectRepository;
+    private readonly ExportService _exportService;
 
     public StatisticsAppService(
         IRepository<AnomalyDetectionResult, Guid> detectionResultRepository,
         IRepository<CanSignal, Guid> canSignalRepository,
         IRepository<CanAnomalyDetectionLogic, Guid> detectionLogicRepository,
-        IRepository<AnomalyDetectionProject, Guid> projectRepository)
+        IRepository<AnomalyDetectionProject, Guid> projectRepository,
+        ExportService exportService)
     {
         _detectionResultRepository = detectionResultRepository;
         _canSignalRepository = canSignalRepository;
         _detectionLogicRepository = detectionLogicRepository;
         _projectRepository = projectRepository;
+        _exportService = exportService;
     }
 
     [Authorize(AnomalyDetectionPermissions.Statistics.ViewReports)]
@@ -185,6 +189,168 @@ public class StatisticsAppService : ApplicationService, IStatisticsAppService
         // TODO: Implement report export functionality
         await Task.CompletedTask;
         throw new NotImplementedException("Report export functionality will be implemented in a future version");
+    }
+
+    [Authorize(AnomalyDetectionPermissions.Statistics.ExportData)]
+    public async Task<ExportFileResult> ExportDetectionStatisticsAsync(GetDetectionStatisticsInput input, string format)
+    {
+        // Get detection statistics
+        var stats = await GetDetectionStatisticsAsync(input);
+
+        // Get detailed detection results for export
+        var queryable = await _detectionResultRepository.GetQueryableAsync();
+        queryable = queryable.Where(x => x.DetectedAt >= input.FromDate);
+        queryable = queryable.Where(x => x.DetectedAt <= input.ToDate);
+
+        if (input.CanSignalId.HasValue)
+            queryable = queryable.Where(x => x.CanSignalId == input.CanSignalId.Value);
+
+        if (input.DetectionLogicId.HasValue)
+            queryable = queryable.Where(x => x.DetectionLogicId == input.DetectionLogicId.Value);
+
+        var results = await AsyncExecuter.ToListAsync(queryable);
+
+        // Prepare export data
+        var exportData = results.Select(r => new
+        {
+            r.Id,
+            DetectedAt = r.DetectedAt,
+            r.CanSignalId,
+            r.DetectionLogicId,
+            AnomalyLevel = r.AnomalyLevel.ToString(),
+            AnomalyType = r.AnomalyType.ToString(),
+            ConfidenceScore = r.ConfidenceScore,
+            ResolutionStatus = r.ResolutionStatus.ToString(),
+            Description = r.Description,
+            DetectionCondition = r.DetectionCondition,
+            r.DetectionDuration,
+            r.IsValidated,
+            r.IsFalsePositiveFlag
+        }).Select(x => (object)x).ToList();
+
+        // Parse format
+        var exportFormat = format.ToLowerInvariant() switch
+        {
+            "csv" => ExportService.ExportFormat.Csv,
+            "json" => ExportService.ExportFormat.Json,
+            "pdf" => ExportService.ExportFormat.Pdf,
+            "excel" => ExportService.ExportFormat.Excel,
+            "xlsx" => ExportService.ExportFormat.Excel,
+            _ => ExportService.ExportFormat.Csv
+        };
+
+        // Export using ExportService
+        var exportRequest = new ExportDetectionRequest
+        {
+            Results = exportData,
+            Format = exportFormat,
+            FileNamePrefix = "detection_statistics",
+            CsvOptions = new CsvExportOptions
+            {
+                IncludeHeader = true,
+                DateTimeFormat = "yyyy-MM-dd HH:mm:ss"
+            },
+            JsonOptions = new JsonExportOptions
+            {
+                Indented = true,
+                CamelCase = true
+            },
+            ExcelOptions = new ExcelExportOptions
+            {
+                IncludeHeader = true,
+                EnableAutoFilter = true
+            },
+            GeneratedBy = CurrentUser.UserName ?? CurrentUser.Id?.ToString() ?? "System",
+            AdditionalMetadata = new Dictionary<string, string>
+            {
+                ["fromDate"] = input.FromDate.ToString("o"),
+                ["toDate"] = input.ToDate.ToString("o"),
+                ["format"] = format
+            }
+        };
+
+        var result = await _exportService.ExportDetectionResultsAsync(exportRequest);
+
+        return new ExportFileResult
+        {
+            FileData = result.Data,
+            ContentType = result.ContentType,
+            FileName = result.FileName,
+            RecordCount = results.Count,
+            ExportedAt = DateTime.UtcNow,
+            Format = format
+        };
+    }
+
+    [Authorize(AnomalyDetectionPermissions.Statistics.ExportData)]
+    public async Task<ExportFileResult> ExportDashboardDataAsync(string format)
+    {
+        // Get dashboard statistics
+        var dashboardStats = await GetDashboardStatisticsAsync();
+
+        // Prepare export data
+        var exportData = new List<object>
+        {
+            new
+            {
+                ReportType = "Dashboard Statistics",
+                GeneratedAt = DateTime.UtcNow,
+                LastUpdated = dashboardStats.LastUpdated,
+                KpiCards = dashboardStats.KpiCards
+            }
+        };
+
+        // Parse format
+        var exportFormat = format.ToLowerInvariant() switch
+        {
+            "csv" => ExportService.ExportFormat.Csv,
+            "json" => ExportService.ExportFormat.Json,
+            "pdf" => ExportService.ExportFormat.Pdf,
+            "excel" => ExportService.ExportFormat.Excel,
+            "xlsx" => ExportService.ExportFormat.Excel,
+            _ => ExportService.ExportFormat.Csv
+        };
+
+        // Export using ExportService
+        var exportRequest = new ExportDetectionRequest
+        {
+            Results = exportData,
+            Format = exportFormat,
+            FileNamePrefix = "dashboard_data",
+            CsvOptions = new CsvExportOptions
+            {
+                IncludeHeader = true,
+                DateTimeFormat = "yyyy-MM-dd HH:mm:ss"
+            },
+            JsonOptions = new JsonExportOptions
+            {
+                Indented = true,
+                CamelCase = true
+            },
+            ExcelOptions = new ExcelExportOptions
+            {
+                IncludeHeader = true,
+                EnableAutoFilter = true
+            },
+            GeneratedBy = CurrentUser.UserName ?? CurrentUser.Id?.ToString() ?? "System",
+            AdditionalMetadata = new Dictionary<string, string>
+            {
+                ["export"] = "dashboard",
+                ["format"] = format
+            }
+        };
+
+        var result = await _exportService.ExportDetectionResultsAsync(exportRequest);
+
+        return new ExportFileResult
+        {
+            FileData = result.Data,
+            ContentType = result.ContentType,
+            FileName = result.FileName,
+            RecordCount = dashboardStats.KpiCards.Count,
+            ExportedAt = DateTime.UtcNow,
+            Format = format
+        };
     }
 
     [Authorize(AnomalyDetectionPermissions.Statistics.ViewReports)]

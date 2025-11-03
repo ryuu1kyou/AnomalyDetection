@@ -6,6 +6,7 @@ using AnomalyDetection.SimilarPatternSearch.Dtos;
 using AnomalyDetection.CanSignals;
 using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.Permissions;
+using AnomalyDetection.Shared.Export;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -21,15 +22,18 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     private readonly ISimilarPatternSearchService _similarPatternSearchService;
     private readonly IRepository<CanSignal, Guid> _canSignalRepository;
     private readonly IRepository<AnomalyDetectionResult, Guid> _anomalyDetectionResultRepository;
+    private readonly ExportService _exportService;
 
     public SimilarPatternSearchAppService(
         ISimilarPatternSearchService similarPatternSearchService,
         IRepository<CanSignal, Guid> canSignalRepository,
-        IRepository<AnomalyDetectionResult, Guid> anomalyDetectionResultRepository)
+        IRepository<AnomalyDetectionResult, Guid> anomalyDetectionResultRepository,
+        ExportService exportService)
     {
         _similarPatternSearchService = similarPatternSearchService;
         _canSignalRepository = canSignalRepository;
         _anomalyDetectionResultRepository = anomalyDetectionResultRepository;
+        _exportService = exportService;
     }
 
     /// <summary>
@@ -149,9 +153,98 @@ public class SimilarPatternSearchAppService : ApplicationService, ISimilarPatter
     [Authorize(AnomalyDetectionPermissions.Analysis.ExportAnalysisData)]
     public async Task<byte[]> ExportComparisonResultAsync(ComparisonExportRequestDto request)
     {
-        // 実装は後で追加（CSV、Excel、PDF、JSON形式のエクスポート）
-        await Task.CompletedTask;
-        throw new NotImplementedException("Export functionality will be implemented in a future version");
+        // Retrieve the comparison result
+        var targetSignal = await _canSignalRepository.GetAsync(request.ComparisonId);
+
+        // For export, we'll rerun similarity search to get comprehensive data
+        var searchRequest = new SimilarSignalSearchRequestDto
+        {
+            TargetSignalId = request.ComparisonId,
+            Criteria = new SimilaritySearchCriteriaDto
+            {
+                CompareCanId = true,
+                CompareSignalName = true,
+                CompareSystemType = true,
+                CompareValueRange = true,
+                CompareDataLength = true,
+                CompareCycle = true,
+                MinimumSimilarity = 0.0, // Include all results
+                MaxResults = 1000,
+                ActiveSignalsOnly = true
+            }
+        };
+
+        var similarSignals = await SearchSimilarSignalsAsync(searchRequest);
+
+        // Prepare export data
+        var exportData = similarSignals.Select(r => new
+        {
+            TargetSignalId = request.ComparisonId,
+            TargetSignalName = targetSignal.Identifier.SignalName,
+            CandidateSignalId = r.SignalId,
+            CandidateSignalName = r.SignalInfo.SignalName,
+            CandidateCanId = r.SignalInfo.CanId,
+            CandidateSystemType = r.SignalInfo.SystemType,
+            SimilarityScore = r.SimilarityScore,
+            CanIdSimilarity = r.Breakdown.CanIdSimilarity,
+            SignalNameSimilarity = r.Breakdown.SignalNameSimilarity,
+            SystemTypeSimilarity = r.Breakdown.SystemTypeSimilarity,
+            ValueRangeSimilarity = r.Breakdown.ValueRangeSimilarity,
+            DataLengthSimilarity = r.Breakdown.DataLengthSimilarity,
+            CycleSimilarity = r.Breakdown.CycleSimilarity,
+            MatchedAttributesCount = r.MatchedAttributes.Count,
+            DifferencesCount = r.Differences.Count,
+            RecommendationLevel = r.RecommendationLevel.ToString(),
+            RecommendationReason = r.RecommendationReason,
+            IncludeStatistics = request.Options.IncludeStatistics,
+            IncludeDetailedInfo = request.Options.IncludeDetailedInfo,
+            ExportedAt = DateTime.UtcNow
+        }).Select(x => (object)x).ToList();
+
+        // Determine export format
+        var exportFormat = request.Format switch
+        {
+            Dtos.ExportFormat.Csv => ExportService.ExportFormat.Csv,
+            Dtos.ExportFormat.Excel => ExportService.ExportFormat.Excel,
+            Dtos.ExportFormat.Json => ExportService.ExportFormat.Json,
+            Dtos.ExportFormat.Pdf => ExportService.ExportFormat.Pdf,
+            _ => ExportService.ExportFormat.Csv
+        };
+
+        // Create export request
+        var exportRequest = new ExportDetectionRequest
+        {
+            Results = exportData.Cast<object>().ToList(),
+            Format = exportFormat,
+            FileNamePrefix = "similar_pattern_comparison",
+            CsvOptions = new CsvExportOptions
+            {
+                IncludeHeader = true,
+                DateTimeFormat = "yyyy-MM-dd HH:mm:ss",
+                ExcludedProperties = new List<string> { "TargetSignalId", "CandidateSignalId" }
+            },
+            JsonOptions = new JsonExportOptions
+            {
+                Indented = true,
+                CamelCase = true
+            },
+            ExcelOptions = new ExcelExportOptions
+            {
+                IncludeHeader = true,
+                EnableAutoFilter = true
+            },
+            GeneratedBy = CurrentUser.UserName ?? CurrentUser.Id?.ToString() ?? "System",
+            AdditionalMetadata = new Dictionary<string, string>
+            {
+                ["export"] = "similar-pattern",
+                ["targetSignal"] = targetSignal.Identifier.SignalName,
+                ["count"] = similarSignals.Count.ToString()
+            }
+        };
+
+        // Generate export
+        var result = await _exportService.ExportDetectionResultsAsync(exportRequest);
+        return result.Data;
     }
 
     /// <summary>

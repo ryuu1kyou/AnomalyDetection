@@ -7,17 +7,19 @@ const oAuthConfig = {
   redirectUri: baseUrl,
   clientId: 'AnomalyDetection_App',
   responseType: 'code',
-  scope: 'offline_access AnomalyDetection',
+  // Include standard OIDC scopes required by ABP along with API scope.
+  scope: 'openid profile email roles offline_access AnomalyDetection',
   requireHttps: true,
 };
 
-export const environment = {
+export const environment: Environment = {
   production: false,
   application: {
     baseUrl,
     name: 'AnomalyDetection',
   },
   oAuthConfig,
+  localization: { defaultResourceName: 'AnomalyDetection' },
   apis: {
     default: {
       url: 'https://localhost:44318',
@@ -28,4 +30,7 @@ export const environment = {
       rootNamespace: 'AbpAccountPublic',
     },
   },
-} as Environment;
+  signalR: {
+    detectionHubUrl: 'https://localhost:44318/signalr-hubs/detection',
+  },
+};

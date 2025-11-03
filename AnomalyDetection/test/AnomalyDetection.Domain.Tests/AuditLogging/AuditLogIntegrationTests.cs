@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using AnomalyDetection.AuditLogging.Handlers;
 using AnomalyDetection.MultiTenancy;
 using AnomalyDetection.OemTraceability;
@@ -20,7 +19,7 @@ public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase<AnomalyDe
     }
 
     [Fact]
-    public async Task OemCustomization_Approve_Should_Trigger_AuditLog_Event()
+    public void OemCustomization_Approve_Should_Trigger_AuditLog_Event()
     {
         // Arrange
         var oemCode = new OemCode("TEST", "Test OEM");
@@ -56,7 +55,7 @@ public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase<AnomalyDe
     }
 
     [Fact]
-    public async Task OemCustomization_Reject_Should_Trigger_AuditLog_Event()
+    public void OemCustomization_Reject_Should_Trigger_AuditLog_Event()
     {
         // Arrange
         var oemCode = new OemCode("TEST", "Test OEM");
@@ -92,7 +91,7 @@ public class AuditLogIntegrationTests : AnomalyDetectionDomainTestBase<AnomalyDe
     }
 
     [Fact]
-    public async Task OemApproval_Approve_Should_Trigger_AuditLog_Event()
+    public void OemApproval_Approve_Should_Trigger_AuditLog_Event()
     {
         // Arrange
         var oemCode = new OemCode("TEST", "Test OEM");

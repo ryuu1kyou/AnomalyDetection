@@ -28,16 +28,13 @@
           検索
         </button>
         
-        <div *hasPermission="permissionService.permissions.OEM_TRACEABILITY.VIEW_TRACEABILITY; else noPermission">
-          <!-- Content will be shown if user has permission -->
+        <ng-container *hasPermission="permissionService.permissions.OEM_TRACEABILITY.VIEW_TRACEABILITY">
+          <!-- User has permission: nothing specific here yet -->
+        </ng-container>
+        <div *ngIf="!permissionService.canAccessOemTraceability()" class="no-permission-message">
+          <mat-icon>lock</mat-icon>
+          <p>この機能を使用する権限がありません。</p>
         </div>
-        
-        <ng-template #noPermission>
-          <div class="no-permission-message">
-            <mat-icon>lock</mat-icon>
-            <p>この機能を使用する権限がありません。</p>
-          </div>
-        </ng-template>
       </div>
     </mat-card-content>
   </mat-card>

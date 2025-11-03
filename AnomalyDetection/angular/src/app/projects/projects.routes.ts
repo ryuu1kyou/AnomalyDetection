@@ -3,9 +3,10 @@ import { Routes } from '@angular/router';
 export const projectsRoutes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./components/project-list.component').then(m => m.ProjectListComponent),
-    title: 'プロジェクト一覧'
-  }
+    loadComponent: () =>
+      import('./components/project-list.component').then(m => m.ProjectListComponent),
+    title: '::Menu:Projects',
+  },
   // TODO: Uncomment when components are implemented
   // {
   //   path: 'create',

@@ -55,5 +55,10 @@ namespace AnomalyDetection.Application.Monitoring
         /// ビジネスメトリクスを追跡
         /// </summary>
         void TrackBusinessMetric(string eventName, Dictionary<string, string>? properties = null, Dictionary<string, double>? metrics = null);
+
+        /// <summary>
+        /// リアルタイム配信メトリクスを追跡
+        /// </summary>
+        void TrackRealTimeDelivery(string changeType, string targetGroup, TimeSpan? processingLatency, bool success);
     }
 }

@@ -57,4 +57,20 @@ public interface IAnomalyAnalysisAppService : IApplicationService
     /// <param name="endDate">終了日時</param>
     /// <returns>検出精度評価メトリクス</returns>
     Task<DetectionAccuracyMetricsDto> GetDetectionAccuracyMetricsAsync(Guid detectionLogicId, DateTime startDate, DateTime endDate);
+
+    /// <summary>
+    /// ML-based統計的最適化による高度な閾値推奨を取得する
+    /// </summary>
+    /// <param name="request">推奨リクエスト</param>
+    /// <returns>ML-based閾値最適化推奨結果</returns>
+    Task<ThresholdRecommendationResultDto> GetAdvancedThresholdRecommendationsAsync(ThresholdRecommendationRequestDto request);
+
+    /// <summary>
+    /// ML-based統計的最適化による高度な閾値推奨を取得する（簡易版）
+    /// </summary>
+    /// <param name="detectionLogicId">検出ロジックID</param>
+    /// <param name="startDate">開始日時</param>
+    /// <param name="endDate">終了日時</param>
+    /// <returns>ML-based閾値最適化推奨結果</returns>
+    Task<ThresholdRecommendationResultDto> GetAdvancedThresholdRecommendationsAsync(Guid detectionLogicId, DateTime startDate, DateTime endDate);
 }

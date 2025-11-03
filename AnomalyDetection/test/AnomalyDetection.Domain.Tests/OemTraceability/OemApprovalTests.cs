@@ -139,7 +139,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
         approval.Approve(Guid.NewGuid());
 
         // Act & Assert
-        var exception = Should.Throw<BusinessException>(() => 
+        var exception = Should.Throw<BusinessException>(() =>
             approval.Reject(rejectedBy, "Rejection reason"));
         exception.Code.ShouldBe("AnomalyDetection:ApprovalNotPending");
     }
@@ -170,6 +170,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
         approval.Status.ShouldBe(ApprovalStatus.Cancelled);
         approval.ApprovedBy.ShouldBe(cancelledBy);
         approval.ApprovedAt.ShouldNotBeNull();
+        approval.ApprovalNotes.ShouldNotBeNull();
         approval.ApprovalNotes.ShouldContain("Cancelled:");
         approval.ApprovalNotes.ShouldContain(cancellationReason);
     }
@@ -183,7 +184,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
         approval.Approve(Guid.NewGuid());
 
         // Act & Assert
-        var exception = Should.Throw<BusinessException>(() => 
+        var exception = Should.Throw<BusinessException>(() =>
             approval.Cancel(cancelledBy, "Cancellation reason"));
         exception.Code.ShouldBe("AnomalyDetection:ApprovalNotPending");
     }
@@ -234,7 +235,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
         approval.Approve(Guid.NewGuid());
 
         // Act & Assert
-        var exception = Should.Throw<BusinessException>(() => 
+        var exception = Should.Throw<BusinessException>(() =>
             approval.UpdateDueDate(DateTime.UtcNow.AddDays(7)));
         exception.Code.ShouldBe("AnomalyDetection:CannotUpdateCompletedApproval");
     }
@@ -289,6 +290,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
 
         // Assert
         approval.ApprovalData.ShouldBe(newData);
+        approval.ApprovalReason.ShouldNotBeNull();
         approval.ApprovalReason.ShouldContain(updateReason);
     }
 
@@ -301,7 +303,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
         var newData = new Dictionary<string, object> { { "field", "value" } };
 
         // Act & Assert
-        var exception = Should.Throw<BusinessException>(() => 
+        var exception = Should.Throw<BusinessException>(() =>
             approval.UpdateApprovalData(newData, "Update reason"));
         exception.Code.ShouldBe("AnomalyDetection:CannotUpdateCompletedApproval");
     }

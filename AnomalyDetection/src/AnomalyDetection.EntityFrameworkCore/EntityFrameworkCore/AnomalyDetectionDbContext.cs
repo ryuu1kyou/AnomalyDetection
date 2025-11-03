@@ -19,6 +19,10 @@ using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.Projects;
 using AnomalyDetection.OemTraceability;
 using AnomalyDetection.AuditLogging;
+using AnomalyDetection.KnowledgeBase;
+using AnomalyDetection.Safety;
+using AnomalyDetection.CanSpecification;
+using AnomalyDetection.Integration;
 
 namespace AnomalyDetection.EntityFrameworkCore;
 
@@ -86,6 +90,22 @@ public class AnomalyDetectionDbContext :
     // Audit Logging
     public DbSet<AnomalyDetectionAuditLog> AnomalyDetectionAuditLogs { get; set; }
 
+    // Knowledge Base
+    public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
+    public DbSet<KnowledgeArticleComment> KnowledgeArticleComments { get; set; }
+
+    // Safety Traceability
+    public DbSet<SafetyTraceRecord> SafetyTraceRecords { get; set; }
+
+    // CAN Specification Import
+    public DbSet<CanSpecImport> CanSpecImports { get; set; }
+
+    // Compatibility Analysis
+    public DbSet<CompatibilityAnalysis> CompatibilityAnalyses { get; set; }
+
+    // Integration
+    public DbSet<IntegrationEndpoint> IntegrationEndpoints { get; set; }
+
     #endregion
 
     public AnomalyDetectionDbContext(DbContextOptions<AnomalyDetectionDbContext> options)
@@ -109,7 +129,7 @@ public class AnomalyDetectionDbContext :
         builder.ConfigureOpenIddict();
         builder.ConfigureTenantManagement();
         builder.ConfigureBlobStoring();
-        
+
         /* Configure your own tables/entities inside here */
         builder.ConfigureAnomalyDetection();
     }

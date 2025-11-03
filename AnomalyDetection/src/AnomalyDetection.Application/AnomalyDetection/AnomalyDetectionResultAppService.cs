@@ -4,7 +4,9 @@ using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 using AnomalyDetection.AnomalyDetection.Dtos;
+using AnomalyDetection.KnowledgeBase;
 using AnomalyDetection.Permissions;
+using AnomalyDetection.Shared.Export;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -16,11 +18,17 @@ namespace AnomalyDetection.AnomalyDetection;
 public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDetectionResultAppService
 {
     private readonly IRepository<AnomalyDetectionResult, Guid> _resultRepository;
+    private readonly ExportService _exportService;
+    private readonly IKnowledgeArticleRecommendationService _recommendationService;
 
     public AnomalyDetectionResultAppService(
-        IRepository<AnomalyDetectionResult, Guid> resultRepository)
+        IRepository<AnomalyDetectionResult, Guid> resultRepository,
+        ExportService exportService,
+        IKnowledgeArticleRecommendationService recommendationService)
     {
         _resultRepository = resultRepository;
+        _exportService = exportService;
+        _recommendationService = recommendationService;
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionResults.View)]
@@ -91,7 +99,20 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
         var result = ObjectMapper.Map<CreateDetectionResultDto, AnomalyDetectionResult>(input);
 
         result = await _resultRepository.InsertAsync(result, autoSave: true);
-        return ObjectMapper.Map<AnomalyDetectionResult, AnomalyDetectionResultDto>(result);
+        var dto = ObjectMapper.Map<AnomalyDetectionResult, AnomalyDetectionResultDto>(result);
+
+        var recommendationContext = new KnowledgeArticleRecommendationContext
+        {
+            DetectionLogicId = result.DetectionLogicId,
+            CanSignalId = result.CanSignalId,
+            AnomalyType = result.AnomalyType.ToString(),
+            Tags = input.Tags ?? new List<string>()
+        };
+
+        var recommendations = await _recommendationService.GetRecommendationsAsync(recommendationContext);
+        dto.RecommendedArticles = ObjectMapper.Map<List<KnowledgeArticleRecommendationResult>, List<KnowledgeArticleSummaryDto>>(recommendations);
+
+        return dto;
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionResults.Edit)]
@@ -284,10 +305,104 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
         return Task.FromResult(new Dictionary<string, object>());
     }
 
-    public Task<byte[]> ExportAsync(GetDetectionResultsInput input, string format)
+    [Authorize(AnomalyDetectionPermissions.DetectionResults.View)]
+    public async Task<byte[]> ExportAsync(GetDetectionResultsInput input, string format)
     {
-        // TODO: Implement export functionality
-        throw new NotImplementedException();
+        // Get filtered detection results
+        var queryable = await _resultRepository.GetQueryableAsync();
+
+        // Apply filters
+        if (input.DetectionLogicId.HasValue)
+            queryable = queryable.Where(x => x.DetectionLogicId == input.DetectionLogicId.Value);
+
+        if (input.CanSignalId.HasValue)
+            queryable = queryable.Where(x => x.CanSignalId == input.CanSignalId.Value);
+
+        if (input.AnomalyLevel.HasValue)
+            queryable = queryable.Where(x => x.AnomalyLevel == input.AnomalyLevel.Value);
+
+        if (input.ResolutionStatus.HasValue)
+            queryable = queryable.Where(x => x.ResolutionStatus == input.ResolutionStatus.Value);
+
+        if (input.DetectedFrom.HasValue)
+            queryable = queryable.Where(x => x.DetectedAt >= input.DetectedFrom.Value);
+
+        if (input.DetectedTo.HasValue)
+            queryable = queryable.Where(x => x.DetectedAt <= input.DetectedTo.Value);
+
+        if (input.MinConfidenceScore.HasValue)
+            queryable = queryable.Where(x => x.ConfidenceScore >= input.MinConfidenceScore.Value);
+
+        if (input.MaxConfidenceScore.HasValue)
+            queryable = queryable.Where(x => x.ConfidenceScore <= input.MaxConfidenceScore.Value);
+
+        var results = await AsyncExecuter.ToListAsync(queryable);
+
+        // Prepare export data
+        var exportData = results.Select(r => new
+        {
+            r.Id,
+            DetectedAt = r.DetectedAt,
+            r.CanSignalId,
+            r.DetectionLogicId,
+            AnomalyLevel = r.AnomalyLevel.ToString(),
+            AnomalyType = r.AnomalyType.ToString(),
+            ConfidenceScore = r.ConfidenceScore,
+            ResolutionStatus = r.ResolutionStatus.ToString(),
+            SharingLevel = r.SharingLevel.ToString(),
+            Description = r.Description,
+            DetectionCondition = r.DetectionCondition,
+            DetectionDuration = r.DetectionDuration.TotalMilliseconds,
+            r.IsValidated,
+            r.IsFalsePositiveFlag,
+            r.IsShared,
+            ResolvedAt = r.ResolvedAt,
+            ValidationNotes = r.ValidationNotes
+        }).Select(x => (object)x).ToList();
+
+        // Parse format
+        var exportFormat = format.ToLowerInvariant() switch
+        {
+            "csv" => ExportService.ExportFormat.Csv,
+            "json" => ExportService.ExportFormat.Json,
+            "pdf" => ExportService.ExportFormat.Pdf,
+            "excel" => ExportService.ExportFormat.Excel,
+            "xlsx" => ExportService.ExportFormat.Excel,
+            _ => ExportService.ExportFormat.Csv
+        };
+
+        // Export using ExportService
+        var exportRequest = new ExportDetectionRequest
+        {
+            Results = exportData,
+            Format = exportFormat,
+            FileNamePrefix = "detection_results",
+            CsvOptions = new CsvExportOptions
+            {
+                IncludeHeader = true,
+                DateTimeFormat = "yyyy-MM-dd HH:mm:ss",
+                ExcludedProperties = new List<string> { "Id", "CanSignalId", "DetectionLogicId" }
+            },
+            JsonOptions = new JsonExportOptions
+            {
+                Indented = true,
+                CamelCase = true
+            },
+            ExcelOptions = new ExcelExportOptions
+            {
+                IncludeHeader = true,
+                EnableAutoFilter = true
+            },
+            GeneratedBy = CurrentUser.UserName ?? CurrentUser.Id?.ToString() ?? "System",
+            AdditionalMetadata = new Dictionary<string, string>
+            {
+                ["export"] = "detection-results",
+                ["format"] = format
+            }
+        };
+
+        var result = await _exportService.ExportDetectionResultsAsync(exportRequest);
+        return result.Data;
     }
 
     public Task<List<Dictionary<string, object>>> GetTimelineAsync(Guid? canSignalId = null, Guid? detectionLogicId = null, DateTime? fromDate = null, DateTime? toDate = null)

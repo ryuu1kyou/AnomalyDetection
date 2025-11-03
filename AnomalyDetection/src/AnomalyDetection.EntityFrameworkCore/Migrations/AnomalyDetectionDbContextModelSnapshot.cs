@@ -167,6 +167,24 @@ namespace AnomalyDetection.Migrations
 
                     b.HasIndex("SharedAt");
 
+                    b.HasIndex("AnomalyLevel", "ResolutionStatus");
+
+                    b.HasIndex("AnomalyType", "DetectedAt");
+
+                    b.HasIndex("CanSignalId", "DetectedAt");
+
+                    b.HasIndex("DetectedAt", "AnomalyLevel");
+
+                    b.HasIndex("DetectionLogicId", "DetectedAt");
+
+                    b.HasIndex("IsValidated", "IsFalsePositiveFlag", "DetectedAt");
+
+                    b.HasIndex("TenantId", "DetectedAt", "AnomalyLevel");
+
+                    b.HasIndex("CanSignalId", "DetectedAt", "AnomalyLevel", "ConfidenceScore");
+
+                    b.HasIndex("DetectionLogicId", "DetectedAt", "AnomalyLevel", "ResolutionStatus");
+
                     b.ToTable("AppAnomalyDetectionResults", (string)null);
                 });
 
@@ -257,6 +275,10 @@ namespace AnomalyDetection.Migrations
 
                     b.HasIndex("ApprovedAt");
 
+                    b.HasIndex("ExecutionCount");
+
+                    b.HasIndex("LastExecutedAt");
+
                     b.HasIndex("SharingLevel");
 
                     b.HasIndex("SourceLogicId");
@@ -264,6 +286,14 @@ namespace AnomalyDetection.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("VehiclePhaseId");
+
+                    b.HasIndex("LastExecutedAt", "ExecutionCount");
+
+                    b.HasIndex("Status", "SharingLevel");
+
+                    b.HasIndex("TenantId", "SharingLevel");
+
+                    b.HasIndex("TenantId", "Status");
 
                     b.ToTable("AppCanAnomalyDetectionLogics", (string)null);
                 });
@@ -376,6 +406,98 @@ namespace AnomalyDetection.Migrations
                     b.ToTable("AppDetectionParameters", (string)null);
                 });
 
+            modelBuilder.Entity("AnomalyDetection.AuditLogging.AnomalyDetectionAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Exception")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<long?>("ExecutionDuration")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewValues")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValues")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("TenantId");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreationTime");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("EntityId");
+
+                    b.HasIndex("EntityType");
+
+                    b.HasIndex("Level");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("Action", "CreationTime");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.HasIndex("Level", "CreationTime");
+
+                    b.ToTable("AppAuditLogs", (string)null);
+                });
+
             modelBuilder.Entity("AnomalyDetection.CanSignals.CanSignal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -460,6 +582,14 @@ namespace AnomalyDetection.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("SystemType");
+
+                    b.HasIndex("IsStandard", "Status");
+
+                    b.HasIndex("SystemType", "Status");
+
+                    b.HasIndex("SystemType", "IsStandard", "Status");
+
+                    b.HasIndex("TenantId", "SystemType", "Status");
 
                     b.ToTable("AppCanSignals", (string)null);
                 });
@@ -563,6 +693,931 @@ namespace AnomalyDetection.Migrations
                         .IsUnique();
 
                     b.ToTable("AppCanSystemCategories", (string)null);
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecDiff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CanSpecImportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChangeCategory")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChangeSummary")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ComparisonDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImpactedSubsystem")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("MessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("PreviousSpecId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CanSpecImportId");
+
+                    b.ToTable("CanSpecDiff");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<string>("FileFormat")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ImportDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImportedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Manufacturer")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ParsedMessageCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ParsedSignalCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CanSpecImports");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CanSpecImportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("CycleTime")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Dlc")
+                        .HasColumnType("int");
+
+                    b.Property<long>("MessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Transmitter")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CanSpecImportId");
+
+                    b.ToTable("CanSpecMessage");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecSignal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BitLength")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("CanSpecMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Factor")
+                        .HasColumnType("float");
+
+                    b.Property<bool>("IsBigEndian")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSigned")
+                        .HasColumnType("bit");
+
+                    b.Property<double>("Max")
+                        .HasColumnType("float");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("Min")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Offset")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Receiver")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StartBit")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CanSpecMessageId");
+
+                    b.ToTable("CanSpecSignal");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CompatibilityAnalysis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AnalysisDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AnalyzedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("BreakingChangeCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CompatibilityLevel")
+                        .HasColumnType("int");
+
+                    b.Property<double>("CompatibilityScore")
+                        .HasColumnType("float");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<int>("InfoCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<int>("MigrationRisk")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("NewSpecId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OldSpecId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Recommendations")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WarningCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CompatibilityAnalyses");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CompatibilityIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AnalysisId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("CompatibilityAnalysisId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("MessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Recommendation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompatibilityAnalysisId");
+
+                    b.ToTable("CompatibilityIssue");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.ImpactAssessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AffectedArea")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AffectedMessageCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AffectedSignalCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("AnalysisId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CompatibilityAnalysisId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("EstimatedEffortHours")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MitigationStrategy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Risk")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompatibilityAnalysisId");
+
+                    b.ToTable("ImpactAssessment");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.DataImportRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("Data")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DataType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<Guid>("EndpointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<string>("Filter")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("IntegrationEndpointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<DateTime?>("ProcessedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecordsImported")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RequestDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntegrationEndpointId");
+
+                    b.ToTable("DataImportRequest");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.IntegrationEndpoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ApiKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AuthenticationScheme")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BaseUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<string>("Configuration")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EndpointUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<int>("FailureCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<DateTime?>("LastSyncDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("RequireAuthentication")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SuccessCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Timeout")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("IntegrationEndpoints");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.IntegrationLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("EndpointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("IntegrationEndpointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequestData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResponseData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntegrationEndpointId");
+
+                    b.ToTable("IntegrationLog");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.WebhookSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DeliveryFailureCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DeliverySuccessCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("EndpointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("IntegrationEndpointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastTriggeredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Secret")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WebhookUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntegrationEndpointId");
+
+                    b.ToTable("WebhookSubscription");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.KnowledgeBase.KnowledgeArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AnomalyType")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<double>("AverageRating")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("float(5)");
+
+                    b.Property<Guid?>("CanSignalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Cause")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Countermeasure")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<Guid?>("DetectionLogicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("HasSolution")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Metadata");
+
+                    b.Property<string>("PreventionMeasures")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RelatedAnomalyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SignalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SolutionSteps")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Symptom")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Tags")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Tags");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("UsefulCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnomalyType");
+
+                    b.HasIndex("CanSignalId");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("DetectionLogicId");
+
+                    b.HasIndex("IsPublished");
+
+                    b.HasIndex("SignalName");
+
+                    b.ToTable("AppKnowledgeArticles", (string)null);
+                });
+
+            modelBuilder.Entity("AnomalyDetection.KnowledgeBase.KnowledgeArticleComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<Guid>("KnowledgeArticleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreationTime");
+
+                    b.HasIndex("KnowledgeArticleId");
+
+                    b.ToTable("AppKnowledgeArticleComments", (string)null);
                 });
 
             modelBuilder.Entity("AnomalyDetection.MultiTenancy.ExtendedTenant", b =>
@@ -850,6 +1905,18 @@ namespace AnomalyDetection.Migrations
 
                     b.HasIndex("EntityType", "EntityId");
 
+                    b.HasIndex("Status", "DueDate");
+
+                    b.HasIndex("Status", "Priority");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("RequestedBy", "Status", "RequestedAt");
+
+                    b.HasIndex("Type", "Status", "RequestedAt");
+
+                    b.HasIndex("TenantId", "Status", "DueDate", "Priority");
+
                     b.ToTable("AppOemApprovals", (string)null);
                 });
 
@@ -950,6 +2017,14 @@ namespace AnomalyDetection.Migrations
                     b.HasIndex("Type");
 
                     b.HasIndex("EntityType", "EntityId");
+
+                    b.HasIndex("EntityType", "Status");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("Type", "Status", "ApprovedAt");
+
+                    b.HasIndex("TenantId", "EntityType", "Status", "CreationTime");
 
                     b.ToTable("AppOemCustomizations", (string)null);
                 });
@@ -1190,6 +2265,149 @@ namespace AnomalyDetection.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("AppProjectMilestones", (string)null);
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Safety.SafetyTraceRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ApprovalComments")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AsilLevel")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AuditTrail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("AuditTrailJson");
+
+                    b.Property<string>("BaselineId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ChangeRequests")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ChangeRequestsJson");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("DetectionLogicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("LifecycleEvents")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("LifecycleEventsJson");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RelatedDocuments")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("RelatedDocumentsJson");
+
+                    b.Property<string>("RequirementId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SafetyGoalId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TraceabilityLinks")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("TraceabilityLinksJson");
+
+                    b.Property<string>("Validations")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ValidationsJson");
+
+                    b.Property<string>("Verifications")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("VerificationsJson");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovalStatus");
+
+                    b.HasIndex("AsilLevel");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("AppSafetyTraceRecords", (string)null);
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>
@@ -3594,6 +4812,75 @@ namespace AnomalyDetection.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecDiff", b =>
+                {
+                    b.HasOne("AnomalyDetection.CanSpecification.CanSpecImport", null)
+                        .WithMany("Diffs")
+                        .HasForeignKey("CanSpecImportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecMessage", b =>
+                {
+                    b.HasOne("AnomalyDetection.CanSpecification.CanSpecImport", null)
+                        .WithMany("Messages")
+                        .HasForeignKey("CanSpecImportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecSignal", b =>
+                {
+                    b.HasOne("AnomalyDetection.CanSpecification.CanSpecMessage", null)
+                        .WithMany("Signals")
+                        .HasForeignKey("CanSpecMessageId");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CompatibilityIssue", b =>
+                {
+                    b.HasOne("AnomalyDetection.CanSpecification.CompatibilityAnalysis", null)
+                        .WithMany("Issues")
+                        .HasForeignKey("CompatibilityAnalysisId");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.ImpactAssessment", b =>
+                {
+                    b.HasOne("AnomalyDetection.CanSpecification.CompatibilityAnalysis", null)
+                        .WithMany("Impacts")
+                        .HasForeignKey("CompatibilityAnalysisId");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.DataImportRequest", b =>
+                {
+                    b.HasOne("AnomalyDetection.Integration.IntegrationEndpoint", null)
+                        .WithMany("ImportRequests")
+                        .HasForeignKey("IntegrationEndpointId");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.IntegrationLog", b =>
+                {
+                    b.HasOne("AnomalyDetection.Integration.IntegrationEndpoint", null)
+                        .WithMany("Logs")
+                        .HasForeignKey("IntegrationEndpointId");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.WebhookSubscription", b =>
+                {
+                    b.HasOne("AnomalyDetection.Integration.IntegrationEndpoint", null)
+                        .WithMany("Webhooks")
+                        .HasForeignKey("IntegrationEndpointId");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.KnowledgeBase.KnowledgeArticleComment", b =>
+                {
+                    b.HasOne("AnomalyDetection.KnowledgeBase.KnowledgeArticle", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("KnowledgeArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AnomalyDetection.MultiTenancy.ExtendedTenant", b =>
                 {
                     b.HasOne("AnomalyDetection.MultiTenancy.OemMaster", null)
@@ -4086,6 +5373,39 @@ namespace AnomalyDetection.Migrations
                     b.Navigation("Parameters");
 
                     b.Navigation("SignalMappings");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecImport", b =>
+                {
+                    b.Navigation("Diffs");
+
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CanSpecMessage", b =>
+                {
+                    b.Navigation("Signals");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.CanSpecification.CompatibilityAnalysis", b =>
+                {
+                    b.Navigation("Impacts");
+
+                    b.Navigation("Issues");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.Integration.IntegrationEndpoint", b =>
+                {
+                    b.Navigation("ImportRequests");
+
+                    b.Navigation("Logs");
+
+                    b.Navigation("Webhooks");
+                });
+
+            modelBuilder.Entity("AnomalyDetection.KnowledgeBase.KnowledgeArticle", b =>
+                {
+                    b.Navigation("Comments");
                 });
 
             modelBuilder.Entity("AnomalyDetection.Projects.AnomalyDetectionProject", b =>

@@ -11,6 +11,9 @@ using AnomalyDetection.Projects;
 using AnomalyDetection.OemTraceability;
 using AnomalyDetection.ValueObjects;
 using AnomalyDetection.AuditLogging;
+using AnomalyDetection.KnowledgeBase;
+using AnomalyDetection.Safety;
+using System.Text.Json;
 
 namespace AnomalyDetection.EntityFrameworkCore;
 
@@ -608,6 +611,87 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         #endregion
 
         // ============================================================================
+        // 4b. Knowledge Base
+        // ============================================================================
+
+        #region KnowledgeArticle (Aggregate Root)
+
+        builder.Entity<KnowledgeArticle>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "KnowledgeArticles", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Title).IsRequired().HasMaxLength(200);
+            b.Property(x => x.Content).IsRequired();
+            b.Property(x => x.Summary).HasMaxLength(1000);
+            b.Property(x => x.Symptom).HasMaxLength(1000);
+            b.Property(x => x.Cause).HasMaxLength(1000);
+            b.Property(x => x.Countermeasure).HasMaxLength(1000);
+            b.Property(x => x.Category).IsRequired();
+            b.Property(x => x.ViewCount).IsRequired();
+            b.Property(x => x.UsefulCount).IsRequired();
+            b.Property(x => x.IsPublished).IsRequired();
+            b.Property(x => x.PublishedAt);
+            b.Property(x => x.DetectionLogicId);
+            b.Property(x => x.CanSignalId);
+            b.Property(x => x.AnomalyType).HasMaxLength(200);
+            b.Property(x => x.SignalName).HasMaxLength(200);
+            b.Property(x => x.HasSolution).IsRequired();
+            b.Property(x => x.SolutionSteps).HasMaxLength(2000);
+            b.Property(x => x.PreventionMeasures).HasMaxLength(2000);
+            b.Property(x => x.AverageRating).HasPrecision(5, 2);
+            b.Property(x => x.RatingCount).IsRequired();
+
+            b.Property(x => x.Tags)
+                .HasConversion(
+                    v => string.Join("|", v),
+                    v => v.Split('|', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(tag => tag.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList())
+                .HasColumnName("Tags");
+
+            b.Property(x => x.Metadata)
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>())
+                .HasColumnName("Metadata");
+
+            b.HasMany(x => x.Comments)
+                .WithOne()
+                .HasForeignKey(comment => comment.KnowledgeArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasIndex(x => x.IsPublished);
+            b.HasIndex(x => x.Category);
+            b.HasIndex(x => x.DetectionLogicId);
+            b.HasIndex(x => x.CanSignalId);
+            b.HasIndex(x => x.AnomalyType);
+            b.HasIndex(x => x.SignalName);
+        });
+
+        #endregion
+
+        #region KnowledgeArticleComment (Entity)
+
+        builder.Entity<KnowledgeArticleComment>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "KnowledgeArticleComments", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.KnowledgeArticleId).IsRequired();
+            b.Property(x => x.AuthorUserId);
+            b.Property(x => x.AuthorName).HasMaxLength(200);
+            b.Property(x => x.Content).IsRequired().HasMaxLength(2000);
+            b.Property(x => x.Rating).IsRequired();
+
+            b.HasIndex(x => x.KnowledgeArticleId);
+            b.HasIndex(x => x.CreationTime);
+        });
+
+        #endregion
+
+        // ============================================================================
         // 5. プロジェクト管理
         // ============================================================================
 
@@ -789,7 +873,74 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         #endregion
 
         // ============================================================================
-        // 6. OEM Traceability (追加機能)
+        // 6. 安全トレーサビリティ管理
+        // ============================================================================
+
+        #region SafetyTraceRecord (Aggregate Root)
+
+        builder.Entity<SafetyTraceRecord>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "SafetyTraceRecords", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.RequirementId).IsRequired().HasMaxLength(200);
+            b.Property(x => x.SafetyGoalId).HasMaxLength(200);
+            b.Property(x => x.Title).IsRequired().HasMaxLength(200);
+            b.Property(x => x.Description).HasMaxLength(2000);
+            b.Property(x => x.BaselineId).HasMaxLength(200);
+            b.Property(x => x.Version).IsRequired();
+
+            b.Property(x => x.RelatedDocuments)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
+                .HasColumnName("RelatedDocumentsJson");
+
+            b.Property(x => x.Verifications)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<VerificationRecord>>(v, (JsonSerializerOptions?)null) ?? new List<VerificationRecord>())
+                .HasColumnName("VerificationsJson");
+
+            b.Property(x => x.Validations)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<ValidationRecord>>(v, (JsonSerializerOptions?)null) ?? new List<ValidationRecord>())
+                .HasColumnName("ValidationsJson");
+
+            b.Property(x => x.AuditTrail)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<AuditEntry>>(v, (JsonSerializerOptions?)null) ?? new List<AuditEntry>())
+                .HasColumnName("AuditTrailJson");
+
+            b.Property(x => x.TraceabilityLinks)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<TraceabilityLinkRecord>>(v, (JsonSerializerOptions?)null) ?? new List<TraceabilityLinkRecord>())
+                .HasColumnName("TraceabilityLinksJson");
+
+            b.Property(x => x.LifecycleEvents)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<LifecycleEvent>>(v, (JsonSerializerOptions?)null) ?? new List<LifecycleEvent>())
+                .HasColumnName("LifecycleEventsJson");
+
+            b.Property(x => x.ChangeRequests)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<ChangeRequestRecord>>(v, (JsonSerializerOptions?)null) ?? new List<ChangeRequestRecord>())
+                .HasColumnName("ChangeRequestsJson");
+
+            b.HasIndex(x => x.AsilLevel);
+            b.HasIndex(x => x.ApprovalStatus);
+            b.HasIndex(x => x.ProjectId);
+        });
+
+        #endregion
+
+        // ============================================================================
+        // 7. OEM Traceability (追加機能)
         // ============================================================================
 
         #region OemCustomization (Aggregate Root)
@@ -915,7 +1066,7 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
         #endregion
 
         // ============================================================================
-        // 7. Audit Logging
+        // 8. Audit Logging
         // ============================================================================
 
         #region AnomalyDetectionAuditLog (Aggregate Root)

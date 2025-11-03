@@ -18,8 +18,8 @@ public interface IAnomalyAnalysisService : IDomainService
     /// <param name="analysisEndDate">分析終了日</param>
     /// <returns>異常パターン分析結果</returns>
     Task<AnomalyPatternAnalysisResult> AnalyzePatternAsync(
-        Guid canSignalId, 
-        DateTime analysisStartDate, 
+        Guid canSignalId,
+        DateTime analysisStartDate,
         DateTime analysisEndDate);
 
     /// <summary>
@@ -30,8 +30,8 @@ public interface IAnomalyAnalysisService : IDomainService
     /// <param name="analysisEndDate">分析終了日</param>
     /// <returns>閾値最適化推奨結果</returns>
     Task<ThresholdRecommendationResult> GenerateThresholdRecommendationsAsync(
-        Guid detectionLogicId, 
-        DateTime analysisStartDate, 
+        Guid detectionLogicId,
+        DateTime analysisStartDate,
         DateTime analysisEndDate);
 
     /// <summary>
@@ -42,7 +42,19 @@ public interface IAnomalyAnalysisService : IDomainService
     /// <param name="analysisEndDate">分析終了日</param>
     /// <returns>検出精度評価結果</returns>
     Task<DetectionAccuracyMetrics> CalculateDetectionAccuracyAsync(
-        Guid detectionLogicId, 
-        DateTime analysisStartDate, 
+        Guid detectionLogicId,
+        DateTime analysisStartDate,
+        DateTime analysisEndDate);
+
+    /// <summary>
+    /// ML-based統計的最適化による高度な閾値推奨を生成する
+    /// </summary>
+    /// <param name="detectionLogicId">検出ロジックID</param>
+    /// <param name="analysisStartDate">分析開始日</param>
+    /// <param name="analysisEndDate">分析終了日</param>
+    /// <returns>ML-based閾値最適化推奨結果</returns>
+    Task<ThresholdRecommendationResult> GenerateAdvancedThresholdRecommendationsAsync(
+        Guid detectionLogicId,
+        DateTime analysisStartDate,
         DateTime analysisEndDate);
 }

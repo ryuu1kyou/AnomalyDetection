@@ -20,17 +20,29 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { SelectionModel } from '@angular/cdk/collections';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil, startWith, switchMap } from 'rxjs';
+import {
+  Subject,
+  debounceTime,
+  distinctUntilChanged,
+  takeUntil,
+  startWith,
+  switchMap,
+  filter,
+} from 'rxjs';
 
 import { DetectionResultService } from '../services/detection-result.service';
-import { 
-  AnomalyDetectionResult, 
+import {
+  RealtimeDetectionHubService,
+  HubConnectionState,
+} from '../services/realtime-detection-hub.service';
+import {
+  AnomalyDetectionResult,
   GetDetectionResultsInput,
   AnomalyLevel,
   ResolutionStatus,
   SharingLevel,
   DetectionType,
-  CanSystemType
+  CanSystemType,
 } from '../models/detection-result.model';
 
 @Component({
@@ -57,7 +69,7 @@ import {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
-    MatExpansionModule
+    MatExpansionModule,
   ],
   template: `
     <div class="detection-results-container">
@@ -84,12 +96,12 @@ import {
             フィルター
           </mat-panel-title>
         </mat-expansion-panel-header>
-        
+
         <form [formGroup]="filterForm" class="filter-form">
           <div class="filter-row">
             <mat-form-field appearance="outline">
               <mat-label>検索</mat-label>
-              <input matInput formControlName="filter" placeholder="信号名、説明で検索">
+              <input matInput formControlName="filter" placeholder="信号名、説明で検索" />
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
@@ -150,14 +162,14 @@ import {
 
             <mat-form-field appearance="outline">
               <mat-label>検出日時（開始）</mat-label>
-              <input matInput [matDatepicker]="startPicker" formControlName="detectedFrom">
+              <input matInput [matDatepicker]="startPicker" formControlName="detectedFrom" />
               <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
               <mat-datepicker #startPicker></mat-datepicker>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>検出日時（終了）</mat-label>
-              <input matInput [matDatepicker]="endPicker" formControlName="detectedTo">
+              <input matInput [matDatepicker]="endPicker" formControlName="detectedTo" />
               <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
               <mat-datepicker #endPicker></mat-datepicker>
             </mat-form-field>
@@ -165,7 +177,9 @@ import {
 
           <div class="filter-actions">
             <button mat-button type="button" (click)="clearFilters()">クリア</button>
-            <button mat-raised-button color="primary" type="button" (click)="applyFilters()">適用</button>
+            <button mat-raised-button color="primary" type="button" (click)="applyFilters()">
+              適用
+            </button>
           </div>
         </form>
       </mat-expansion-panel>
@@ -193,15 +207,19 @@ import {
           <!-- Checkbox Column -->
           <ng-container matColumnDef="select">
             <mat-header-cell *matHeaderCellDef>
-              <mat-checkbox (change)="$event ? masterToggle() : null"
-                           [checked]="selection.hasValue() && isAllSelected()"
-                           [indeterminate]="selection.hasValue() && !isAllSelected()">
+              <mat-checkbox
+                (change)="$event ? masterToggle() : null"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+              >
               </mat-checkbox>
             </mat-header-cell>
             <mat-cell *matCellDef="let row">
-              <mat-checkbox (click)="$event.stopPropagation()"
-                           (change)="$event ? selection.toggle(row) : null"
-                           [checked]="selection.isSelected(row)">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="$event ? selection.toggle(row) : null"
+                [checked]="selection.isSelected(row)"
+              >
               </mat-checkbox>
             </mat-cell>
           </ng-container>
@@ -210,7 +228,7 @@ import {
           <ng-container matColumnDef="detectedAt">
             <mat-header-cell *matHeaderCellDef mat-sort-header>検出時刻</mat-header-cell>
             <mat-cell *matCellDef="let result">
-              {{ result.detectedAt | date:'yyyy/MM/dd HH:mm:ss' }}
+              {{ result.detectedAt | date : 'yyyy/MM/dd HH:mm:ss' }}
             </mat-cell>
           </ng-container>
 
@@ -246,7 +264,7 @@ import {
             <mat-header-cell *matHeaderCellDef mat-sort-header>信頼度</mat-header-cell>
             <mat-cell *matCellDef="let result">
               <div class="confidence-score">
-                {{ (result.confidenceScore * 100) | number:'1.1-1' }}%
+                {{ result.confidenceScore * 100 | number : '1.1-1' }}%
               </div>
             </mat-cell>
           </ng-container>
@@ -279,23 +297,31 @@ import {
                   <mat-icon>visibility</mat-icon>
                   詳細表示
                 </button>
-                <button mat-menu-item (click)="markAsInvestigating(result)" 
-                        *ngIf="result.resolutionStatus === ResolutionStatus.Open">
+                <button
+                  mat-menu-item
+                  (click)="markAsInvestigating(result)"
+                  *ngIf="result.resolutionStatus === ResolutionStatus.Open"
+                >
                   <mat-icon>search</mat-icon>
                   調査中にする
                 </button>
-                <button mat-menu-item (click)="markAsFalsePositive(result)"
-                        *ngIf="result.resolutionStatus !== ResolutionStatus.FalsePositive">
+                <button
+                  mat-menu-item
+                  (click)="markAsFalsePositive(result)"
+                  *ngIf="result.resolutionStatus !== ResolutionStatus.FalsePositive"
+                >
                   <mat-icon>block</mat-icon>
                   誤検出にする
                 </button>
-                <button mat-menu-item (click)="resolveResult(result)"
-                        *ngIf="result.resolutionStatus !== ResolutionStatus.Resolved">
+                <button
+                  mat-menu-item
+                  (click)="resolveResult(result)"
+                  *ngIf="result.resolutionStatus !== ResolutionStatus.Resolved"
+                >
                   <mat-icon>check_circle</mat-icon>
                   解決する
                 </button>
-                <button mat-menu-item (click)="shareResult(result)"
-                        *ngIf="!result.isShared">
+                <button mat-menu-item (click)="shareResult(result)" *ngIf="!result.isShared">
                   <mat-icon>share</mat-icon>
                   共有する
                 </button>
@@ -308,9 +334,11 @@ import {
           </ng-container>
 
           <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-          <mat-row *matRowDef="let row; columns: displayedColumns;" 
-                   (click)="viewDetails(row)"
-                   class="clickable-row"></mat-row>
+          <mat-row
+            *matRowDef="let row; columns: displayedColumns"
+            (click)="viewDetails(row)"
+            class="clickable-row"
+          ></mat-row>
         </mat-table>
 
         <!-- Loading Spinner -->
@@ -326,11 +354,13 @@ import {
       </div>
 
       <!-- Paginator -->
-      <mat-paginator [length]="totalCount"
-                     [pageSize]="pageSize"
-                     [pageSizeOptions]="[10, 25, 50, 100]"
-                     (page)="onPageChange($event)"
-                     showFirstLastButtons>
+      <mat-paginator
+        [length]="totalCount"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 25, 50, 100]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      >
       </mat-paginator>
 
       <!-- Real-time Updates Indicator -->
@@ -340,7 +370,7 @@ import {
       </div>
     </div>
   `,
-  styleUrls: ['./detection-results-list.component.scss']
+  styleUrls: ['./detection-results-list.component.scss'],
 })
 export class DetectionResultsListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -375,13 +405,14 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
     'confidenceScore',
     'resolutionStatus',
     'systemType',
-    'actions'
+    'actions',
   ];
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private detectionResultService: DetectionResultService,
+    private realtimeHubService: RealtimeDetectionHubService,
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -398,6 +429,8 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    // Disconnect SignalR when component is destroyed
+    this.realtimeHubService.stopConnection();
   }
 
   private createFilterForm(): FormGroup {
@@ -411,17 +444,13 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
       detectedTo: [null],
       minConfidenceScore: [null],
       maxConfidenceScore: [null],
-      isHighPriority: [false]
+      isHighPriority: [false],
     });
   }
 
   private setupFilterSubscription(): void {
     this.filterForm.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => {
         this.currentPage = 0;
         this.loadData();
@@ -429,35 +458,139 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
   }
 
   private setupRealtimeUpdates(): void {
-    // TODO: Implement SignalR connection for real-time updates
-    // This would connect to the backend SignalR hub for live updates
-    this.realtimeEnabled = true;
+    // Initialize SignalR connection
+    this.realtimeHubService
+      .startConnection()
+      .then(() => {
+        console.log('SignalR connection established');
+        this.realtimeEnabled = true;
+
+        // Subscribe to all detection results (can be filtered by project if needed)
+        this.realtimeHubService
+          .subscribeToAllResults()
+          .catch(err => console.error('Error subscribing to all results:', err));
+
+        // Handle new detection results
+        this.realtimeHubService.onNewDetectionResult
+          .pipe(
+            filter(result => result !== null),
+            takeUntil(this.destroy$)
+          )
+          .subscribe(result => {
+            if (result) {
+              // Prepend new result to the current data
+              const currentData = this.dataSource.data;
+              this.dataSource.data = [result, ...currentData];
+              this.totalCount++;
+
+              // Show notification
+              this.snackBar
+                .open(
+                  `新しい異常検出: ${result.signalName} (信頼度: ${(
+                    result.confidenceScore * 100
+                  ).toFixed(1)}%)`,
+                  '表示',
+                  { duration: 5000 }
+                )
+                .onAction()
+                .subscribe(() => {
+                  this.viewDetails(result);
+                });
+            }
+          });
+
+        // Handle detection result updates
+        this.realtimeHubService.onDetectionResultUpdated
+          .pipe(
+            filter(result => result !== null),
+            takeUntil(this.destroy$)
+          )
+          .subscribe(result => {
+            if (result) {
+              // Update the existing result in the data source
+              const currentData = this.dataSource.data;
+              const index = currentData.findIndex(r => r.id === result.id);
+              if (index !== -1) {
+                currentData[index] = result;
+                this.dataSource.data = [...currentData];
+
+                this.snackBar.open(`検出結果が更新されました: ${result.signalName}`, '閉じる', {
+                  duration: 3000,
+                });
+              }
+            }
+          });
+
+        // Handle detection result deletions
+        this.realtimeHubService.onDetectionResultDeleted
+          .pipe(
+            filter(resultId => resultId !== null),
+            takeUntil(this.destroy$)
+          )
+          .subscribe(resultId => {
+            if (resultId) {
+              // Remove the deleted result from the data source
+              const currentData = this.dataSource.data;
+              this.dataSource.data = currentData.filter(r => r.id !== resultId);
+              this.totalCount--;
+
+              this.snackBar.open('検出結果が削除されました', '閉じる', { duration: 3000 });
+            }
+          });
+
+        // Monitor connection state changes
+        this.realtimeHubService.connectionState.pipe(takeUntil(this.destroy$)).subscribe(state => {
+          if (state === HubConnectionState.Reconnecting) {
+            this.snackBar.open('リアルタイム接続を再確立中...', '閉じる', { duration: 2000 });
+          } else if (state === HubConnectionState.Disconnected) {
+            this.realtimeEnabled = false;
+            this.snackBar.open('リアルタイム接続が切断されました', '閉じる', { duration: 3000 });
+          } else if (state === HubConnectionState.Connected) {
+            this.realtimeEnabled = true;
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Failed to start SignalR connection:', error);
+        this.realtimeEnabled = false;
+        this.snackBar.open(
+          'リアルタイム更新の接続に失敗しました。手動で更新してください。',
+          '閉じる',
+          { duration: 5000 }
+        );
+      });
   }
 
   loadData(): void {
     this.loading = true;
-    
+
     const input: GetDetectionResultsInput = {
       ...this.filterForm.value,
       skipCount: this.currentPage * this.pageSize,
       maxResultCount: this.pageSize,
-      sorting: this.sort?.active ? `${this.sort.active} ${this.sort.direction}` : 'detectedAt desc'
+      sorting: this.sort?.active ? `${this.sort.active} ${this.sort.direction}` : 'detectedAt desc',
     };
 
-    this.detectionResultService.getList(input)
+    this.detectionResultService
+      .getList(input)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (result) => {
-          this.dataSource.data = result.items;
-          this.totalCount = result.totalCount;
+        next: result => {
+          // Guard against null enum values to avoid toString errors in templates
+          this.dataSource.data = (result.items || []).map(r => ({
+            ...r,
+            anomalyLevel: r.anomalyLevel ?? null,
+            resolutionStatus: r.resolutionStatus ?? null,
+          }));
+          this.totalCount = result.totalCount ?? 0;
           this.loading = false;
           this.selection.clear();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error loading detection results:', error);
           this.snackBar.open('データの読み込みに失敗しました', '閉じる', { duration: 3000 });
           this.loading = false;
-        }
+        },
       });
   }
 
@@ -490,9 +623,9 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
   }
 
   masterToggle(): void {
-    this.isAllSelected() ?
-      this.selection.clear() :
-      this.dataSource.data.forEach(row => this.selection.select(row));
+    this.isAllSelected()
+      ? this.selection.clear()
+      : this.dataSource.data.forEach(row => this.selection.select(row));
   }
 
   // Action methods
@@ -502,53 +635,56 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
   }
 
   markAsInvestigating(result: AnomalyDetectionResult): void {
-    this.detectionResultService.markAsInvestigating(result.id)
+    this.detectionResultService
+      .markAsInvestigating(result.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open('調査中に変更しました', '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error marking as investigating:', error);
           this.snackBar.open('操作に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   markAsFalsePositive(result: AnomalyDetectionResult): void {
     // TODO: Open dialog to get reason
     const input = { reason: '誤検出として判定', notes: '' };
-    
-    this.detectionResultService.markAsFalsePositive(result.id, input)
+
+    this.detectionResultService
+      .markAsFalsePositive(result.id, input)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open('誤検出に変更しました', '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error marking as false positive:', error);
           this.snackBar.open('操作に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   resolveResult(result: AnomalyDetectionResult): void {
     // TODO: Open dialog to get resolution notes
     const input = { resolutionNotes: '解決済み' };
-    
-    this.detectionResultService.resolve(result.id, input)
+
+    this.detectionResultService
+      .resolve(result.id, input)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open('解決済みに変更しました', '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error resolving result:', error);
           this.snackBar.open('操作に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
@@ -556,22 +692,23 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
     import('./share-result-dialog.component').then(m => {
       const dialogRef = this.dialog.open(m.ShareResultDialogComponent, {
         width: '600px',
-        data: { result }
+        data: { result },
       });
 
       dialogRef.afterClosed().subscribe(shareData => {
         if (shareData) {
-          this.detectionResultService.share(result.id, shareData)
+          this.detectionResultService
+            .share(result.id, shareData)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
               next: () => {
                 this.snackBar.open('結果を共有しました', '閉じる', { duration: 2000 });
                 this.loadData();
               },
-              error: (error) => {
+              error: error => {
                 console.error('Error sharing result:', error);
                 this.snackBar.open('共有に失敗しました', '閉じる', { duration: 3000 });
-              }
+              },
             });
         }
       });
@@ -586,49 +723,54 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
   // Bulk actions
   bulkMarkAsInvestigating(): void {
     const ids = this.selection.selected.map(r => r.id);
-    this.detectionResultService.bulkUpdateResolutionStatus(ids, ResolutionStatus.Investigating)
+    this.detectionResultService
+      .bulkUpdateResolutionStatus(ids, ResolutionStatus.Investigating)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open(`${ids.length}件を調査中に変更しました`, '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error bulk updating:', error);
           this.snackBar.open('一括操作に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   bulkMarkAsFalsePositive(): void {
     const ids = this.selection.selected.map(r => r.id);
-    this.detectionResultService.bulkMarkAsFalsePositive(ids, '一括誤検出判定')
+    this.detectionResultService
+      .bulkMarkAsFalsePositive(ids, '一括誤検出判定')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open(`${ids.length}件を誤検出に変更しました`, '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error bulk marking as false positive:', error);
           this.snackBar.open('一括操作に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   bulkResolve(): void {
     const ids = this.selection.selected.map(r => r.id);
-    this.detectionResultService.bulkUpdateResolutionStatus(ids, ResolutionStatus.Resolved, '一括解決')
+    this.detectionResultService
+      .bulkUpdateResolutionStatus(ids, ResolutionStatus.Resolved, '一括解決')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.snackBar.open(`${ids.length}件を解決済みに変更しました`, '閉じる', { duration: 2000 });
+          this.snackBar.open(`${ids.length}件を解決済みに変更しました`, '閉じる', {
+            duration: 2000,
+          });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error bulk resolving:', error);
           this.snackBar.open('一括操作に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
@@ -636,13 +778,14 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
     const input: GetDetectionResultsInput = {
       ...this.filterForm.value,
       skipCount: 0,
-      maxResultCount: this.totalCount
+      maxResultCount: this.totalCount,
     };
 
-    this.detectionResultService.export(input, 'csv')
+    this.detectionResultService
+      .export(input, 'csv')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (blob) => {
+        next: blob => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -650,10 +793,10 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
           a.click();
           window.URL.revokeObjectURL(url);
         },
-        error: (error) => {
+        error: error => {
           console.error('Error exporting results:', error);
           this.snackBar.open('エクスポートに失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
@@ -664,7 +807,7 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
       [AnomalyLevel.Warning]: 'Warning',
       [AnomalyLevel.Error]: 'Error',
       [AnomalyLevel.Critical]: 'Critical',
-      [AnomalyLevel.Fatal]: 'Fatal'
+      [AnomalyLevel.Fatal]: 'Fatal',
     };
     return texts[level] || 'Unknown';
   }
@@ -675,7 +818,7 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
       [AnomalyLevel.Warning]: 'warning',
       [AnomalyLevel.Error]: 'error',
       [AnomalyLevel.Critical]: 'critical',
-      [AnomalyLevel.Fatal]: 'fatal'
+      [AnomalyLevel.Fatal]: 'fatal',
     };
     return classes[level] || 'default';
   }
@@ -689,7 +832,7 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
       [ResolutionStatus.FalsePositive]: '誤検出',
       [ResolutionStatus.Ignored]: '無視',
       [ResolutionStatus.Reopened]: '再開',
-      [ResolutionStatus.Escalated]: 'エスカレート'
+      [ResolutionStatus.Escalated]: 'エスカレート',
     };
     return texts[status] || 'Unknown';
   }
@@ -703,7 +846,7 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
       [ResolutionStatus.FalsePositive]: 'false-positive',
       [ResolutionStatus.Ignored]: 'ignored',
       [ResolutionStatus.Reopened]: 'reopened',
-      [ResolutionStatus.Escalated]: 'escalated'
+      [ResolutionStatus.Escalated]: 'escalated',
     };
     return classes[status] || 'default';
   }
@@ -729,7 +872,7 @@ export class DetectionResultsListComponent implements OnInit, OnDestroy {
       [CanSystemType.ADAS]: 'ADAS',
       [CanSystemType.Suspension]: 'サスペンション',
       [CanSystemType.Exhaust]: '排気',
-      [CanSystemType.Fuel]: '燃料'
+      [CanSystemType.Fuel]: '燃料',
     };
     return texts[type] || 'Unknown';
   }

@@ -15,15 +15,18 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
 {
     private readonly IRepository<AnomalyDetectionResult, Guid> _anomalyResultRepository;
     private readonly IRepository<CanAnomalyDetectionLogic, Guid> _detectionLogicRepository;
+    private readonly IStatisticalThresholdOptimizer _thresholdOptimizer;
     private readonly ILogger<AnomalyAnalysisService> _logger;
 
     public AnomalyAnalysisService(
         IRepository<AnomalyDetectionResult, Guid> anomalyResultRepository,
         IRepository<CanAnomalyDetectionLogic, Guid> detectionLogicRepository,
+        IStatisticalThresholdOptimizer thresholdOptimizer,
         ILogger<AnomalyAnalysisService> logger)
     {
         _anomalyResultRepository = anomalyResultRepository;
         _detectionLogicRepository = detectionLogicRepository;
+        _thresholdOptimizer = thresholdOptimizer;
         _logger = logger;
     }
 
@@ -31,8 +34,8 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
     /// 異常パターンを分析する
     /// </summary>
     public async Task<AnomalyPatternAnalysisResult> AnalyzePatternAsync(
-        Guid canSignalId, 
-        DateTime analysisStartDate, 
+        Guid canSignalId,
+        DateTime analysisStartDate,
         DateTime analysisEndDate)
     {
         _logger.LogInformation("Starting anomaly pattern analysis for CAN signal {CanSignalId} from {StartDate} to {EndDate}",
@@ -100,8 +103,8 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
     /// 閾値最適化推奨を生成する
     /// </summary>
     public async Task<ThresholdRecommendationResult> GenerateThresholdRecommendationsAsync(
-        Guid detectionLogicId, 
-        DateTime analysisStartDate, 
+        Guid detectionLogicId,
+        DateTime analysisStartDate,
         DateTime analysisEndDate)
     {
         _logger.LogInformation("Generating threshold recommendations for detection logic {DetectionLogicId} from {StartDate} to {EndDate}",
@@ -157,8 +160,8 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
     /// 検出精度を評価する
     /// </summary>
     public async Task<DetectionAccuracyMetrics> CalculateDetectionAccuracyAsync(
-        Guid detectionLogicId, 
-        DateTime analysisStartDate, 
+        Guid detectionLogicId,
+        DateTime analysisStartDate,
         DateTime analysisEndDate)
     {
         _logger.LogInformation("Calculating detection accuracy for logic {DetectionLogicId} from {StartDate} to {EndDate}",
@@ -310,10 +313,10 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         // 期待値に対する実際の出現頻度の比率を計算
         var expectedFrequency = (double)totalCount / expectedSlots;
         var actualFrequency = patternCount;
-        
+
         // 統計的有意性を考慮した信頼度計算
         var ratio = actualFrequency / Math.Max(expectedFrequency, 1.0);
-        
+
         // 0.0から1.0の範囲に正規化（2倍以上の頻度で最大信頼度）
         return Math.Min(1.0, Math.Max(0.0, (ratio - 1.0) / 1.0));
     }
@@ -352,7 +355,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
                 foreach (var group in signalGroups)
                 {
                     var correlationCoefficient = CalculateTemporalCorrelation(
-                        anomalyResults, 
+                        anomalyResults,
                         group.ToList());
 
                     if (Math.Abs(correlationCoefficient) > 0.3) // 相関閾値
@@ -398,9 +401,9 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         foreach (var baseResult in baseResults)
         {
             totalComparisons++;
-            var hasCorrelation = correlatedResults.Any(cr => 
+            var hasCorrelation = correlatedResults.Any(cr =>
                 Math.Abs((cr.DetectedAt - baseResult.DetectedAt).TotalMinutes) <= 5);
-            
+
             if (hasCorrelation)
                 correlationCount++;
         }
@@ -416,13 +419,13 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         foreach (var levelGroup in levelGroups.Where(g => g.Count() > 1))
         {
             var sameLevel = await _anomalyResultRepository.GetListAsync(
-                r => r.CanSignalId != canSignalId && 
+                r => r.CanSignalId != canSignalId &&
                      r.AnomalyLevel == levelGroup.Key);
 
             if (sameLevel.Count > 2)
             {
                 var coefficient = (double)sameLevel.Count / (sameLevel.Count + levelGroup.Count());
-                
+
                 if (coefficient > 0.2)
                 {
                     correlations.Add(new AnomalyCorrelation(
@@ -443,13 +446,13 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         foreach (var typeGroup in typeGroups.Where(g => g.Count() > 1))
         {
             var sameType = await _anomalyResultRepository.GetListAsync(
-                r => r.CanSignalId != canSignalId && 
+                r => r.CanSignalId != canSignalId &&
                      r.AnomalyType == typeGroup.Key);
 
             if (sameType.Count > 2)
             {
                 var coefficient = (double)sameType.Count / (sameType.Count + typeGroup.Count());
-                
+
                 if (coefficient > 0.2)
                 {
                     correlations.Add(new AnomalyCorrelation(
@@ -511,12 +514,12 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         // メトリクス計算
         var detectionRate = totalDetections > 0 ? (double)estimatedTruePositives / totalDetections : 0.0;
         var falsePositiveRate = totalDetections > 0 ? (double)falsePositives / totalDetections : 0.0;
-        var falseNegativeRate = estimatedTruePositives + estimatedFalseNegatives > 0 ? 
+        var falseNegativeRate = estimatedTruePositives + estimatedFalseNegatives > 0 ?
             (double)estimatedFalseNegatives / (estimatedTruePositives + estimatedFalseNegatives) : 0.0;
 
-        var precision = estimatedTruePositives + falsePositives > 0 ? 
+        var precision = estimatedTruePositives + falsePositives > 0 ?
             (double)estimatedTruePositives / (estimatedTruePositives + falsePositives) : 0.0;
-        var recall = estimatedTruePositives + estimatedFalseNegatives > 0 ? 
+        var recall = estimatedTruePositives + estimatedFalseNegatives > 0 ?
             (double)estimatedTruePositives / (estimatedTruePositives + estimatedFalseNegatives) : 0.0;
         var f1Score = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0.0;
 
@@ -593,7 +596,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         // 4. 異常レベル分布に基づく推奨
         var criticalCount = detectionResults.Count(r => r.AnomalyLevel >= AnomalyLevel.Critical);
         var warningCount = detectionResults.Count(r => r.AnomalyLevel == AnomalyLevel.Warning);
-        
+
         if (warningCount > criticalCount * 5) // 警告が重要な異常の5倍以上
         {
             recommendations.Add(new ThresholdRecommendation(
@@ -628,7 +631,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
     private double CalculateThresholdAdjustment(double currentRate, string direction)
     {
         // 現在の率に基づいて調整幅を計算
-        return direction == "increase" ? 
+        return direction == "increase" ?
             Math.Min(0.5, currentRate * 2) :  // 最大50%増加
             Math.Min(0.3, (1.0 - currentRate) * 1.5); // 最大30%減少
     }
@@ -638,7 +641,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         // 閾値範囲に基づいて優先度を計算（0.0-1.0）
         if (currentValue <= minThreshold) return 0.3;
         if (currentValue >= maxThreshold) return 1.0;
-        
+
         return 0.3 + (currentValue - minThreshold) / (maxThreshold - minThreshold) * 0.7;
     }
 
@@ -647,7 +650,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         // サンプルサイズと率に基づいて信頼度を計算
         var baseLine = Math.Min(0.9, 0.5 + Math.Log10(sampleSize) * 0.1);
         var rateConfidence = 1.0 - Math.Abs(rate - 0.5) * 0.5; // 極端な値ほど信頼度が高い
-        
+
         return Math.Min(1.0, baseLine * rateConfidence);
     }
 
@@ -729,7 +732,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         var warningCount = detectionResults.Count(r => r.AnomalyLevel == AnomalyLevel.Warning);
 
         // レベル別の偽陰性率を適用
-        var estimatedFalseNegatives = 
+        var estimatedFalseNegatives =
             (int)(criticalCount * 0.02) +  // Critical: 2%の偽陰性率
             (int)(errorCount * 0.05) +     // Error: 5%の偽陰性率
             (int)(warningCount * 0.10);    // Warning: 10%の偽陰性率
@@ -740,8 +743,8 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
     private int EstimateTrueNegatives(List<AnomalyDetectionResult> detectionResults)
     {
         // データ量に基づく真陰性の推定
-        var analysisTimeSpan = detectionResults.Any() ? 
-            detectionResults.Max(r => r.DetectedAt) - detectionResults.Min(r => r.DetectedAt) : 
+        var analysisTimeSpan = detectionResults.Any() ?
+            detectionResults.Max(r => r.DetectedAt) - detectionResults.Min(r => r.DetectedAt) :
             TimeSpan.Zero;
 
         if (analysisTimeSpan.TotalHours < 1)
@@ -759,7 +762,7 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
     {
         var sorted = values.OrderBy(x => x).ToList();
         var count = sorted.Count;
-        
+
         if (count % 2 == 0)
         {
             return (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0;
@@ -824,6 +827,62 @@ public class AnomalyAnalysisService : DomainService, IAnomalyAnalysisService
         return $"Performance Summary: Accuracy {accuracy:P2}, Precision {precision:P2}, Recall {recall:P2}. " +
                $"True Positives: {truePositives}, False Positives: {falsePositives}, " +
                $"False Negatives: {falseNegatives}, True Negatives: {trueNegatives}.";
+    }
+
+
+    /// <summary>
+    /// ML-based統計的最適化による高度な閾値推奨
+    /// </summary>
+    public async Task<ThresholdRecommendationResult> GenerateAdvancedThresholdRecommendationsAsync(
+        Guid detectionLogicId, DateTime analysisStartDate, DateTime analysisEndDate)
+    {
+        _logger.LogInformation("Generating ML-based threshold recommendations for {DetectionLogicId}", detectionLogicId);
+
+        var detectionLogic = await _detectionLogicRepository.GetAsync(detectionLogicId);
+        var detectionResults = await _anomalyResultRepository.GetListAsync(
+            r => r.DetectionLogicId == detectionLogicId && r.DetectedAt >= analysisStartDate && r.DetectedAt <= analysisEndDate);
+
+        if (!detectionResults.Any())
+        {
+            var empty = new OptimizationMetrics(0, 0, 0, 0, 0, 0, 0);
+            return new ThresholdRecommendationResult(detectionLogicId, analysisStartDate, analysisEndDate,
+                new List<ThresholdRecommendation>(), empty, empty, 0, "No data.");
+        }
+
+        var recommendations = new List<ThresholdRecommendation>();
+        var actualValues = detectionResults.Select(r => r.InputData.SignalValue).ToList();
+
+        if (actualValues.Count >= 100)
+        {
+            var config = new ThresholdOptimizationConfig { TargetFalsePositiveRate = 0.05, TargetTruePositiveRate = 0.95 };
+            var optimalResult = await _thresholdOptimizer.CalculateOptimalThresholdAsync(actualValues, config);
+            var currentMax = detectionLogic.Parameters.FirstOrDefault(p => p.Name == "MaxThreshold")?.Value ?? "N/A";
+            recommendations.Add(new ThresholdRecommendation("Upper Threshold (Statistical)",
+                currentMax,
+                optimalResult.RecommendedUpperThreshold.ToString("F2"),
+                $"Statistical: {optimalResult.RecommendedUpperThreshold:F2}, FPR: {optimalResult.ExpectedFalsePositiveRate:P2}", 0.9, optimalResult.ConfidenceLevel));
+        }
+
+        if (actualValues.Count >= 50)
+        {
+            var outlierResult = await _thresholdOptimizer.DetectOutliersAsync(actualValues, OutlierDetectionMethod.IQR);
+            if (outlierResult.OutlierPercentage > 10)
+            {
+                recommendations.Add(new ThresholdRecommendation("Outlier Threshold", "Current",
+                    $"IQR: [{outlierResult.LowerBound:F2}, {outlierResult.UpperBound:F2}]",
+                    $"Outliers: {outlierResult.OutlierCount} ({outlierResult.OutlierPercentage:F1}%)", 0.8, 0.85));
+            }
+        }
+
+        recommendations.AddRange(GenerateThresholdRecommendations(detectionLogic, detectionResults));
+        var currentMetrics = CalculateOptimizationMetrics(detectionResults);
+        var predictedMetrics = SimulatePredictedMetrics(currentMetrics, recommendations);
+        var expectedImprovement = CalculateExpectedImprovement(currentMetrics, predictedMetrics);
+
+        return new ThresholdRecommendationResult(detectionLogicId, analysisStartDate, analysisEndDate,
+            recommendations.OrderByDescending(r => r.Priority).Take(10).ToList(),
+            currentMetrics, predictedMetrics, expectedImprovement,
+            $"ML analysis: {recommendations.Count} recommendations. Improvement: {expectedImprovement:P1}");
     }
 
     #endregion

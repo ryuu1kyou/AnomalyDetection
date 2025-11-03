@@ -2,8 +2,16 @@
   "Culture": "ja",
   "Texts": {
     "AppName": "異常検出システム",
-    "Menu:Home": "ホーム",
     "LongWelcomeMessage": "アプリケーションへようこそ。これはABPフレームワークに基づくスタートアッププロジェクトです。詳細については以下をご覧ください",
+    "Menu:Home": "ホーム",
+  "Menu:Dashboard": "ダッシュボード",
+  "Menu:CanSignals": "CAN信号管理",
+  "Menu:DetectionLogics": "検出ロジック",
+  "Menu:DetectionResults": "検出結果",
+  "Menu:Projects": "プロジェクト",
+  "Menu:OemTraceability": "OEMトレーサビリティ",
+  "Menu:SimilarComparison": "類似比較",
+  "Menu:AnomalyAnalysis": "異常分析",
     "Welcome": "ようこそ",
     
     "Permission:AnomalyDetection": "異常検出",

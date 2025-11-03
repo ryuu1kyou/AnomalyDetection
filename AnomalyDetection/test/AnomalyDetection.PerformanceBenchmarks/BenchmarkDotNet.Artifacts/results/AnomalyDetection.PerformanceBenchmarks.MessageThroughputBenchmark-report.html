@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>AnomalyDetection.PerformanceBenchmarks.MessageThroughputBenchmark-20251102-174927</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.5, Windows 11 (10.0.22631.6060/23H2/2023Update/SunValley3)
+Intel Core i5-8250U CPU 1.60GHz (Max: 1.80GHz) (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET SDK 9.0.305
+  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v3
+  Job-MLSUAM : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>IterationCount=3  LaunchCount=1  RunStrategy=Throughput  
+WarmupCount=2  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                  </th><th>MessageCount</th><th>Mean </th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>MessageSerializationThroughput</td><td>100</td><td>154.16 &mu;s</td><td>672.85 &mu;s</td><td>36.881 &mu;s</td><td>6.3477</td><td>5.8594</td><td>0.4883</td><td>40.98 KB</td>
+</tr><tr><td>ParallelMessageSerialization</td><td>100</td><td>112.41 &mu;s</td><td>656.33 &mu;s</td><td>35.975 &mu;s</td><td>7.3242</td><td>6.8359</td><td>0.4883</td><td>45.14 KB</td>
+</tr><tr><td>SequentialMessageProcessing</td><td>100</td><td>189.08 &mu;s</td><td>282.81 &mu;s</td><td>15.502 &mu;s</td><td>12.6953</td><td>-</td><td>-</td><td>39.17 KB</td>
+</tr><tr><td>ParallelMessageProcessing</td><td>100</td><td>68.28 &mu;s</td><td>25.91 &mu;s</td><td>1.420 &mu;s</td><td>17.8223</td><td>-</td><td>-</td><td>53.15 KB</td>
+</tr><tr><td>BatchMessageProcessing</td><td>100</td><td>138.88 &mu;s</td><td>66.20 &mu;s</td><td>3.629 &mu;s</td><td>21.9727</td><td>-</td><td>-</td><td>65.69 KB</td>
+</tr><tr><td>MessageSerializationThroughput</td><td>500</td><td>562.49 &mu;s</td><td>1,171.19 &mu;s</td><td>64.197 &mu;s</td><td>32.2266</td><td>31.2500</td><td>11.7188</td><td>203.14 KB</td>
+</tr><tr><td>ParallelMessageSerialization</td><td>500</td><td>314.72 &mu;s</td><td>256.00 &mu;s</td><td>14.032 &mu;s</td><td>34.1797</td><td>33.2031</td><td>8.7891</td><td>207.98 KB</td>
+</tr><tr><td>SequentialMessageProcessing</td><td>500</td><td>754.81 &mu;s</td><td>1,719.46 &mu;s</td><td>94.250 &mu;s</td><td>63.4766</td><td>-</td><td>-</td><td>195.09 KB</td>
+</tr><tr><td>ParallelMessageProcessing</td><td>500</td><td>269.00 &mu;s</td><td>79.71 &mu;s</td><td>4.369 &mu;s</td><td>67.3828</td><td>19.5313</td><td>-</td><td>262.05 KB</td>
+</tr><tr><td>BatchMessageProcessing</td><td>500</td><td>948.83 &mu;s</td><td>2,110.13 &mu;s</td><td>115.663 &mu;s</td><td>109.3750</td><td>-</td><td>-</td><td>326.89 KB</td>
+</tr><tr><td>MessageSerializationThroughput</td><td>1000</td><td>1,057.83 &mu;s</td><td>693.72 &mu;s</td><td>38.025 &mu;s</td><td>64.4531</td><td>62.5000</td><td>31.2500</td><td>405.98 KB</td>
+</tr><tr><td>ParallelMessageSerialization</td><td>1000</td><td>668.63 &mu;s</td><td>978.86 &mu;s</td><td>53.655 &mu;s</td><td>68.3594</td><td>66.4063</td><td>29.2969</td><td>414.36 KB</td>
+</tr><tr><td>SequentialMessageProcessing</td><td>1000</td><td>1,213.77 &mu;s</td><td>663.20 &mu;s</td><td>36.353 &mu;s</td><td>126.9531</td><td>-</td><td>-</td><td>390.01 KB</td>
+</tr><tr><td>ParallelMessageProcessing</td><td>1000</td><td>624.50 &mu;s</td><td>1,133.95 &mu;s</td><td>62.156 &mu;s</td><td>111.3281</td><td>64.4531</td><td>-</td><td>523.46 KB</td>
+</tr><tr><td>BatchMessageProcessing</td><td>1000</td><td>1,697.83 &mu;s</td><td>3,118.03 &mu;s</td><td>170.910 &mu;s</td><td>218.7500</td><td>-</td><td>-</td><td>653.25 KB</td>
+</tr></tbody></table>
+</body>
+</html>

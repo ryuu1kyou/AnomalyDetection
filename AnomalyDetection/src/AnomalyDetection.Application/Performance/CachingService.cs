@@ -400,8 +400,8 @@ public class CanSystemCategoryCacheItem : CacheItemBase
         {
             Id = entity.Id,
             SystemType = entity.SystemType,
-            Name = entity.Name,
-            Description = entity.Description,
+            Name = entity.Name ?? string.Empty,
+            Description = entity.Description ?? string.Empty,
             IsActive = entity.IsActive,
             DisplayOrder = entity.DisplayOrder
         };

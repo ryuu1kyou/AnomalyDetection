@@ -5,6 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -13,15 +14,15 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subject, takeUntil, interval, switchMap, startWith } from 'rxjs';
+import { Subject, takeUntil, interval, switchMap, startWith, catchError, of } from 'rxjs';
 
 import { DashboardService } from '../services/dashboard.service';
-import { 
+import {
   DashboardStatistics,
   DetectionStatistics,
   GetDetectionStatisticsInput,
   MetricCard,
-  TrendData
+  TrendData,
 } from '../models/dashboard.model';
 
 @Component({
@@ -35,6 +36,7 @@ import {
     MatButtonModule,
     MatIconModule,
     MatSelectModule,
+    MatInputModule,
     MatFormFieldModule,
     MatDatepickerModule,
     MatNativeDateModule,
@@ -42,7 +44,7 @@ import {
     MatSnackBarModule,
     MatGridListModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
   template: `
     <div class="dashboard-container">
@@ -73,14 +75,14 @@ import {
             <div class="filter-row">
               <mat-form-field appearance="outline">
                 <mat-label>期間（開始）</mat-label>
-                <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+                <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
                 <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
                 <mat-datepicker #startPicker></mat-datepicker>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>期間（終了）</mat-label>
-                <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+                <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
                 <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
                 <mat-datepicker #endPicker></mat-datepicker>
               </mat-form-field>
@@ -106,9 +108,7 @@ import {
                 </mat-select>
               </mat-form-field>
 
-              <button mat-raised-button color="primary" (click)="applyFilters()">
-                適用
-              </button>
+              <button mat-raised-button color="primary" (click)="applyFilters()">適用</button>
             </div>
           </form>
         </mat-card-content>
@@ -166,13 +166,16 @@ import {
                     <p>データを読み込み中...</p>
                   </div>
                   <div class="distribution-chart" *ngIf="detectionStats?.anomalyLevelDistribution">
-                    <div class="distribution-item" 
-                         *ngFor="let item of detectionStats.anomalyLevelDistribution">
+                    <div
+                      class="distribution-item"
+                      *ngFor="let item of detectionStats.anomalyLevelDistribution"
+                    >
                       <div class="distribution-bar">
-                        <div class="bar-fill" 
-                             [style.width.%]="item.percentage"
-                             [class]="'level-' + item.category.toLowerCase()">
-                        </div>
+                        <div
+                          class="bar-fill"
+                          [style.width.%]="item.percentage"
+                          [class]="'level-' + item.category.toLowerCase()"
+                        ></div>
                       </div>
                       <div class="distribution-info">
                         <span class="category">{{ item.category }}</span>
@@ -196,12 +199,12 @@ import {
                     <p>データを読み込み中...</p>
                   </div>
                   <div class="distribution-chart" *ngIf="detectionStats?.systemTypeDistribution">
-                    <div class="distribution-item" 
-                         *ngFor="let item of detectionStats.systemTypeDistribution">
+                    <div
+                      class="distribution-item"
+                      *ngFor="let item of detectionStats.systemTypeDistribution"
+                    >
                       <div class="distribution-bar">
-                        <div class="bar-fill system-bar" 
-                             [style.width.%]="item.percentage">
-                        </div>
+                        <div class="bar-fill system-bar" [style.width.%]="item.percentage"></div>
                       </div>
                       <div class="distribution-info">
                         <span class="category">{{ item.category }}</span>
@@ -245,18 +248,27 @@ import {
               </mat-card-header>
               <mat-card-content>
                 <div class="chart-container">
-                  <div class="chart-placeholder" *ngIf="!detectionStats?.resolutionStatusDistribution">
+                  <div
+                    class="chart-placeholder"
+                    *ngIf="!detectionStats?.resolutionStatusDistribution"
+                  >
                     <mat-icon>donut_small</mat-icon>
                     <p>データを読み込み中...</p>
                   </div>
-                  <div class="distribution-chart" *ngIf="detectionStats?.resolutionStatusDistribution">
-                    <div class="distribution-item" 
-                         *ngFor="let item of detectionStats.resolutionStatusDistribution">
+                  <div
+                    class="distribution-chart"
+                    *ngIf="detectionStats?.resolutionStatusDistribution"
+                  >
+                    <div
+                      class="distribution-item"
+                      *ngFor="let item of detectionStats.resolutionStatusDistribution"
+                    >
                       <div class="distribution-bar">
-                        <div class="bar-fill resolution-bar" 
-                             [style.width.%]="item.percentage"
-                             [class]="'status-' + item.category.toLowerCase()">
-                        </div>
+                        <div
+                          class="bar-fill resolution-bar"
+                          [style.width.%]="item.percentage"
+                          [class]="'status-' + item.category.toLowerCase()"
+                        ></div>
                       </div>
                       <div class="distribution-info">
                         <span class="category">{{ item.category }}</span>
@@ -269,111 +281,19 @@ import {
             </mat-card>
           </div>
         </div>
-
-        <mat-divider></mat-divider>
-
-        <!-- Performance Metrics -->
-        <div class="performance-section">
-          <h3>パフォーマンス指標</h3>
-          <mat-grid-list cols="3" rowHeight="100px" gutterSize="16px">
-            <mat-grid-tile>
-              <mat-card class="performance-card">
-                <mat-card-content>
-                  <div class="performance-metric">
-                    <mat-icon class="performance-icon">speed</mat-icon>
-                    <div class="performance-info">
-                      <div class="performance-value">{{ dashboardStats?.averageDetectionTime || 0 }}ms</div>
-                      <div class="performance-label">平均検出時間</div>
-                    </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            </mat-grid-tile>
-
-            <mat-grid-tile>
-              <mat-card class="performance-card">
-                <mat-card-content>
-                  <div class="performance-metric">
-                    <mat-icon class="performance-icon">accuracy</mat-icon>
-                    <div class="performance-info">
-                      <div class="performance-value">{{ (dashboardStats?.detectionAccuracy || 0) * 100 | number:'1.1-1' }}%</div>
-                      <div class="performance-label">検出精度</div>
-                    </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            </mat-grid-tile>
-
-            <mat-grid-tile>
-              <mat-card class="performance-card">
-                <mat-card-content>
-                  <div class="performance-metric">
-                    <mat-icon class="performance-icon">error_outline</mat-icon>
-                    <div class="performance-info">
-                      <div class="performance-value">{{ (dashboardStats?.falsePositiveRate || 0) * 100 | number:'1.1-1' }}%</div>
-                      <div class="performance-label">誤検出率</div>
-                    </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            </mat-grid-tile>
-          </mat-grid-list>
-        </div>
-
-        <!-- Real-time Status -->
-        <div class="realtime-section">
-          <h3>リアルタイム状況</h3>
-          <div class="realtime-grid">
-            <mat-card class="realtime-card">
-              <mat-card-content>
-                <div class="realtime-item">
-                  <mat-icon class="realtime-icon online">wifi</mat-icon>
-                  <div class="realtime-info">
-                    <div class="realtime-value">{{ dashboardStats?.activeConnections || 0 }}</div>
-                    <div class="realtime-label">アクティブ接続</div>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <mat-card class="realtime-card">
-              <mat-card-content>
-                <div class="realtime-item">
-                  <mat-icon class="realtime-icon processing">hourglass_empty</mat-icon>
-                  <div class="realtime-info">
-                    <div class="realtime-value">{{ dashboardStats?.processingQueue || 0 }}</div>
-                    <div class="realtime-label">処理待ちキュー</div>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <mat-card class="realtime-card">
-              <mat-card-content>
-                <div class="realtime-item">
-                  <mat-icon class="realtime-icon uptime">schedule</mat-icon>
-                  <div class="realtime-info">
-                    <div class="realtime-value">{{ (dashboardStats?.systemUptime || 0) | number:'1.1-1' }}%</div>
-                    <div class="realtime-label">システム稼働率</div>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-        </div>
       </div>
     </div>
   `,
-  styleUrls: ['./dashboard.component.scss']
+  styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   dashboardStats?: DashboardStatistics;
   detectionStats?: DetectionStatistics;
   overviewMetrics: MetricCard[] = [];
   loading = false;
-  
+
   filterForm: FormGroup;
-  
+
   private destroy$ = new Subject<void>();
   private refreshInterval = 30000; // 30 seconds
 
@@ -404,7 +324,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       startDate: [startDate],
       endDate: [endDate],
       systemType: [''],
-      groupBy: ['day']
+      groupBy: ['day'],
     });
   }
 
@@ -412,79 +332,127 @@ export class DashboardComponent implements OnInit, OnDestroy {
     interval(this.refreshInterval)
       .pipe(
         startWith(0),
-        switchMap(() => this.dashboardService.getDashboardStatistics()),
+        switchMap(() =>
+          this.dashboardService.getDashboardStatistics().pipe(
+            catchError(err => {
+              // Treat JSON parse errors (status 200 with ok=false) as empty stats instead of surfacing as errors.
+              if (err?.status === 200 && err?.error instanceof SyntaxError) {
+                console.warn(
+                  'Received 200 with parse error for dashboard statistics. Using empty fallback.'
+                );
+                return of({} as DashboardStatistics);
+              }
+              console.error('Real-time dashboard stats error:', err);
+              return of({} as DashboardStatistics);
+            })
+          )
+        ),
         takeUntil(this.destroy$)
       )
-      .subscribe({
-        next: (stats) => {
-          this.dashboardStats = stats;
-          this.updateOverviewMetrics();
-        },
-        error: (error) => {
-          console.error('Error loading real-time data:', error);
-        }
+      .subscribe(stats => {
+        this.dashboardStats = stats;
+        this.updateOverviewMetrics();
       });
   }
 
   loadDashboardData(): void {
     this.loading = true;
-    
+
     const filterValue = this.filterForm.value;
     const input: GetDetectionStatisticsInput = {
       startDate: filterValue.startDate,
       endDate: filterValue.endDate,
       systemType: filterValue.systemType || undefined,
-      groupBy: filterValue.groupBy
+      groupBy: filterValue.groupBy,
     };
 
-    this.dashboardService.getDetectionStatistics(input)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (stats) => {
-          this.detectionStats = stats;
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading detection statistics:', error);
+    this.dashboardService
+      .getDetectionStatistics(input)
+      .pipe(
+        catchError(err => {
+          if (err?.status === 200 && err?.error instanceof SyntaxError) {
+            console.warn(
+              'Received 200 with parse error for detection statistics. Using empty fallback.'
+            );
+            return of({} as DetectionStatistics);
+          }
+          console.error('Error loading detection statistics:', err);
           this.snackBar.open('統計データの読み込みに失敗しました', '閉じる', { duration: 3000 });
-          this.loading = false;
-        }
+          return of({} as DetectionStatistics);
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(stats => {
+        this.detectionStats = stats;
+        this.loading = false;
       });
   }
 
   private updateOverviewMetrics(): void {
-    if (!this.dashboardStats) return;
+    // Backend provides KPI cards in dashboardStats.KpiCards; map them to MetricCard UI structure.
+    if (!this.dashboardStats || !('KpiCards' in this.dashboardStats)) {
+      this.overviewMetrics = [];
+      return;
+    }
+    const kpiCards: any[] = (this.dashboardStats as any).KpiCards || [];
+    this.overviewMetrics = kpiCards.map(card => {
+      const trend: TrendData | undefined =
+        card.percentageChange != null
+          ? {
+              direction: this.mapTrendDirection(card.trendDirection),
+              percentage: Math.round(card.percentageChange),
+              period: '前期間比',
+            }
+          : undefined;
+      return {
+        title: card.title,
+        value: card.value + (card.unit ? card.unit : ''),
+        icon: this.mapKpiIcon(card.icon, card.title),
+        color: this.mapKpiColor(card.color),
+        trend,
+        description: card.description,
+      } as MetricCard;
+    });
+  }
 
-    this.overviewMetrics = [
-      {
-        title: '総プロジェクト数',
-        value: this.dashboardStats.totalProjects,
-        icon: 'folder',
-        color: 'primary',
-        trend: { direction: 'up', percentage: 5.2, period: '先月比' }
-      },
-      {
-        title: '総異常検出数',
-        value: this.dashboardStats.totalAnomalies,
-        icon: 'warning',
-        color: 'warn',
-        trend: { direction: 'down', percentage: 2.1, period: '先月比' }
-      },
-      {
-        title: '解決済み異常',
-        value: this.dashboardStats.resolvedAnomalies,
-        icon: 'check_circle',
-        color: 'accent',
-        trend: { direction: 'up', percentage: 8.7, period: '先月比' }
-      },
-      {
-        title: 'CAN信号数',
-        value: this.dashboardStats.totalCanSignals,
-        icon: 'device_hub',
-        color: 'primary',
-        trend: { direction: 'stable', percentage: 0.5, period: '先月比' }
-      }
-    ];
+  private mapTrendDirection(dir: string): 'up' | 'down' | 'stable' {
+    switch ((dir || '').toLowerCase()) {
+      case 'up':
+        return 'up';
+      case 'down':
+        return 'down';
+      default:
+        return 'stable';
+    }
+  }
+
+  private mapKpiIcon(icon: string, title: string): string {
+    if (icon) return this.normalizeMaterialIcon(icon);
+    // Fallback by keyword
+    const t = title.toLowerCase();
+    if (t.includes('critical')) return 'error';
+    if (t.includes('signal')) return 'device_hub';
+    if (t.includes('detection')) return 'visibility';
+    if (t.includes('active')) return 'bolt';
+    return 'insights';
+  }
+
+  private normalizeMaterialIcon(icon: string): string {
+    // Backend used font-awesome style names (e.g., chart-line, exclamation-triangle). Map to Material icons.
+    const map: Record<string, string> = {
+      'chart-line': 'show_chart',
+      'exclamation-triangle': 'warning',
+      signal: 'device_hub',
+    };
+    return map[icon] || icon || 'insights';
+  }
+
+  private mapKpiColor(color: string): string {
+    const c = (color || '').toLowerCase();
+    if (c === 'success' || c === 'info' || c === 'primary') return 'primary';
+    if (c === 'danger' || c === 'error' || c === 'warn') return 'warn';
+    if (c === 'warning' || c === 'accent') return 'accent';
+    return 'primary';
   }
 
   applyFilters(): void {
@@ -496,10 +464,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   exportDashboard(): void {
-    this.dashboardService.exportDashboardData('pdf')
+    this.dashboardService
+      .exportDashboardData('pdf')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (blob) => {
+        next: blob => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -507,28 +476,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
           a.click();
           window.URL.revokeObjectURL(url);
         },
-        error: (error) => {
+        error: error => {
           console.error('Error exporting dashboard:', error);
           this.snackBar.open('エクスポートに失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   getTrendIcon(trend: TrendData): string {
     switch (trend.direction) {
-      case 'up': return 'trending_up';
-      case 'down': return 'trending_down';
-      case 'stable': return 'trending_flat';
-      default: return 'trending_flat';
+      case 'up':
+        return 'trending_up';
+      case 'down':
+        return 'trending_down';
+      case 'stable':
+        return 'trending_flat';
+      default:
+        return 'trending_flat';
     }
   }
 
   getTrendClass(trend: TrendData): string {
     switch (trend.direction) {
-      case 'up': return 'trend-up';
-      case 'down': return 'trend-down';
-      case 'stable': return 'trend-stable';
-      default: return 'trend-stable';
+      case 'up':
+        return 'trend-up';
+      case 'down':
+        return 'trend-down';
+      case 'stable':
+        return 'trend-stable';
+      default:
+        return 'trend-stable';
     }
   }
 }

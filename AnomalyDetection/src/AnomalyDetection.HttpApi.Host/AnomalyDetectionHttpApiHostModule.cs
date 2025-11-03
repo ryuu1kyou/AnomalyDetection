@@ -39,6 +39,8 @@ using Volo.Abp.OpenIddict;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.Studio.Client.AspNetCore;
 using Volo.Abp.Security.Claims;
+using Volo.Abp.AspNetCore.SignalR;
+using AnomalyDetection.Hubs;
 
 namespace AnomalyDetection;
 
@@ -52,7 +54,8 @@ namespace AnomalyDetection;
     typeof(AnomalyDetectionEntityFrameworkCoreModule),
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpSwashbuckleModule),
-    typeof(AbpAspNetCoreSerilogModule)
+    typeof(AbpAspNetCoreSerilogModule),
+    typeof(AbpAspNetCoreSignalRModule)
     )]
 public class AnomalyDetectionHttpApiHostModule : AbpModule
 {
@@ -302,6 +305,9 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
         });
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
-        app.UseConfiguredEndpoints();
+        app.UseConfiguredEndpoints(endpoints =>
+        {
+            endpoints.MapHub<RealTimeDetectionHub>("/signalr-hubs/detection");
+        });
     }
 }

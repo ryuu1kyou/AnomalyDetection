@@ -14,6 +14,10 @@ using AnomalyDetection.OemTraceability.Models;
 using AnomalyDetection.Application.Contracts.OemTraceability.Dtos;
 using AnomalyDetection.AuditLogging;
 using AnomalyDetection.Application.Contracts.AuditLogging;
+using AnomalyDetection.KnowledgeBase;
+using AnomalyDetection.Safety;
+using AnomalyDetection.CanSpecification;
+using AnomalyDetection.Integration;
 
 namespace AnomalyDetection;
 
@@ -24,7 +28,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
         /* You can configure your AutoMapper mapping configuration here.
          * Alternatively, you can split your mapping configurations
          * into multiple profile classes for a better organization. */
-         
+
         CreateCanSignalMappings();
         CreateDetectionLogicMappings();
         CreateDetectionResultMappings();
@@ -32,8 +36,12 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
         CreateAnomalyAnalysisMappings();
         CreateOemTraceabilityMappings();
         CreateAuditLogMappings();
+        CreateKnowledgeBaseMappings();
+        CreateSafetyTraceMappings();
+        CreateCanSpecificationMappings();
+        CreateIntegrationMappings();
     }
-    
+
     private void CreateCanSignalMappings()
     {
         CreateMap<CanSignal, CanSignalDto>()
@@ -58,7 +66,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                 var identifier = new SignalIdentifier(src.SignalName, src.CanId);
                 var valueRange = new SignalValueRange(src.MinValue, src.MaxValue);
                 var specification = new SignalSpecification(src.StartBit, src.Length, src.DataType, valueRange, src.ByteOrder);
-                
+
                 var canSignal = new CanSignal(
                     Guid.NewGuid(),
                     context.Items.ContainsKey("TenantId") ? (Guid?)context.Items["TenantId"] : null,
@@ -67,26 +75,26 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.SystemType,
                     src.OemCode,
                     src.Description);
-                    
+
                 var conversion = new PhysicalValueConversion(src.Factor, src.Offset, src.Unit);
                 var timing = new SignalTiming(src.CycleTime, src.TimeoutTime, SignalSendType.Cyclic);
-                
+
                 canSignal.UpdateConversion(conversion);
                 canSignal.UpdateTiming(timing);
-                
+
                 if (src.IsStandard)
                     canSignal.SetAsStandard();
-                    
+
                 if (!string.IsNullOrEmpty(src.SourceDocument))
                     canSignal.SetSourceDocument(src.SourceDocument);
-                    
+
                 if (!string.IsNullOrEmpty(src.Notes))
                     canSignal.AddNote(src.Notes);
-                
+
                 return canSignal;
             });
     }
-    
+
     private void CreateDetectionLogicMappings()
     {
         CreateMap<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>()
@@ -109,7 +117,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
             .ForMember(dest => dest.MinLength, opt => opt.MapFrom(src => src.Constraints != null ? src.Constraints.MinLength : null))
             .ForMember(dest => dest.MaxLength, opt => opt.MapFrom(src => src.Constraints != null ? src.Constraints.MaxLength : null))
             .ForMember(dest => dest.Pattern, opt => opt.MapFrom(src => src.Constraints != null ? src.Constraints.Pattern : string.Empty))
-            .ForMember(dest => dest.AllowedValues, opt => opt.MapFrom(src => src.Constraints != null && src.Constraints.AllowedValues.Any() 
+            .ForMember(dest => dest.AllowedValues, opt => opt.MapFrom(src => src.Constraints != null && src.Constraints.AllowedValues.Any()
                 ? string.Join(",", src.Constraints.AllowedValues) : string.Empty));
 
         CreateMap<CanSignalMapping, CanSignalMappingDto>()
@@ -125,19 +133,19 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                 // Map DetectionType to AnomalyType
                 var anomalyType = (AnomalyType)(int)src.DetectionType;
                 var specification = new DetectionLogicSpecification(
-                    anomalyType, 
-                    src.Description, 
+                    anomalyType,
+                    src.Description,
                     CanSystemType.Gateway, // Default to Gateway, adjust as needed
                     LogicComplexity.Simple);
                 var safety = new SafetyClassification(src.AsilLevel, src.SafetyRequirementId, src.SafetyGoalId);
-                
+
                 var logic = new CanAnomalyDetectionLogic(
                     Guid.NewGuid(),
                     context.Items.ContainsKey("TenantId") ? (Guid?)context.Items["TenantId"] : null,
                     identity,
                     specification,
                     safety);
-                
+
                 if (!string.IsNullOrEmpty(src.LogicContent))
                 {
                     var implementation = new LogicImplementation(
@@ -146,9 +154,9 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                         src.Algorithm ?? "Default");
                     logic.UpdateImplementation(implementation);
                 }
-                
+
                 logic.UpdateSharingLevel(src.SharingLevel);
-                
+
                 return logic;
             });
 
@@ -161,10 +169,10 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.MinLength,
                     src.MaxLength,
                     src.Pattern,
-                    !string.IsNullOrEmpty(src.AllowedValues) 
-                        ? src.AllowedValues.Split(',').ToList() 
+                    !string.IsNullOrEmpty(src.AllowedValues)
+                        ? src.AllowedValues.Split(',').ToList()
                         : new List<string>());
-                
+
                 return new DetectionParameter(
                     src.Name,
                     src.DataType,
@@ -183,7 +191,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.Offset,
                     src.FilterExpression,
                     src.CustomProperties);
-                
+
                 return new CanSignalMapping(
                     src.CanSignalId,
                     src.SignalRole,
@@ -192,7 +200,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     configuration);
             });
     }
-    
+
     private void CreateDetectionResultMappings()
     {
         CreateMap<AnomalyDetectionResult, AnomalyDetectionResultDto>()
@@ -209,7 +217,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
             {
                 var inputData = new DetectionInputData(src.SignalValue, src.InputTimestamp, src.AdditionalInputData);
                 var details = new DetectionDetails(src.DetectionType, src.TriggerCondition, src.DetectionParameters, src.ExecutionTimeMs);
-                
+
                 var result = new AnomalyDetectionResult(
                     Guid.NewGuid(),
                     context.Items.ContainsKey("TenantId") ? (Guid?)context.Items["TenantId"] : null,
@@ -220,17 +228,17 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.Description,
                     inputData,
                     details);
-                
+
                 if (src.SharingLevel != SharingLevel.Private)
                 {
                     var currentUserId = context.Items.ContainsKey("CurrentUserId") ? (Guid)context.Items["CurrentUserId"] : Guid.Empty;
                     result.ShareResult(src.SharingLevel, currentUserId);
                 }
-                
+
                 return result;
             });
     }
-    
+
     private void CreateProjectMappings()
     {
         CreateMap<AnomalyDetectionProject, AnomalyDetectionProjectDto>()
@@ -284,7 +292,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.StartDate,
                     src.EndDate,
                     src.Description);
-                
+
                 var priority = src.AutoProgressTracking ? ProjectPriority.High : ProjectPriority.Normal;
                 var tags = new List<string>();
                 var configuration = new ProjectConfiguration(
@@ -292,14 +300,14 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.RequireApprovalForChanges,
                     tags,
                     src.CustomSettings);
-                
+
                 if (!string.IsNullOrEmpty(src.ConfigurationNotes))
                 {
                     configuration.AddNote(src.ConfigurationNotes);
                 }
-                
+
                 project.UpdateConfiguration(configuration);
-                
+
                 return project;
             });
 
@@ -311,7 +319,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.RequiresApproval,
                     src.Dependencies,
                     src.CustomProperties);
-                
+
                 return new ProjectMilestone(
                     src.Name,
                     src.DueDate,
@@ -328,7 +336,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     src.Settings,
                     src.CanReceiveNotifications,
                     src.CanAccessReports);
-                
+
                 return new ProjectMember(
                     src.UserId,
                     src.Role,
@@ -382,4 +390,83 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
         CreateMap<AnomalyDetectionAuditLog, AuditLogDto>()
             .ForMember(dest => dest.CreatorName, opt => opt.Ignore()); // Will be populated by the service if needed
     }
+
+    private void CreateKnowledgeBaseMappings()
+    {
+        CreateMap<KnowledgeArticle, KnowledgeArticleDto>();
+        CreateMap<CreateKnowledgeArticleDto, KnowledgeArticle>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.ViewCount, opt => opt.Ignore())
+            .ForMember(dest => dest.UsefulCount, opt => opt.Ignore())
+            .ForMember(dest => dest.IsPublished, opt => opt.Ignore())
+            .ForMember(dest => dest.PublishedAt, opt => opt.Ignore());
+        CreateMap<KnowledgeArticleComment, KnowledgeArticleCommentDto>();
+        CreateMap<KnowledgeArticleRecommendationResult, KnowledgeArticleSummaryDto>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Article.Id))
+            .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Article.Title))
+            .ForMember(dest => dest.Summary, opt => opt.MapFrom(src => src.Article.Summary))
+            .ForMember(dest => dest.UsefulCount, opt => opt.MapFrom(src => src.Article.UsefulCount))
+            .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.Article.AverageRating))
+            .ForMember(dest => dest.RelevanceScore, opt => opt.MapFrom(src => Math.Round(src.Score, 2)));
+    }
+
+    private void CreateSafetyTraceMappings()
+    {
+        CreateMap<SafetyTraceRecord, SafetyTraceRecordDto>()
+            .ForMember(dest => dest.AsilLevel, opt => opt.MapFrom(src => (int)src.AsilLevel))
+            .ForMember(dest => dest.ApprovalStatus, opt => opt.MapFrom(src => (int)src.ApprovalStatus));
+        CreateMap<VerificationRecord, VerificationRecordDto>();
+        CreateMap<ValidationRecord, ValidationRecordDto>();
+        CreateMap<AuditEntry, AuditEntryDto>();
+        CreateMap<LifecycleEvent, LifecycleEventDto>()
+            .ForMember(dest => dest.Stage, opt => opt.MapFrom(src => (int)src.Stage));
+        CreateMap<ChangeRequestRecord, ChangeRequestRecordDto>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => (int)src.Status));
+        CreateMap<TraceabilityLinkRecord, TraceabilityLinkRecordDto>()
+            .ForMember(dest => dest.SourceType, opt => opt.MapFrom(src => (int)src.SourceType))
+            .ForMember(dest => dest.TargetType, opt => opt.MapFrom(src => (int)src.TargetType));
+        CreateMap<SafetyTraceAuditSnapshot, SafetyTraceAuditSnapshotDto>()
+            .ForMember(dest => dest.AsilLevel, opt => opt.MapFrom(src => (int)src.AsilLevel))
+            .ForMember(dest => dest.ApprovalStatus, opt => opt.MapFrom(src => (int)src.ApprovalStatus));
+        CreateMap<ChangeImpactSummary, ChangeImpactSummaryDto>();
+    }
+
+    private void CreateCanSpecificationMappings()
+    {
+        CreateMap<CanSpecImport, CanSpecImportDto>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => (int)src.Status));
+
+        CreateMap<CanSpecMessage, CanSpecMessageDto>();
+        CreateMap<CanSpecSignal, CanSpecSignalDto>();
+        CreateMap<CanSpecDiff, CanSpecDiffDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => (int)src.Type))
+            .ForMember(dest => dest.Severity, opt => opt.MapFrom(src => (int)src.Severity));
+
+        CreateMap<CanSpecDiffSummary, CanSpecDiffSummaryDto>();
+
+        // Compatibility Analysis
+        CreateMap<CompatibilityAnalysis, CompatibilityAnalysisDto>()
+            .ForMember(dest => dest.CompatibilityLevel, opt => opt.MapFrom(src => (int)src.CompatibilityLevel))
+            .ForMember(dest => dest.MigrationRisk, opt => opt.MapFrom(src => (int)src.MigrationRisk));
+
+        CreateMap<CompatibilityIssue, CompatibilityIssueDto>()
+            .ForMember(dest => dest.Severity, opt => opt.MapFrom(src => (int)src.Severity))
+            .ForMember(dest => dest.Category, opt => opt.MapFrom(src => (int)src.Category));
+
+        CreateMap<ImpactAssessment, ImpactAssessmentDto>()
+            .ForMember(dest => dest.Risk, opt => opt.MapFrom(src => (int)src.Risk));
+    }
+
+    private void CreateIntegrationMappings()
+    {
+        // Integration Endpoints
+        CreateMap<IntegrationEndpoint, IntegrationEndpointDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => (int)src.Type));
+
+        CreateMap<WebhookSubscription, WebhookSubscriptionDto>();
+        CreateMap<IntegrationLog, IntegrationLogDto>();
+        CreateMap<DataImportRequest, DataImportRequestDto>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => (int)src.Status));
+    }
 }
+

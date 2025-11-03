@@ -10,6 +10,7 @@ using AnomalyDetection.OemTraceability;
 using AnomalyDetection.OemTraceability.Models;
 using AnomalyDetection.OemTraceability.Services;
 using AnomalyDetection.Permissions;
+using AnomalyDetection.Shared.Export;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.Application.Dtos;
@@ -28,17 +29,20 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
     private readonly IOemCustomizationRepository _customizationRepository;
     private readonly IOemApprovalRepository _approvalRepository;
     private readonly IAuditLogService _auditLogService;
+    private readonly ExportService _exportService;
 
     public OemTraceabilityAppService(
         TraceabilityQueryService traceabilityQueryService,
         IOemCustomizationRepository customizationRepository,
         IOemApprovalRepository approvalRepository,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ExportService exportService)
     {
         _traceabilityQueryService = traceabilityQueryService;
         _customizationRepository = customizationRepository;
         _approvalRepository = approvalRepository;
         _auditLogService = auditLogService;
+        _exportService = exportService;
     }
 
     [Authorize(AnomalyDetectionPermissions.OemTraceability.ViewTraceability)]
@@ -331,21 +335,109 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
 
     public async Task<OemTraceabilityReportDto> GenerateOemTraceabilityReportAsync(GenerateOemTraceabilityReportDto input)
     {
-        // This is a placeholder implementation
-        // In a real implementation, you would use a reporting library like FastReport, Crystal Reports, or generate PDF/Excel files
+        // Query OEM traceability data based on filters
+        var queryable = await _customizationRepository.GetQueryableAsync();
 
-        var reportId = Guid.NewGuid().ToString();
-        var fileName = $"OemTraceabilityReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{input.ReportFormat.ToLower()}";
+        if (input.EntityId.HasValue)
+        {
+            queryable = queryable.Where(c => c.EntityId == input.EntityId.Value);
+        }
 
-        // Generate report content based on input parameters
-        var reportContent = await GenerateReportContentAsync(input);
+        if (!string.IsNullOrEmpty(input.EntityType))
+        {
+            queryable = queryable.Where(c => c.EntityType == input.EntityType);
+        }
 
+        if (!string.IsNullOrEmpty(input.OemCode))
+        {
+            queryable = queryable.Where(c => c.OemCode.Code == input.OemCode);
+        }
+
+        if (input.StartDate.HasValue)
+        {
+            queryable = queryable.Where(c => c.CreationTime >= input.StartDate.Value);
+        }
+
+        if (input.EndDate.HasValue)
+        {
+            queryable = queryable.Where(c => c.CreationTime <= input.EndDate.Value);
+        }
+
+        var customizations = await queryable
+            .OrderByDescending(c => c.CreationTime)
+            .ToListAsync();
+
+        // Prepare export data
+        var exportData = customizations.Select(c => new
+        {
+            c.Id,
+            EntityId = c.EntityId,
+            EntityType = c.EntityType,
+            OemCode = c.OemCode.Code,
+            OemName = c.OemCode.Name,
+            CustomizationType = c.Type.ToString(),
+            Status = c.Status.ToString(),
+            CustomizationReason = c.CustomizationReason,
+            OriginalParameters = System.Text.Json.JsonSerializer.Serialize(c.OriginalParameters),
+            CustomParameters = System.Text.Json.JsonSerializer.Serialize(c.CustomParameters),
+            CreatedAt = c.CreationTime,
+            ApprovedBy = c.ApprovedBy,
+            ApprovedAt = c.ApprovedAt,
+            ApprovalNotes = c.ApprovalNotes
+        }).Select(x => (object)x).ToList();
+
+        // Determine export format
+        var exportFormat = input.ReportFormat.ToUpperInvariant() switch
+        {
+            "CSV" => ExportService.ExportFormat.Csv,
+            "EXCEL" => ExportService.ExportFormat.Excel,
+            "XLSX" => ExportService.ExportFormat.Excel,
+            "JSON" => ExportService.ExportFormat.Json,
+            "PDF" => ExportService.ExportFormat.Pdf,
+            _ => ExportService.ExportFormat.Csv
+        };
+
+        // Create export request
+        var exportRequest = new ExportDetectionRequest
+        {
+            Results = exportData,
+            Format = exportFormat,
+            FileNamePrefix = "oem_traceability_report",
+            CsvOptions = new CsvExportOptions
+            {
+                IncludeHeader = true,
+                DateTimeFormat = "yyyy-MM-dd HH:mm:ss",
+                ExcludedProperties = new List<string> { "Id" }
+            },
+            JsonOptions = new JsonExportOptions
+            {
+                Indented = true,
+                CamelCase = true
+            },
+            ExcelOptions = new ExcelExportOptions
+            {
+                IncludeHeader = true,
+                EnableAutoFilter = true
+            },
+            GeneratedBy = CurrentUser.UserName ?? CurrentUser.Id?.ToString() ?? "System",
+            AdditionalMetadata = new Dictionary<string, string>
+            {
+                ["export"] = "oem-traceability",
+                ["format"] = input.ReportFormat,
+                ["total"] = customizations.Count.ToString()
+            }
+        };
+
+        // Generate export
+        var result = await _exportService.ExportDetectionResultsAsync(exportRequest);
+
+        // Return report DTO
         return new OemTraceabilityReportDto
         {
-            ReportId = reportId,
-            FileName = fileName,
-            ContentType = GetContentType(input.ReportFormat),
-            Content = reportContent,
+            ReportId = Guid.NewGuid().ToString(),
+            FileName = result.FileName,
+            ContentType = result.ContentType,
+            Content = result.Data,
             GeneratedAt = DateTime.UtcNow,
             GeneratedBy = CurrentUser.UserName ?? "System"
         };
@@ -359,42 +451,5 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
     public async Task<Dictionary<ApprovalStatus, int>> GetApprovalStatisticsAsync(string? oemCode = null)
     {
         return await _approvalRepository.GetApprovalStatisticsAsync(oemCode);
-    }
-
-    private Task<byte[]> GenerateReportContentAsync(GenerateOemTraceabilityReportDto input)
-    {
-        // Placeholder implementation - generate simple text report
-        var content = $"OEM Traceability Report\nGenerated: {DateTime.UtcNow}\n";
-
-        if (input.EntityId.HasValue)
-        {
-            content += $"Entity ID: {input.EntityId}\n";
-        }
-
-        if (!string.IsNullOrEmpty(input.EntityType))
-        {
-            content += $"Entity Type: {input.EntityType}\n";
-        }
-
-        if (!string.IsNullOrEmpty(input.OemCode))
-        {
-            content += $"OEM Code: {input.OemCode}\n";
-        }
-
-        // In a real implementation, you would gather data and format it properly
-        content += "\n[Report content would be generated here based on the input parameters]";
-
-        return Task.FromResult(System.Text.Encoding.UTF8.GetBytes(content));
-    }
-
-    private static string GetContentType(string format)
-    {
-        return format.ToUpper() switch
-        {
-            "PDF" => "application/pdf",
-            "EXCEL" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "CSV" => "text/csv",
-            _ => "text/plain"
-        };
     }
 }

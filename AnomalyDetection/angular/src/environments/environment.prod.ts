@@ -17,7 +17,7 @@ const oAuthConfig = {
   sessionChecksEnabled: true,
 };
 
-export const environment = {
+export const environment: Environment = {
   production: true,
   application: {
     baseUrl,
@@ -35,9 +35,12 @@ export const environment = {
       rootNamespace: 'AbpAccountPublic',
     },
   },
+  signalR: {
+    detectionHubUrl: apiUrl + '/signalr-hubs/detection',
+  },
   remoteEnv: {
     url: '/getEnvConfig',
-    mergeStrategy: 'deepmerge'
+    mergeStrategy: 'deepmerge',
   },
   localization: {
     defaultResourceName: 'AnomalyDetection',
@@ -66,4 +69,4 @@ export const environment = {
     enableHttpCache: true,
     cacheMaxAge: 3600, // 1 hour
   },
-} as Environment;
+};

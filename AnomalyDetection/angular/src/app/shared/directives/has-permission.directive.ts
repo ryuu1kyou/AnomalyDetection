@@ -1,10 +1,10 @@
 import { Directive, Input, TemplateRef, ViewContainerRef, OnInit, OnDestroy } from '@angular/core';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, distinctUntilChanged } from 'rxjs';
 import { PermissionService } from '../services/permission.service';
 
 @Directive({
   selector: '[hasPermission]',
-  standalone: true
+  standalone: true,
 })
 export class HasPermissionDirective implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -43,18 +43,18 @@ export class HasPermissionDirective implements OnInit, OnDestroy {
     }
 
     const permissions = Array.isArray(this.permission) ? this.permission : [this.permission];
-    
-    const hasPermission$ = this.requireAll 
+
+    const hasPermission$ = this.requireAll
       ? this.permissionService.hasAllPermissions$(permissions)
       : this.permissionService.hasAnyPermission$(permissions);
 
     hasPermission$
-      .pipe(takeUntil(this.destroy$))
+      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(hasPermission => {
+        // Always clear first to prevent duplicates
+        this.viewContainer.clear();
         if (hasPermission) {
           this.viewContainer.createEmbeddedView(this.templateRef);
-        } else {
-          this.viewContainer.clear();
         }
       });
   }

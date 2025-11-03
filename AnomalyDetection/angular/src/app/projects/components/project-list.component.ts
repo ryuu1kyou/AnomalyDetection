@@ -26,11 +26,11 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { ProjectService } from '../services/project.service';
-import { 
+import {
   AnomalyDetectionProject,
   GetProjectsInput,
   ProjectStatus,
-  ProjectPriority
+  ProjectPriority,
 } from '../models/project.model';
 
 @Component({
@@ -59,7 +59,7 @@ import {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
-    MatExpansionModule
+    MatExpansionModule,
   ],
   template: `
     <div class="project-list-container">
@@ -67,9 +67,7 @@ import {
       <div class="header">
         <div class="header-info">
           <h2>プロジェクト管理</h2>
-          <p class="header-description">
-            異常検出プロジェクトの作成、管理、進捗追跡を行います
-          </p>
+          <p class="header-description">異常検出プロジェクトの作成、管理、進捗追跡を行います</p>
         </div>
         <div class="header-actions">
           <button mat-raised-button color="primary" (click)="createProject()">
@@ -154,12 +152,12 @@ import {
             フィルター
           </mat-panel-title>
         </mat-expansion-panel-header>
-        
+
         <form [formGroup]="filterForm" class="filter-form">
           <div class="filter-row">
             <mat-form-field appearance="outline">
               <mat-label>検索</mat-label>
-              <input matInput formControlName="filter" placeholder="プロジェクト名、コードで検索">
+              <input matInput formControlName="filter" placeholder="プロジェクト名、コードで検索" />
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
@@ -188,26 +186,26 @@ import {
 
             <mat-form-field appearance="outline">
               <mat-label>車両モデル</mat-label>
-              <input matInput formControlName="vehicleModel" placeholder="車両モデル名">
+              <input matInput formControlName="vehicleModel" placeholder="車両モデル名" />
             </mat-form-field>
           </div>
 
           <div class="filter-row">
             <mat-form-field appearance="outline">
               <mat-label>主要システム</mat-label>
-              <input matInput formControlName="primarySystem" placeholder="システム名">
+              <input matInput formControlName="primarySystem" placeholder="システム名" />
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>開始日（開始）</mat-label>
-              <input matInput [matDatepicker]="startFromPicker" formControlName="startDateFrom">
+              <input matInput [matDatepicker]="startFromPicker" formControlName="startDateFrom" />
               <mat-datepicker-toggle matSuffix [for]="startFromPicker"></mat-datepicker-toggle>
               <mat-datepicker #startFromPicker></mat-datepicker>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>開始日（終了）</mat-label>
-              <input matInput [matDatepicker]="startToPicker" formControlName="startDateTo">
+              <input matInput [matDatepicker]="startToPicker" formControlName="startDateTo" />
               <mat-datepicker-toggle matSuffix [for]="startToPicker"></mat-datepicker-toggle>
               <mat-datepicker #startToPicker></mat-datepicker>
             </mat-form-field>
@@ -215,7 +213,9 @@ import {
 
           <div class="filter-actions">
             <button mat-button type="button" (click)="clearFilters()">クリア</button>
-            <button mat-raised-button color="primary" type="button" (click)="applyFilters()">適用</button>
+            <button mat-raised-button color="primary" type="button" (click)="applyFilters()">
+              適用
+            </button>
           </div>
         </form>
       </mat-expansion-panel>
@@ -247,15 +247,19 @@ import {
           <!-- Checkbox Column -->
           <ng-container matColumnDef="select">
             <mat-header-cell *matHeaderCellDef>
-              <mat-checkbox (change)="$event ? masterToggle() : null"
-                           [checked]="selection.hasValue() && isAllSelected()"
-                           [indeterminate]="selection.hasValue() && !isAllSelected()">
+              <mat-checkbox
+                (change)="$event ? masterToggle() : null"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+              >
               </mat-checkbox>
             </mat-header-cell>
             <mat-cell *matCellDef="let row">
-              <mat-checkbox (click)="$event.stopPropagation()"
-                           (change)="$event ? selection.toggle(row) : null"
-                           [checked]="selection.isSelected(row)">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="$event ? selection.toggle(row) : null"
+                [checked]="selection.isSelected(row)"
+              >
               </mat-checkbox>
             </mat-cell>
           </ng-container>
@@ -304,10 +308,11 @@ import {
             <mat-header-cell *matHeaderCellDef mat-sort-header>進捗</mat-header-cell>
             <mat-cell *matCellDef="let project">
               <div class="progress-container">
-                <mat-progress-bar 
-                  mode="determinate" 
+                <mat-progress-bar
+                  mode="determinate"
                   [value]="project.progressPercentage"
-                  [class]="'progress-' + getProgressClass(project.progressPercentage)">
+                  [class]="'progress-' + getProgressClass(project.progressPercentage)"
+                >
                 </mat-progress-bar>
                 <span class="progress-text">{{ project.progressPercentage }}%</span>
               </div>
@@ -324,7 +329,7 @@ import {
           <ng-container matColumnDef="startDate">
             <mat-header-cell *matHeaderCellDef mat-sort-header>開始日</mat-header-cell>
             <mat-cell *matCellDef="let project">
-              {{ project.startDate | date:'yyyy/MM/dd' }}
+              {{ project.startDate | date : 'yyyy/MM/dd' }}
             </mat-cell>
           </ng-container>
 
@@ -333,8 +338,10 @@ import {
             <mat-header-cell *matHeaderCellDef mat-sort-header>予定終了日</mat-header-cell>
             <mat-cell *matCellDef="let project">
               <div class="end-date" [class.overdue]="isOverdue(project)">
-                {{ project.plannedEndDate | date:'yyyy/MM/dd' }}
-                <mat-icon *ngIf="isOverdue(project)" class="overdue-icon" matTooltip="期限超過">warning</mat-icon>
+                {{ project.plannedEndDate | date : 'yyyy/MM/dd' }}
+                <mat-icon *ngIf="isOverdue(project)" class="overdue-icon" matTooltip="期限超過"
+                  >warning</mat-icon
+                >
               </div>
             </mat-cell>
           </ng-container>
@@ -370,18 +377,27 @@ import {
                   マイルストーン
                 </button>
                 <mat-divider></mat-divider>
-                <button mat-menu-item (click)="startProject(project)" 
-                        *ngIf="project.status === ProjectStatus.Planning">
+                <button
+                  mat-menu-item
+                  (click)="startProject(project)"
+                  *ngIf="project.status === ProjectStatus.Planning"
+                >
                   <mat-icon>play_arrow</mat-icon>
                   開始
                 </button>
-                <button mat-menu-item (click)="pauseProject(project)"
-                        *ngIf="project.status === ProjectStatus.Active">
+                <button
+                  mat-menu-item
+                  (click)="pauseProject(project)"
+                  *ngIf="project.status === ProjectStatus.Active"
+                >
                   <mat-icon>pause</mat-icon>
                   一時停止
                 </button>
-                <button mat-menu-item (click)="completeProject(project)"
-                        *ngIf="project.status === ProjectStatus.Active">
+                <button
+                  mat-menu-item
+                  (click)="completeProject(project)"
+                  *ngIf="project.status === ProjectStatus.Active"
+                >
                   <mat-icon>check</mat-icon>
                   完了
                 </button>
@@ -399,9 +415,11 @@ import {
           </ng-container>
 
           <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-          <mat-row *matRowDef="let row; columns: displayedColumns;" 
-                   (click)="viewProject(row)"
-                   class="clickable-row"></mat-row>
+          <mat-row
+            *matRowDef="let row; columns: displayedColumns"
+            (click)="viewProject(row)"
+            class="clickable-row"
+          ></mat-row>
         </mat-table>
 
         <!-- Loading Spinner -->
@@ -420,15 +438,17 @@ import {
       </div>
 
       <!-- Paginator -->
-      <mat-paginator [length]="totalCount"
-                     [pageSize]="pageSize"
-                     [pageSizeOptions]="[10, 25, 50, 100]"
-                     (page)="onPageChange($event)"
-                     showFirstLastButtons>
+      <mat-paginator
+        [length]="totalCount"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 25, 50, 100]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      >
       </mat-paginator>
     </div>
   `,
-  styleUrls: ['./project-list.component.scss']
+  styleUrls: ['./project-list.component.scss'],
 })
 export class ProjectListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -442,6 +462,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   dataSource = new MatTableDataSource<AnomalyDetectionProject>([]);
   selection = new SelectionModel<AnomalyDetectionProject>(true, []);
   statistics: any = {};
+  selectedForStats?: AnomalyDetectionProject; // project whose stats we show
   totalCount = 0;
   pageSize = 25;
   currentPage = 0;
@@ -463,7 +484,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
     'startDate',
     'plannedEndDate',
     'oemName',
-    'actions'
+    'actions',
   ];
 
   private destroy$ = new Subject<void>();
@@ -481,7 +502,6 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.setupFilterSubscription();
     this.loadData();
-    this.loadStatistics();
   }
 
   ngOnDestroy(): void {
@@ -497,17 +517,13 @@ export class ProjectListComponent implements OnInit, OnDestroy {
       vehicleModel: [''],
       primarySystem: [''],
       startDateFrom: [null],
-      startDateTo: [null]
+      startDateTo: [null],
     });
   }
 
   private setupFilterSubscription(): void {
     this.filterForm.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => {
         this.currentPage = 0;
         this.loadData();
@@ -516,41 +532,46 @@ export class ProjectListComponent implements OnInit, OnDestroy {
 
   loadData(): void {
     this.loading = true;
-    
+
     const input: GetProjectsInput = {
       ...this.filterForm.value,
       skipCount: this.currentPage * this.pageSize,
       maxResultCount: this.pageSize,
-      sorting: this.sort?.active ? `${this.sort.active} ${this.sort.direction}` : 'creationTime desc'
+      sorting: this.sort?.active
+        ? `${this.sort.active} ${this.sort.direction}`
+        : 'creationTime desc',
     };
 
-    this.projectService.getList(input)
+    this.projectService
+      .getList(input)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (result) => {
+        next: result => {
           this.dataSource.data = result.items;
           this.totalCount = result.totalCount;
+          this.computeAggregateStatistics();
           this.loading = false;
           this.selection.clear();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error loading projects:', error);
           this.snackBar.open('データの読み込みに失敗しました', '閉じる', { duration: 3000 });
           this.loading = false;
-        }
+        },
       });
   }
 
   loadStatistics(): void {
-    this.projectService.getStatistics()
+    if (!this.selectedForStats) {
+      this.statistics = {};
+      return;
+    }
+    this.projectService
+      .getStatistics(this.selectedForStats.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (stats) => {
-          this.statistics = stats;
-        },
-        error: (error) => {
-          console.error('Error loading statistics:', error);
-        }
+        next: stats => (this.statistics = stats),
+        error: error => console.error('Error loading statistics:', error),
       });
   }
 
@@ -584,9 +605,9 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   }
 
   masterToggle(): void {
-    this.isAllSelected() ?
-      this.selection.clear() :
-      this.dataSource.data.forEach(row => this.selection.select(row));
+    this.isAllSelected()
+      ? this.selection.clear()
+      : this.dataSource.data.forEach(row => this.selection.select(row));
   }
 
   // Navigation methods
@@ -596,6 +617,39 @@ export class ProjectListComponent implements OnInit, OnDestroy {
 
   viewProject(project: AnomalyDetectionProject): void {
     this.router.navigate(['/projects', project.id]);
+  }
+
+  // When user clicks a row we may also want to load its statistics without navigating away
+  selectForStatistics(project: AnomalyDetectionProject): void {
+    this.selectedForStats = project;
+    this.loadStatistics();
+  }
+
+  private computeAggregateStatistics(): void {
+    const list = this.dataSource.data;
+    if (!list || list.length === 0) {
+      this.statistics = {
+        totalProjects: 0,
+        activeProjects: 0,
+        completedProjects: 0,
+        delayedProjects: 0,
+      };
+      return;
+    }
+    const now = new Date();
+    const delayed = list.filter(
+      p =>
+        p.plannedEndDate &&
+        new Date(p.plannedEndDate) < now &&
+        p.status !== ProjectStatus.Completed &&
+        p.status !== ProjectStatus.Cancelled
+    );
+    this.statistics = {
+      totalProjects: list.length,
+      activeProjects: list.filter(p => p.status === ProjectStatus.Active).length,
+      completedProjects: list.filter(p => p.status === ProjectStatus.Completed).length,
+      delayedProjects: delayed.length,
+    };
   }
 
   editProject(project: AnomalyDetectionProject): void {
@@ -612,151 +666,170 @@ export class ProjectListComponent implements OnInit, OnDestroy {
 
   // Project operations
   startProject(project: AnomalyDetectionProject): void {
-    this.projectService.startProject(project.id)
+    this.projectService
+      .startProject(project.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open('プロジェクトを開始しました', '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error starting project:', error);
           this.snackBar.open('プロジェクトの開始に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   pauseProject(project: AnomalyDetectionProject): void {
     // TODO: Open dialog to get reason
-    this.projectService.pauseProject(project.id, '一時停止')
+    this.projectService
+      .pauseProject(project.id, '一時停止')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open('プロジェクトを一時停止しました', '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error pausing project:', error);
           this.snackBar.open('プロジェクトの一時停止に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   completeProject(project: AnomalyDetectionProject): void {
     // TODO: Open dialog to get completion notes
-    this.projectService.completeProject(project.id, '完了')
+    this.projectService
+      .completeProject(project.id, '完了')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.snackBar.open('プロジェクトを完了しました', '閉じる', { duration: 2000 });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error completing project:', error);
           this.snackBar.open('プロジェクトの完了に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   deleteProject(project: AnomalyDetectionProject): void {
     if (confirm(`プロジェクト "${project.projectName}" を削除しますか？`)) {
-      this.projectService.delete(project.id)
+      this.projectService
+        .delete(project.id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
             this.snackBar.open('プロジェクトを削除しました', '閉じる', { duration: 2000 });
             this.loadData();
           },
-          error: (error) => {
+          error: error => {
             console.error('Error deleting project:', error);
             this.snackBar.open('プロジェクトの削除に失敗しました', '閉じる', { duration: 3000 });
-          }
+          },
         });
     }
   }
 
   generateReport(project: AnomalyDetectionProject): void {
-    this.projectService.generateProgressReport(project.id, 'pdf')
+    this.projectService
+      .generateProgressReport(project.id, 'pdf')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (blob) => {
+        next: blob => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `project-report-${project.projectCode}-${new Date().toISOString().split('T')[0]}.pdf`;
+          a.download = `project-report-${project.projectCode}-${
+            new Date().toISOString().split('T')[0]
+          }.pdf`;
           a.click();
           window.URL.revokeObjectURL(url);
         },
-        error: (error) => {
+        error: error => {
           console.error('Error generating report:', error);
           this.snackBar.open('レポート生成に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   // Bulk operations
   bulkStart(): void {
     const ids = this.selection.selected.map(p => p.id);
-    this.projectService.bulkUpdateStatus(ids, ProjectStatus.Active)
+    this.projectService
+      .bulkUpdateStatus(ids, ProjectStatus.Active)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.snackBar.open(`${ids.length}件のプロジェクトを開始しました`, '閉じる', { duration: 2000 });
+          this.snackBar.open(`${ids.length}件のプロジェクトを開始しました`, '閉じる', {
+            duration: 2000,
+          });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error bulk starting projects:', error);
           this.snackBar.open('一括開始に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   bulkPause(): void {
     const ids = this.selection.selected.map(p => p.id);
-    this.projectService.bulkUpdateStatus(ids, ProjectStatus.OnHold, '一括一時停止')
+    this.projectService
+      .bulkUpdateStatus(ids, ProjectStatus.OnHold, '一括一時停止')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.snackBar.open(`${ids.length}件のプロジェクトを一時停止しました`, '閉じる', { duration: 2000 });
+          this.snackBar.open(`${ids.length}件のプロジェクトを一時停止しました`, '閉じる', {
+            duration: 2000,
+          });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error bulk pausing projects:', error);
           this.snackBar.open('一括一時停止に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   bulkComplete(): void {
     const ids = this.selection.selected.map(p => p.id);
-    this.projectService.bulkUpdateStatus(ids, ProjectStatus.Completed, '一括完了')
+    this.projectService
+      .bulkUpdateStatus(ids, ProjectStatus.Completed, '一括完了')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.snackBar.open(`${ids.length}件のプロジェクトを完了しました`, '閉じる', { duration: 2000 });
+          this.snackBar.open(`${ids.length}件のプロジェクトを完了しました`, '閉じる', {
+            duration: 2000,
+          });
           this.loadData();
         },
-        error: (error) => {
+        error: error => {
           console.error('Error bulk completing projects:', error);
           this.snackBar.open('一括完了に失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
   bulkDelete(): void {
     if (confirm(`選択した${this.selection.selected.length}件のプロジェクトを削除しますか？`)) {
       const ids = this.selection.selected.map(p => p.id);
-      this.projectService.bulkDelete(ids)
+      this.projectService
+        .bulkDelete(ids)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
-            this.snackBar.open(`${ids.length}件のプロジェクトを削除しました`, '閉じる', { duration: 2000 });
+            this.snackBar.open(`${ids.length}件のプロジェクトを削除しました`, '閉じる', {
+              duration: 2000,
+            });
             this.loadData();
           },
-          error: (error) => {
+          error: error => {
             console.error('Error bulk deleting projects:', error);
             this.snackBar.open('一括削除に失敗しました', '閉じる', { duration: 3000 });
-          }
+          },
         });
     }
   }
@@ -765,13 +838,14 @@ export class ProjectListComponent implements OnInit, OnDestroy {
     const input: GetProjectsInput = {
       ...this.filterForm.value,
       skipCount: 0,
-      maxResultCount: this.totalCount
+      maxResultCount: this.totalCount,
     };
 
-    this.projectService.export(input, 'csv')
+    this.projectService
+      .export(input, 'csv')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (blob) => {
+        next: blob => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -779,10 +853,10 @@ export class ProjectListComponent implements OnInit, OnDestroy {
           a.click();
           window.URL.revokeObjectURL(url);
         },
-        error: (error) => {
+        error: error => {
           console.error('Error exporting projects:', error);
           this.snackBar.open('エクスポートに失敗しました', '閉じる', { duration: 3000 });
-        }
+        },
       });
   }
 
@@ -793,7 +867,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
       [ProjectStatus.Active]: '進行中',
       [ProjectStatus.OnHold]: '保留',
       [ProjectStatus.Completed]: '完了',
-      [ProjectStatus.Cancelled]: 'キャンセル'
+      [ProjectStatus.Cancelled]: 'キャンセル',
     };
     return texts[status] || 'Unknown';
   }
@@ -804,7 +878,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
       [ProjectStatus.Active]: 'active',
       [ProjectStatus.OnHold]: 'on-hold',
       [ProjectStatus.Completed]: 'completed',
-      [ProjectStatus.Cancelled]: 'cancelled'
+      [ProjectStatus.Cancelled]: 'cancelled',
     };
     return classes[status] || 'default';
   }
@@ -814,7 +888,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
       [ProjectPriority.Low]: '低',
       [ProjectPriority.Medium]: '中',
       [ProjectPriority.High]: '高',
-      [ProjectPriority.Critical]: '緊急'
+      [ProjectPriority.Critical]: '緊急',
     };
     return texts[priority] || 'Unknown';
   }
@@ -824,7 +898,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
       [ProjectPriority.Low]: 'low',
       [ProjectPriority.Medium]: 'medium',
       [ProjectPriority.High]: 'high',
-      [ProjectPriority.Critical]: 'critical'
+      [ProjectPriority.Critical]: 'critical',
     };
     return classes[priority] || 'default';
   }

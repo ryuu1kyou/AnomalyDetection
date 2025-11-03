@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { AuthService, LocalizationPipe } from '@abp/ng.core';
 import { Router } from '@angular/router';
 import { PermissionService } from '../shared/services/permission.service';
@@ -9,15 +9,23 @@ import { CommonModule } from '@angular/common';
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
-  imports: [LocalizationPipe, HasPermissionDirective, CommonModule]
+  imports: [LocalizationPipe, HasPermissionDirective, CommonModule],
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   public permissionService = inject(PermissionService);
 
   get hasLoggedIn(): boolean {
-    return this.authService.isAuthenticated
+    return this.authService.isAuthenticated;
+  }
+
+  ngOnInit() {
+    console.log('[HomeComponent] ngOnInit called - Instance:', Date.now());
+    if (!this.authService.isAuthenticated) {
+      // Auto redirect to login instead of showing ABP default welcome.
+      this.authService.navigateToLogin();
+    }
   }
 
   login() {
@@ -36,7 +44,7 @@ export class HomeComponent {
         icon: 'fas fa-signal',
         path: '/can-signals',
         permission: this.permissionService.permissions.CAN_SIGNALS.DEFAULT,
-        color: 'primary'
+        color: 'primary',
       },
       {
         title: '異常検出ロジック',
@@ -44,7 +52,7 @@ export class HomeComponent {
         icon: 'fas fa-brain',
         path: '/detection-logics',
         permission: this.permissionService.permissions.DETECTION_LOGICS.DEFAULT,
-        color: 'success'
+        color: 'success',
       },
       {
         title: '検出結果',
@@ -52,7 +60,7 @@ export class HomeComponent {
         icon: 'fas fa-exclamation-triangle',
         path: '/detection-results',
         permission: this.permissionService.permissions.DETECTION_RESULTS.DEFAULT,
-        color: 'warning'
+        color: 'warning',
       },
       {
         title: 'プロジェクト管理',
@@ -60,7 +68,7 @@ export class HomeComponent {
         icon: 'fas fa-project-diagram',
         path: '/projects',
         permission: this.permissionService.permissions.PROJECTS.DEFAULT,
-        color: 'info'
+        color: 'info',
       },
       {
         title: 'OEMトレーサビリティ',
@@ -68,7 +76,7 @@ export class HomeComponent {
         icon: 'fas fa-history',
         path: '/oem-traceability',
         permission: this.permissionService.permissions.OEM_TRACEABILITY.DEFAULT,
-        color: 'secondary'
+        color: 'secondary',
       },
       {
         title: '類似パターン検索',
@@ -76,7 +84,7 @@ export class HomeComponent {
         icon: 'fas fa-search',
         path: '/similar-comparison',
         permission: this.permissionService.permissions.SIMILAR_COMPARISON.DEFAULT,
-        color: 'dark'
+        color: 'dark',
       },
       {
         title: '異常分析',
@@ -84,8 +92,8 @@ export class HomeComponent {
         icon: 'fas fa-chart-bar',
         path: '/anomaly-analysis',
         permission: this.permissionService.permissions.ANOMALY_ANALYSIS.DEFAULT,
-        color: 'danger'
-      }
+        color: 'danger',
+      },
     ];
   }
 }

@@ -11,18 +11,18 @@ namespace AnomalyDetection.CanSignals;
 public class CanSystemCategory : FullAuditedAggregateRoot<Guid>, IMultiTenant
 {
     public Guid? TenantId { get; private set; }
-    
+
     public CanSystemType SystemType { get; private set; }
-    public string Name { get; private set; }
-    public string Description { get; private set; }
-    public string Icon { get; private set; }
-    public string Color { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public string? Description { get; private set; }
+    public string? Icon { get; private set; }
+    public string? Color { get; private set; }
     public int DisplayOrder { get; private set; }
     public bool IsActive { get; private set; }
-    
+
     // カテゴリ固有の設定
-    public SystemCategoryConfiguration Configuration { get; private set; }
-    
+    public SystemCategoryConfiguration Configuration { get; private set; } = new();
+
     // 統計情報
     public int SignalCount { get; private set; }
     public int ActiveSignalCount { get; private set; }
@@ -35,9 +35,9 @@ public class CanSystemCategory : FullAuditedAggregateRoot<Guid>, IMultiTenant
         Guid? tenantId,
         CanSystemType systemType,
         string name,
-        string description = null,
-        string icon = null,
-        string color = null,
+    string? description = null,
+    string? icon = null,
+    string? color = null,
         int displayOrder = 0) : base(id)
     {
         TenantId = tenantId;
@@ -54,13 +54,13 @@ public class CanSystemCategory : FullAuditedAggregateRoot<Guid>, IMultiTenant
     }
 
     // ビジネスメソッド
-    public void UpdateBasicInfo(string name, string description = null)
+    public void UpdateBasicInfo(string name, string? description = null)
     {
         Name = ValidateName(name);
         Description = ValidateDescription(description);
     }
 
-    public void UpdateVisualSettings(string icon = null, string color = null)
+    public void UpdateVisualSettings(string? icon = null, string? color = null)
     {
         Icon = ValidateIcon(icon);
         Color = ValidateColor(color);
@@ -85,7 +85,7 @@ public class CanSystemCategory : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (ActiveSignalCount > 0)
             throw new InvalidOperationException("Cannot deactivate category with active signals");
-            
+
         IsActive = false;
     }
 
@@ -94,7 +94,7 @@ public class CanSystemCategory : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SignalCount = Math.Max(0, totalSignals);
         ActiveSignalCount = Math.Max(0, activeSignals);
         LastSignalUpdate = DateTime.UtcNow;
-        
+
         if (ActiveSignalCount > SignalCount)
             throw new ArgumentException("Active signal count cannot exceed total signal count");
     }
@@ -149,44 +149,44 @@ public class CanSystemCategory : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Category name cannot be null or empty", nameof(name));
-            
+
         if (name.Length > 100)
             throw new ArgumentException("Category name cannot exceed 100 characters", nameof(name));
-            
+
         return name.Trim();
     }
 
-    private static string ValidateDescription(string description)
+    private static string? ValidateDescription(string? description)
     {
         if (description != null && description.Length > 1000)
             throw new ArgumentException("Description cannot exceed 1000 characters", nameof(description));
-            
+
         return description?.Trim();
     }
 
-    private static string ValidateIcon(string icon)
+    private static string? ValidateIcon(string? icon)
     {
         if (icon != null && icon.Length > 100)
             throw new ArgumentException("Icon cannot exceed 100 characters", nameof(icon));
-            
+
         return icon?.Trim();
     }
 
-    private static string ValidateColor(string color)
+    private static string? ValidateColor(string? color)
     {
         if (color != null)
         {
             if (color.Length > 20)
                 throw new ArgumentException("Color cannot exceed 20 characters", nameof(color));
-                
+
             // 基本的な色形式の検証（#RRGGBB または色名）
-            if (!string.IsNullOrEmpty(color) && 
+            if (!string.IsNullOrEmpty(color) &&
                 !System.Text.RegularExpressions.Regex.IsMatch(color, @"^(#[0-9A-Fa-f]{6}|[a-zA-Z]+)$"))
             {
                 throw new ArgumentException("Color must be in hex format (#RRGGBB) or a valid color name", nameof(color));
             }
         }
-            
+
         return color?.Trim();
     }
 }
@@ -198,7 +198,7 @@ public class SystemCategoryConfiguration : ValueObject
     public bool RequiresRealTimeMonitoring { get; private set; }
     public int DefaultTimeoutMs { get; private set; }
     public int MaxSignalsPerCategory { get; private set; }
-    public Dictionary<string, object> CustomSettings { get; private set; }
+    public Dictionary<string, object> CustomSettings { get; private set; } = new();
 
     protected SystemCategoryConfiguration() { }
 
@@ -246,10 +246,10 @@ public class SystemCategoryConfiguration : ValueObject
     {
         if (timeoutMs < 0)
             throw new ArgumentOutOfRangeException(nameof(timeoutMs), "Timeout cannot be negative");
-            
+
         if (timeoutMs > 60000) // 60 seconds max
             throw new ArgumentOutOfRangeException(nameof(timeoutMs), "Timeout cannot exceed 60 seconds");
-            
+
         return timeoutMs;
     }
 
@@ -257,10 +257,10 @@ public class SystemCategoryConfiguration : ValueObject
     {
         if (maxSignals < 1)
             throw new ArgumentOutOfRangeException(nameof(maxSignals), "Max signals must be at least 1");
-            
+
         if (maxSignals > 10000)
             throw new ArgumentOutOfRangeException(nameof(maxSignals), "Max signals cannot exceed 10,000");
-            
+
         return maxSignals;
     }
 
@@ -286,7 +286,7 @@ public enum SystemPriority
 // 定義済みのシステムカテゴリ設定
 public static class SystemCategoryDefaults
 {
-    public static readonly Dictionary<CanSystemType, (string Name, string Description, string Icon, string Color, SystemPriority Priority, bool IsSafetyRelevant)> DefaultCategories = 
+    public static readonly Dictionary<CanSystemType, (string Name, string Description, string Icon, string Color, SystemPriority Priority, bool IsSafetyRelevant)> DefaultCategories =
         new Dictionary<CanSystemType, (string, string, string, string, SystemPriority, bool)>
         {
             { CanSystemType.Engine, ("エンジン", "エンジン制御システム", "engine", "#FF6B35", SystemPriority.High, true) },

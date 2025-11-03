@@ -1,15 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { 
-  AnomalyDetectionResult, 
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import {
+  AnomalyDetectionResult,
   GetDetectionResultsInput,
   MarkAsFalsePositiveDto,
   ReopenDetectionResultDto,
   ShareDetectionResultDto,
   ResolveDetectionResultDto,
   AnomalyLevel,
-  ResolutionStatus
+  ResolutionStatus,
 } from '../models/detection-result.model';
 
 export interface PagedResult<T> {
@@ -18,38 +19,65 @@ export interface PagedResult<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DetectionResultService {
-  private readonly baseUrl = '/api/app/anomaly-detection-result';
+  private readonly baseUrl = `${environment.apis.default.url}/api/app/anomaly-detection-result`;
 
   constructor(private http: HttpClient) {}
 
   getList(input: GetDetectionResultsInput): Observable<PagedResult<AnomalyDetectionResult>> {
     let params = new HttpParams();
-    
+
     if (input.filter) params = params.set('filter', input.filter);
     if (input.detectionLogicId) params = params.set('detectionLogicId', input.detectionLogicId);
     if (input.canSignalId) params = params.set('canSignalId', input.canSignalId);
-    if (input.anomalyLevel !== undefined) params = params.set('anomalyLevel', input.anomalyLevel.toString());
-    if (input.resolutionStatus !== undefined) params = params.set('resolutionStatus', input.resolutionStatus.toString());
-    if (input.sharingLevel !== undefined) params = params.set('sharingLevel', input.sharingLevel.toString());
-    if (input.detectionType !== undefined) params = params.set('detectionType', input.detectionType.toString());
-    if (input.systemType !== undefined) params = params.set('systemType', input.systemType.toString());
+    if (input.anomalyLevel != null) params = params.set('anomalyLevel', String(input.anomalyLevel));
+    if (input.resolutionStatus != null)
+      params = params.set('resolutionStatus', String(input.resolutionStatus));
+    if (input.sharingLevel != null) params = params.set('sharingLevel', String(input.sharingLevel));
+    if (input.detectionType != null)
+      params = params.set('detectionType', String(input.detectionType));
+    if (input.systemType != null) params = params.set('systemType', String(input.systemType));
     if (input.detectedFrom) params = params.set('detectedFrom', input.detectedFrom.toISOString());
     if (input.detectedTo) params = params.set('detectedTo', input.detectedTo.toISOString());
     if (input.resolvedFrom) params = params.set('resolvedFrom', input.resolvedFrom.toISOString());
     if (input.resolvedTo) params = params.set('resolvedTo', input.resolvedTo.toISOString());
-    if (input.minConfidenceScore !== undefined) params = params.set('minConfidenceScore', input.minConfidenceScore.toString());
-    if (input.maxConfidenceScore !== undefined) params = params.set('maxConfidenceScore', input.maxConfidenceScore.toString());
-    if (input.isShared !== undefined) params = params.set('isShared', input.isShared.toString());
-    if (input.isHighPriority !== undefined) params = params.set('isHighPriority', input.isHighPriority.toString());
-    if (input.maxAge !== undefined) params = params.set('maxAge', input.maxAge.toString());
-    if (input.skipCount !== undefined) params = params.set('skipCount', input.skipCount.toString());
-    if (input.maxResultCount !== undefined) params = params.set('maxResultCount', input.maxResultCount.toString());
+    if (input.minConfidenceScore != null)
+      params = params.set('minConfidenceScore', String(input.minConfidenceScore));
+    if (input.maxConfidenceScore != null)
+      params = params.set('maxConfidenceScore', String(input.maxConfidenceScore));
+    if (input.isShared != null) params = params.set('isShared', String(input.isShared));
+    if (input.isHighPriority != null)
+      params = params.set('isHighPriority', String(input.isHighPriority));
+    if (input.maxAge != null) params = params.set('maxAge', String(input.maxAge));
+    if (input.skipCount != null) params = params.set('skipCount', String(input.skipCount));
+    if (input.maxResultCount != null)
+      params = params.set('maxResultCount', String(input.maxResultCount));
     if (input.sorting) params = params.set('sorting', input.sorting);
 
-    return this.http.get<PagedResult<AnomalyDetectionResult>>(`${this.baseUrl}`, { params });
+    return this.http.get(`${this.baseUrl}`, { params, responseType: 'text' }).pipe(
+      map(raw => {
+        if (!raw) {
+          return { items: [], totalCount: 0 } as PagedResult<AnomalyDetectionResult>;
+        }
+        if (raw.startsWith('<!DOCTYPE')) {
+          console.warn(
+            '[DetectionResultService] HTML received instead of JSON for list. Returning empty list.'
+          );
+          return { items: [], totalCount: 0 } as PagedResult<AnomalyDetectionResult>;
+        }
+        try {
+          return JSON.parse(raw) as PagedResult<AnomalyDetectionResult>;
+        } catch (e) {
+          console.warn(
+            '[DetectionResultService] Failed to parse detection results JSON. Returning empty list.',
+            e
+          );
+          return { items: [], totalCount: 0 } as PagedResult<AnomalyDetectionResult>;
+        }
+      })
+    );
   }
 
   get(id: string): Observable<AnomalyDetectionResult> {
@@ -89,13 +117,19 @@ export class DetectionResultService {
     return this.http.delete<void>(`${this.baseUrl}/${id}/sharing`);
   }
 
-  getSharedResults(input: GetDetectionResultsInput): Observable<PagedResult<AnomalyDetectionResult>> {
+  getSharedResults(
+    input: GetDetectionResultsInput
+  ): Observable<PagedResult<AnomalyDetectionResult>> {
     let params = new HttpParams();
     // Add parameters similar to getList
     return this.http.get<PagedResult<AnomalyDetectionResult>>(`${this.baseUrl}/shared`, { params });
   }
 
-  bulkUpdateResolutionStatus(ids: string[], status: ResolutionStatus, notes?: string): Observable<void> {
+  bulkUpdateResolutionStatus(
+    ids: string[],
+    status: ResolutionStatus,
+    notes?: string
+  ): Observable<void> {
     const body = { ids, status, notes };
     return this.http.post<void>(`${this.baseUrl}/bulk-update-status`, body);
   }
@@ -110,18 +144,23 @@ export class DetectionResultService {
   }
 
   export(input: GetDetectionResultsInput, format: string): Observable<Blob> {
-    return this.http.post(`${this.baseUrl}/export?format=${format}`, input, { 
-      responseType: 'blob' 
+    return this.http.post(`${this.baseUrl}/export?format=${format}`, input, {
+      responseType: 'blob',
     });
   }
 
-  getTimeline(canSignalId?: string, detectionLogicId?: string, fromDate?: Date, toDate?: Date): Observable<any[]> {
+  getTimeline(
+    canSignalId?: string,
+    detectionLogicId?: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Observable<any[]> {
     let params = new HttpParams();
     if (canSignalId) params = params.set('canSignalId', canSignalId);
     if (detectionLogicId) params = params.set('detectionLogicId', detectionLogicId);
     if (fromDate) params = params.set('fromDate', fromDate.toISOString());
     if (toDate) params = params.set('toDate', toDate.toISOString());
-    
+
     return this.http.get<any[]>(`${this.baseUrl}/timeline`, { params });
   }
 

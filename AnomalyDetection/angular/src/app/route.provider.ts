@@ -4,7 +4,10 @@ import { PERMISSIONS } from './shared/constants/permissions';
 
 export const APP_ROUTE_PROVIDER = [
   provideAppInitializer(() => {
+    // Ensure we return void or a Promise; previous implementation returned undefined implicitly.
+    // If Angular/ABP chains .then, undefined caused TypeError. Return a resolved Promise after configuration.
     configureRoutes();
+    return Promise.resolve();
   }),
 ];
 

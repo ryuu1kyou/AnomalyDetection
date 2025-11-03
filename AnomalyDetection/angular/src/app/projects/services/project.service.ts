@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { 
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import {
   AnomalyDetectionProject,
   ProjectMilestone,
   ProjectMember,
@@ -15,7 +16,7 @@ import {
   ProjectOperationDto,
   ProjectStatistics,
   ProjectStatus,
-  ProjectPriority
+  ProjectPriority,
 } from '../models/project.model';
 
 export interface PagedResult<T> {
@@ -24,32 +25,56 @@ export interface PagedResult<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProjectService {
-  private readonly baseUrl = '/api/app/anomaly-detection-project';
+  private readonly baseUrl = `${environment.apis.default.url}/api/app/anomaly-detection-project`;
 
   constructor(private http: HttpClient) {}
 
   // Project CRUD operations
   getList(input: GetProjectsInput): Observable<PagedResult<AnomalyDetectionProject>> {
     let params = new HttpParams();
-    
+
     if (input.filter) params = params.set('filter', input.filter);
     if (input.status !== undefined) params = params.set('status', input.status.toString());
     if (input.priority !== undefined) params = params.set('priority', input.priority.toString());
     if (input.oemCode) params = params.set('oemCode', input.oemCode);
     if (input.primarySystem) params = params.set('primarySystem', input.primarySystem);
     if (input.vehicleModel) params = params.set('vehicleModel', input.vehicleModel);
-    if (input.startDateFrom) params = params.set('startDateFrom', input.startDateFrom.toISOString());
+    if (input.startDateFrom)
+      params = params.set('startDateFrom', input.startDateFrom.toISOString());
     if (input.startDateTo) params = params.set('startDateTo', input.startDateTo.toISOString());
     if (input.endDateFrom) params = params.set('endDateFrom', input.endDateFrom.toISOString());
     if (input.endDateTo) params = params.set('endDateTo', input.endDateTo.toISOString());
     if (input.skipCount !== undefined) params = params.set('skipCount', input.skipCount.toString());
-    if (input.maxResultCount !== undefined) params = params.set('maxResultCount', input.maxResultCount.toString());
+    if (input.maxResultCount !== undefined)
+      params = params.set('maxResultCount', input.maxResultCount.toString());
     if (input.sorting) params = params.set('sorting', input.sorting);
 
-    return this.http.get<PagedResult<AnomalyDetectionProject>>(`${this.baseUrl}`, { params });
+    // Request as text to avoid Angular JSON parse error when receiving HTML (login page / redirect) or empty body.
+    return this.http.get(`${this.baseUrl}`, { params, responseType: 'text' }).pipe(
+      map(raw => {
+        if (!raw) {
+          return { items: [], totalCount: 0 } as PagedResult<AnomalyDetectionProject>;
+        }
+        if (raw.startsWith('<!DOCTYPE')) {
+          console.warn(
+            '[ProjectService] HTML received instead of JSON for list (unauthenticated or proxy issue). Returning empty list.'
+          );
+          return { items: [], totalCount: 0 } as PagedResult<AnomalyDetectionProject>;
+        }
+        try {
+          return JSON.parse(raw) as PagedResult<AnomalyDetectionProject>;
+        } catch (e) {
+          console.warn(
+            '[ProjectService] Failed to parse project list JSON. Returning empty list.',
+            e
+          );
+          return { items: [], totalCount: 0 } as PagedResult<AnomalyDetectionProject>;
+        }
+      })
+    );
   }
 
   get(id: string): Observable<AnomalyDetectionProject> {
@@ -128,8 +153,33 @@ export class ProjectService {
   }
 
   // Statistics and reporting
-  getStatistics(): Observable<ProjectStatistics> {
-    return this.http.get<ProjectStatistics>(`${this.baseUrl}/statistics`);
+  /**
+   * Get statistics for a specific project.
+   * Backend signature: GetStatisticsAsync(Guid id) => route pattern '/{id}/statistics'.
+   */
+  getStatistics(projectId: string): Observable<ProjectStatistics> {
+    if (!projectId) {
+      // Guard: without id backend returns 400; return empty stats.
+      return new Observable<ProjectStatistics>(subscriber => {
+        subscriber.next({} as ProjectStatistics);
+        subscriber.complete();
+      });
+    }
+    return this.http.get(`${this.baseUrl}/${projectId}/statistics`, { responseType: 'text' }).pipe(
+      map(raw => {
+        if (!raw) return {} as ProjectStatistics;
+        if (raw.startsWith('<!DOCTYPE')) {
+          console.warn('[ProjectService] HTML received instead of JSON for project statistics.');
+          return {} as ProjectStatistics;
+        }
+        try {
+          return JSON.parse(raw) as ProjectStatistics;
+        } catch (e) {
+          console.warn('[ProjectService] Failed to parse project statistics JSON.', e);
+          return {} as ProjectStatistics;
+        }
+      })
+    );
   }
 
   getProjectProgress(id: string): Observable<any> {
@@ -138,7 +188,7 @@ export class ProjectService {
 
   generateProgressReport(id: string, format: string = 'pdf'): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/${id}/progress-report?format=${format}`, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
@@ -161,7 +211,7 @@ export class ProjectService {
   // Export operations
   export(input: GetProjectsInput, format: string = 'csv'): Observable<Blob> {
     return this.http.post(`${this.baseUrl}/export?format=${format}`, input, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 

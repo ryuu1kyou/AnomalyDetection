@@ -26,6 +26,8 @@ namespace AnomalyDetection.Application.Monitoring
         private readonly Counter<long> _apiRequestsCounter;
         private readonly Histogram<double> _apiResponseTimeHistogram;
         private readonly Counter<long> _errorsCounter;
+        private readonly Counter<long> _realTimeNotificationsCounter;
+        private readonly Histogram<double> _realTimeProcessingLatencyHistogram;
 
         // State tracking
         private int _activeSessions = 0;
@@ -85,6 +87,16 @@ namespace AnomalyDetection.Application.Monitoring
                 "errors_total",
                 "errors",
                 "Total number of errors");
+
+            _realTimeNotificationsCounter = _meter.CreateCounter<long>(
+                "realtime_notifications_total",
+                "notifications",
+                "Total number of realtime notifications emitted");
+
+            _realTimeProcessingLatencyHistogram = _meter.CreateHistogram<double>(
+                "realtime_notification_processing_seconds",
+                "seconds",
+                "Latency between data change and realtime notification");
         }
 
         public void TrackDetectionExecution(string logicName, string signalName, double executionTimeMs, bool success)
@@ -273,6 +285,49 @@ namespace AnomalyDetection.Application.Monitoring
             _telemetryClient.TrackEvent(eventTelemetry);
 
             _logger.LogInformation("Business metric tracked: {EventName}", eventName);
+        }
+
+        public void TrackRealTimeDelivery(string changeType, string targetGroup, TimeSpan? processingLatency, bool success)
+        {
+            var tags = new Dictionary<string, object?>
+            {
+                ["change_type"] = changeType,
+                ["target_group"] = targetGroup,
+                ["success"] = success.ToString()
+            };
+
+            var tagArray = tags.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)).ToArray();
+
+            _realTimeNotificationsCounter.Add(1, tagArray);
+
+            if (processingLatency.HasValue)
+            {
+                _realTimeProcessingLatencyHistogram.Record(processingLatency.Value.TotalSeconds, tagArray);
+            }
+
+            var eventTelemetry = new EventTelemetry("RealTimeDelivery")
+            {
+                Properties =
+                {
+                    ["ChangeType"] = changeType,
+                    ["TargetGroup"] = targetGroup,
+                    ["Success"] = success.ToString()
+                }
+            };
+
+            if (processingLatency.HasValue)
+            {
+                eventTelemetry.Metrics["ProcessingLatencySeconds"] = processingLatency.Value.TotalSeconds;
+            }
+
+            _telemetryClient.TrackEvent(eventTelemetry);
+
+            _logger.LogInformation(
+                "Realtime delivery tracked: ChangeType={ChangeType}, Group={Group}, Latency={Latency}s, Success={Success}",
+                changeType,
+                targetGroup,
+                processingLatency?.TotalSeconds ?? 0,
+                success);
         }
 
         public void Dispose()
