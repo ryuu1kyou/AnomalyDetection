@@ -1,0 +1,64 @@
+{
+  "messages": [
+    {
+      "messageId": 256,
+      "messageName": "Engine_Data",
+      "signals": [
+        {
+          "name": "EngineRPM",
+          "startBit": 0,
+          "bitLength": 16,
+          "isSigned": false,
+          "isBigEndian": true,
+          "min": 0,
+          "max": 8000,
+          "factor": 0.25,
+          "offset": 0,
+          "unit": "rpm"
+        },
+        {
+          "name": "VehicleSpeed",
+          "startBit": 16,
+          "bitLength": 16,
+          "isSigned": false,
+          "isBigEndian": true,
+          "min": 0,
+          "max": 300,
+          "factor": 0.01,
+          "offset": 0,
+          "unit": "km/h"
+        }
+      ]
+    },
+    {
+      "messageId": 512,
+      "messageName": "Brake_Data",
+      "signals": [
+        {
+          "name": "BrakePressure",
+          "startBit": 0,
+          "bitLength": 16,
+          "isSigned": false,
+          "isBigEndian": true,
+          "min": 0,
+          "max": 300,
+          "factor": 0.1,
+          "offset": 0,
+          "unit": "bar"
+        },
+        {
+          "name": "ABSActive",
+          "startBit": 16,
+          "bitLength": 1,
+          "isSigned": false,
+          "isBigEndian": false,
+          "min": 0,
+          "max": 1,
+          "factor": 1,
+          "offset": 0,
+          "unit": "bool"
+        }
+      ]
+    }
+  ]
+}

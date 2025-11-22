@@ -22,15 +22,18 @@ public class CanSpecificationImportAppService : ApplicationService
     private readonly IRepository<CanSpecImport, Guid> _specRepository;
     private readonly ExportService _exportService;
     private readonly IGuidGenerator _guidGenerator;
+    private readonly ICanSpecificationParser _parser;
 
     public CanSpecificationImportAppService(
         IRepository<CanSpecImport, Guid> specRepository,
         ExportService exportService,
-        IGuidGenerator guidGenerator)
+        IGuidGenerator guidGenerator,
+        ICanSpecificationParser parser)
     {
         _specRepository = specRepository;
         _exportService = exportService;
         _guidGenerator = guidGenerator;
+        _parser = parser;
     }
 
     public async Task<CanSpecImportDto> ImportAsync(CanSpecImportInput input)
@@ -58,7 +61,7 @@ public class CanSpecificationImportAppService : ApplicationService
 
         try
         {
-            var parseResult = ParseSpecification(input.Content, entity.FileFormat);
+            var parseResult = _parser.Parse(input.Content, entity.FileFormat);
             foreach (var msg in parseResult.Messages)
             {
                 entity.AddMessage(msg);
@@ -88,132 +91,34 @@ public class CanSpecificationImportAppService : ApplicationService
         return ObjectMapper.Map<CanSpecImport, CanSpecImportDto>(entity);
     }
 
-    public async Task<CanSpecDiffSummaryDto> GetDiffSummaryAsync(Guid specImportId)
+    private string DetectFormat(string fileName)
     {
-        var entity = await _specRepository.GetAsync(specImportId);
-        var summary = new CanSpecDiffSummary();
-        foreach (var diff in entity.Diffs)
-        {
-            summary.IncrementEntityCounter(diff.EntityType, diff.Type);
-            summary.IncrementSeverity(diff.Severity);
-            summary.TrackSubsystem(diff.ImpactedSubsystem);
-        }
-        summary.SummaryText = $"Messages Added:{summary.MessageAddedCount} Removed:{summary.MessageRemovedCount} Modified:{summary.MessageModifiedCount} | Signals Added:{summary.SignalAddedCount} Removed:{summary.SignalRemovedCount} Modified:{summary.SignalModifiedCount}";
-        return ObjectMapper.Map<CanSpecDiffSummary, CanSpecDiffSummaryDto>(summary);
-    }
-
-    public async Task<ExportResultDto> ExportDiffsAsync(Guid specImportId, int format)
-    {
-        var entity = await _specRepository.GetAsync(specImportId);
-        var rows = entity.Diffs.Select(d => new
-        {
-            d.Type,
-            d.EntityType,
-            d.EntityName,
-            d.MessageId,
-            Severity = d.Severity.ToString(),
-            d.ChangeCategory,
-            d.ImpactedSubsystem,
-            d.OldValue,
-            d.NewValue,
-            d.ChangeSummary,
-            d.Details,
-            d.ComparisonDate
-        }).ToList();
-
-        var request = new ExportDetectionRequest
-        {
-            Results = rows,
-            Format = (ExportService.ExportFormat)format,
-            FileNamePrefix = "can_spec_diffs",
-            GeneratedBy = CurrentUser.UserName ?? "system",
-            CsvOptions = new CsvExportOptions { IncludeHeader = true }
-        };
-        var result = await _exportService.ExportDetectionResultsAsync(request);
-        return new ExportResultDto
-        {
-            FileName = result.FileName,
-            ContentType = result.ContentType,
-            RecordCount = result.Metadata.RecordCount,
-            Format = result.Metadata.Format,
-            ExportedAt = result.Metadata.ExportedAt,
-            Data = result.Data
-        };
-    }
-
-    private static string DetectFormat(string fileName)
-    {
-        var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
-        return ext switch
-        {
-            ".dbc" => "DBC",
-            ".xml" => "XML",
-            ".json" => "JSON",
-            ".csv" => "CSV",
-            _ => "UNKNOWN"
-        };
+        return Path.GetExtension(fileName)?.TrimStart('.').ToUpperInvariant() ?? "UNKNOWN";
     }
 
     private static string ComputeSha256(byte[] data)
     {
-        using var sha = SHA256.Create();
-        return Convert.ToHexString(sha.ComputeHash(data));
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(data);
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
     private async Task<CanSpecImport?> FindLatestCompletedAsync()
     {
         var queryable = await _specRepository.GetQueryableAsync();
-        return queryable
-            .Where(x => x.Status == ImportStatus.Completed)
-            .OrderByDescending(x => x.ImportDate)
-            .FirstOrDefault();
-    }
-
-    private static ParseResult ParseSpecification(byte[] content, string format)
-    {
-        // Minimal stub: If CSV treat each line as MessageId,MessageName,Dlc,SignalName,StartBit,Length
-        var result = new ParseResult();
-        if (format == "CSV")
-        {
-            using var ms = new MemoryStream(content);
-            using var reader = new StreamReader(ms, Encoding.UTF8, true, 1024, leaveOpen: false);
-            string? line;
-            var messages = new Dictionary<uint, CanSpecMessage>();
-            while ((line = reader.ReadLine()) != null)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                var parts = line.Split(',');
-                if (parts.Length < 6) continue;
-                if (!uint.TryParse(parts[0], out var msgId)) continue;
-                var msgName = parts[1].Trim();
-                if (!int.TryParse(parts[2], out var dlc)) dlc = 8;
-                var signalName = parts[3].Trim();
-                if (!int.TryParse(parts[4], out var startBit)) startBit = 0;
-                if (!int.TryParse(parts[5], out var length)) length = 8;
-
-                if (!messages.TryGetValue(msgId, out var message))
-                {
-                    message = new CanSpecMessage(msgId, msgName, dlc);
-                    messages[msgId] = message;
-                }
-                var signal = new CanSpecSignal(signalName, startBit, length);
-                message.Signals.Add(signal);
-            }
-            result.Messages.AddRange(messages.Values);
-        }
-        else
-        {
-            // For non-CSV formats placeholder (future implementation)
-        }
-        return result;
+        return await AsyncExecuter.FirstOrDefaultAsync(
+            queryable
+                .Where(x => x.Status == ImportStatus.Completed)
+                .OrderByDescending(x => x.CreationTime)
+        );
     }
 
     private static CanSpecDiffResult GenerateDiff(CanSpecImport previous, CanSpecImport current)
     {
         var diffResult = new CanSpecDiffResult();
-    // Use anonymous key string concatenation for dictionary since tuple + custom comparer inference fails
-    var prevMessages = previous.Messages.ToDictionary(m => $"{m.MessageId}:{m.Name}", StringComparer.OrdinalIgnoreCase);
-    var currMessages = current.Messages.ToDictionary(m => $"{m.MessageId}:{m.Name}", StringComparer.OrdinalIgnoreCase);
+        // Use anonymous key string concatenation for dictionary since tuple + custom comparer inference fails
+        var prevMessages = previous.Messages.ToDictionary(m => $"{m.MessageId}:{m.Name}", StringComparer.OrdinalIgnoreCase);
+        var currMessages = current.Messages.ToDictionary(m => $"{m.MessageId}:{m.Name}", StringComparer.OrdinalIgnoreCase);
 
         // Added / Removed Messages
         foreach (var kv in currMessages)
@@ -306,10 +211,7 @@ public class CanSpecificationImportAppService : ApplicationService
         return diffResult;
     }
 
-    private class ParseResult
-    {
-        public List<CanSpecMessage> Messages { get; } = new();
-    }
+
 }
 
 public class CanSpecImportInput

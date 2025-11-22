@@ -4,12 +4,16 @@ using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 using AnomalyDetection.CanSignals.Dtos;
+using AnomalyDetection.CanSpecification;
 using AnomalyDetection.Permissions;
+using AnomalyDetection.MultiTenancy;
+using AnomalyDetection.Shared.Export;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using System.IO;
 
 namespace AnomalyDetection.CanSignals;
 
@@ -17,10 +21,17 @@ namespace AnomalyDetection.CanSignals;
 public class CanSignalAppService : ApplicationService, ICanSignalAppService
 {
     private readonly IRepository<CanSignal, Guid> _canSignalRepository;
+    private readonly ICanSpecificationParser _parser;
+    private readonly ExportService _exportService;
 
-    public CanSignalAppService(IRepository<CanSignal, Guid> canSignalRepository)
+    public CanSignalAppService(
+        IRepository<CanSignal, Guid> canSignalRepository,
+        ICanSpecificationParser parser,
+        ExportService exportService)
     {
         _canSignalRepository = canSignalRepository;
+        _parser = parser;
+        _exportService = exportService;
     }
 
     public async Task<PagedResultDto<CanSignalDto>> GetListAsync(GetCanSignalsInput input)
@@ -330,16 +341,153 @@ public class CanSignalAppService : ApplicationService, ICanSignalAppService
     }
 
     [Authorize(AnomalyDetectionPermissions.CanSignals.Import)]
-    public Task<ListResultDto<CanSignalDto>> ImportFromFileAsync(byte[] fileContent, string fileName)
+    public async Task<ListResultDto<CanSignalDto>> ImportFromFileAsync(byte[] fileContent, string fileName)
     {
-        // TODO: Implement file import logic (CSV, DBC, etc.)
-        throw new NotImplementedException("File import functionality will be implemented in a future version");
+        var format = Path.GetExtension(fileName)?.TrimStart('.').ToUpperInvariant() ?? "UNKNOWN";
+        var parseResult = _parser.Parse(fileContent, format);
+
+        var importedSignals = new List<CanSignal>();
+        var existingSignals = await _canSignalRepository.GetListAsync();
+        var existingMap = existingSignals.ToDictionary(x => x.Identifier.CanId, x => x);
+
+        foreach (var msg in parseResult.Messages)
+        {
+            foreach (var sig in msg.Signals)
+            {
+                var uniqueCanId = GenerateUniqueCanId(msg.MessageId, sig.Name);
+
+                if (existingMap.TryGetValue(uniqueCanId, out var existing))
+                {
+                    // Update
+                    var spec = new SignalSpecification(
+                        sig.StartBit,
+                        sig.BitLength,
+                        sig.IsSigned ? SignalDataType.Signed : SignalDataType.Unsigned,
+                        new SignalValueRange(sig.Min, sig.Max),
+                        sig.IsBigEndian ? SignalByteOrder.BigEndian : SignalByteOrder.LittleEndian
+                    );
+                    existing.UpdateSpecification(spec, "Imported update");
+                    existing.UpdateConversion(new PhysicalValueConversion(sig.Factor, sig.Offset, sig.Unit ?? ""));
+                    await _canSignalRepository.UpdateAsync(existing);
+                    importedSignals.Add(existing);
+                }
+                else
+                {
+                    // Insert
+                    var identifier = new SignalIdentifier(sig.Name, uniqueCanId);
+                    var spec = new SignalSpecification(
+                        sig.StartBit,
+                        sig.BitLength,
+                        sig.IsSigned ? SignalDataType.Signed : SignalDataType.Unsigned,
+                        new SignalValueRange(sig.Min, sig.Max),
+                        sig.IsBigEndian ? SignalByteOrder.BigEndian : SignalByteOrder.LittleEndian
+                    );
+
+                    var newSignal = new CanSignal(
+                        GuidGenerator.Create(),
+                        CurrentTenant.Id,
+                        identifier,
+                        spec,
+                        CanSystemType.Body, // Default or infer?
+                        new OemCode("GENERIC", "Generic OEM"), // Default
+                        $"Imported from {fileName}"
+                    );
+                    newSignal.UpdateConversion(new PhysicalValueConversion(sig.Factor, sig.Offset, sig.Unit ?? ""));
+
+                    await _canSignalRepository.InsertAsync(newSignal);
+                    importedSignals.Add(newSignal);
+                }
+            }
+        }
+
+        return new ListResultDto<CanSignalDto>(ObjectMapper.Map<List<CanSignal>, List<CanSignalDto>>(importedSignals));
+    }
+
+    private string GenerateUniqueCanId(uint messageId, string signalName)
+    {
+        // Construct CanId as "{MessageId}_{SignalName}" to ensure uniqueness if the system requires unique CanId.
+        // Using Hex format for MessageId for readability.
+        return $"0x{messageId:X}_{signalName}";
     }
 
     [Authorize(AnomalyDetectionPermissions.CanSignals.Export)]
-    public Task<byte[]> ExportToFileAsync(GetCanSignalsInput input, string format)
+    public async Task<byte[]> ExportToFileAsync(GetCanSignalsInput input, string format)
     {
-        // TODO: Implement file export logic
-        throw new NotImplementedException("File export functionality will be implemented in a future version");
+        var queryable = await _canSignalRepository.GetQueryableAsync();
+
+        // Apply filters (same as GetListAsync)
+        if (!string.IsNullOrEmpty(input.Filter))
+        {
+            queryable = queryable.Where(x =>
+                x.Identifier.SignalName.Contains(input.Filter) ||
+                (x.Identifier.CanId != null && x.Identifier.CanId.Contains(input.Filter)) ||
+                (x.Description != null && x.Description.Contains(input.Filter)));
+        }
+
+        if (!string.IsNullOrEmpty(input.SignalName))
+        {
+            queryable = queryable.Where(x => x.Identifier.SignalName.Contains(input.SignalName));
+        }
+
+        if (!string.IsNullOrEmpty(input.CanId))
+        {
+            queryable = queryable.Where(x => x.Identifier.CanId != null && x.Identifier.CanId.Contains(input.CanId));
+        }
+
+        if (input.SystemType.HasValue)
+        {
+            queryable = queryable.Where(x => x.SystemType == input.SystemType.Value);
+        }
+
+        if (input.OemCode != null)
+        {
+            queryable = queryable.Where(x => x.OemCode.Equals(input.OemCode));
+        }
+
+        if (input.IsStandard.HasValue)
+        {
+            queryable = queryable.Where(x => x.IsStandard == input.IsStandard.Value);
+        }
+
+        if (input.Status.HasValue)
+        {
+            queryable = queryable.Where(x => x.Status == input.Status.Value);
+        }
+
+        if (input.EffectiveDateFrom.HasValue)
+        {
+            queryable = queryable.Where(x => x.EffectiveDate >= input.EffectiveDateFrom.Value);
+        }
+
+        if (input.EffectiveDateTo.HasValue)
+        {
+            queryable = queryable.Where(x => x.EffectiveDate <= input.EffectiveDateTo.Value);
+        }
+
+        // Apply sorting
+        if (!string.IsNullOrEmpty(input.Sorting))
+        {
+            queryable = queryable.OrderBy(input.Sorting);
+        }
+        else
+        {
+            queryable = queryable.OrderBy(x => x.Identifier.SignalName);
+        }
+
+        var items = await AsyncExecuter.ToListAsync(queryable);
+        var dtos = ObjectMapper.Map<List<CanSignal>, List<CanSignalDto>>(items);
+
+        var exportFormat = format?.ToLowerInvariant() == "json" ? ExportService.ExportFormat.Json : ExportService.ExportFormat.Csv;
+
+        var request = new ExportDetectionRequest
+        {
+            Results = dtos,
+            Format = exportFormat,
+            FileNamePrefix = "CanSignals",
+            GeneratedBy = CurrentUser.UserName ?? "System"
+        };
+
+        var result = await _exportService.ExportDetectionResultsAsync(request);
+        return result.Data;
     }
 }

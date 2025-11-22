@@ -1,0 +1,25 @@
+  復元対象のプロジェクトを決定しています...
+  復元対象のすべてのプロジェクトは最新です。
+  AnomalyDetection.Domain.Shared -> c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Domain.Shared\bin\Debug\net9.0\AnomalyDetection.Domain.Shared.dll
+  AnomalyDetection.Domain -> c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Domain\bin\Debug\net9.0\AnomalyDetection.Domain.dll
+  AnomalyDetection.Application.Contracts -> c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application.Contracts\bin\Debug\net9.0\AnomalyDetection.Application.Contracts.dll
+  AnomalyDetection.EntityFrameworkCore -> c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.EntityFrameworkCore\bin\Debug\net9.0\AnomalyDetection.EntityFrameworkCore.dll
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(383,85): error CS1503: 引数 3: は 'string' から 'AnomalyDetection.CanSignals.SignalDataType' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(383,163): error CS1503: 引数 5: は 'string' から 'AnomalyDetection.CanSignals.SignalByteOrder' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(393,85): error CS1503: 引数 3: は 'string' から 'AnomalyDetection.CanSignals.SignalDataType' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(393,163): error CS1503: 引数 5: は 'string' から 'AnomalyDetection.CanSignals.SignalByteOrder' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(401,29): error CS0246: 型または名前空間の名前 'OemCode' が見つかりませんでした (using ディレクティブまたはアセンブリ参照が指定されていることを確認してください) [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+
+ビルドに失敗しました。
+
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(383,85): error CS1503: 引数 3: は 'string' から 'AnomalyDetection.CanSignals.SignalDataType' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(383,163): error CS1503: 引数 5: は 'string' から 'AnomalyDetection.CanSignals.SignalByteOrder' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(393,85): error CS1503: 引数 3: は 'string' から 'AnomalyDetection.CanSignals.SignalDataType' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(393,163): error CS1503: 引数 5: は 'string' から 'AnomalyDetection.CanSignals.SignalByteOrder' へ変換することはできません [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\CanSignals\CanSignalAppService.cs(401,29): error CS0246: 型または名前空間の名前 'OemCode' が見つかりませんでした (using ディレクティブまたはアセンブリ参照が指定されていることを確認してください) [c:\work\tool\net\AnomalyDetection\AnomalyDetection\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj]
+    0 個の警告
+    5 エラー
+
+経過時間 00:00:08.07
+
+ワークロードの更新が利用可能です。詳細については、`dotnet workload list` を実行してください。

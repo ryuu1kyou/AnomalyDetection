@@ -50,8 +50,31 @@ public class DetectionResultCreatedEventHandler : ILocalEventHandler<DetectionRe
             slaMet,
             RealTimeDetectionChangeTypes.Created);
 
-        await _realTime.NotifyDetectionCreatedAsync(dto, context);
+        const int maxRetries = 3;
+        int attempt = 0;
+        bool success = false;
 
-        _monitoringService.TrackDetectionResultCreated(entity.DetectionLogicId.ToString(), entity.CanSignalId.ToString(), latencyMs);
+        while (attempt < maxRetries && !success)
+        {
+            try
+            {
+                attempt++;
+                await _realTime.NotifyDetectionCreatedAsync(dto, context);
+                success = true;
+            }
+            catch (Exception ex)
+            {
+                if (attempt >= maxRetries)
+                {
+                    _monitoringService.TrackBroadcastFailure("DetectionCreated", "Hub", ex);
+                    // Log error but don't throw to avoid re-queueing if we want to just fail gracefully after retries
+                    // Or throw if we want the event bus to handle it (but we already retried)
+                }
+                else
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt)); // Simple backoff
+                }
+            }
+        }
     }
 }
