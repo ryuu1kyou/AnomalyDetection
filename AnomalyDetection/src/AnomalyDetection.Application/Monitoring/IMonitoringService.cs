@@ -60,5 +60,28 @@ namespace AnomalyDetection.Application.Monitoring
         /// リアルタイム配信メトリクスを追跡
         /// </summary>
         void TrackRealTimeDelivery(string changeType, string targetGroup, TimeSpan? processingLatency, bool success);
+
+        /// <summary>
+        /// SignalR のアクティブ接続数を更新
+        /// </summary>
+        void UpdateSignalRConnections(int count);
+
+        /// <summary>
+        /// 検出結果生成カウンタをインクリメント
+        /// </summary>
+        void TrackDetectionResultCreated(string detectionLogicId, string canSignalId, double latencyMs);
+
+        /// <summary>
+        /// ブロードキャスト失敗を記録
+        /// </summary>
+        void TrackBroadcastFailure(string changeType, string targetGroup, Exception ex);
+
+        /// <summary>
+        /// ASIL レベル変更を追跡 (旧/新レベルと再レビュー強制有無)。
+        /// </summary>
+        /// <param name="oldLevel">旧 ASIL (enum int)</param>
+        /// <param name="newLevel">新 ASIL (enum int)</param>
+        /// <param name="reReviewTriggered">再レビューが発生したか</param>
+        void TrackAsilLevelChange(int oldLevel, int newLevel, bool reReviewTriggered);
     }
 }

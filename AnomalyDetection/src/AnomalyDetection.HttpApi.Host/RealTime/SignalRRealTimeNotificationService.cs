@@ -42,22 +42,45 @@ public class SignalRRealTimeNotificationService : IRealTimeNotificationService
     public async Task NotifyDetectionCreatedAsync(AnomalyDetectionResultDto detection, RealTimeDetectionNotificationContext context)
     {
         await EnrichDetectionAsync(detection);
-        await BroadcastAsync("ReceiveNewDetectionResult", detection, context);
+        try
+        {
+            await BroadcastAsync("ReceiveNewDetectionResult", detection, context);
+        }
+        catch (Exception ex)
+        {
+            TrackBroadcastFailure(context, ex, RealTimeDetectionChangeTypes.Created);
+            throw;
+        }
         TrackRealTimeMetrics(context);
     }
 
     public async Task NotifyDetectionUpdatedAsync(AnomalyDetectionResultDto detection, RealTimeDetectionNotificationContext context)
     {
         await EnrichDetectionAsync(detection);
-        await BroadcastAsync("ReceiveDetectionResultUpdate", detection, context);
+        try
+        {
+            await BroadcastAsync("ReceiveDetectionResultUpdate", detection, context);
+        }
+        catch (Exception ex)
+        {
+            TrackBroadcastFailure(context, ex, RealTimeDetectionChangeTypes.Updated);
+            throw;
+        }
         TrackRealTimeMetrics(context);
     }
 
     public async Task NotifyDetectionDeletedAsync(Guid detectionId, RealTimeDetectionNotificationContext context)
     {
-        var tasks = CreateGroupBroadcasts("ReceiveDetectionResultDeletion", detectionId, context);
-        await Task.WhenAll(tasks);
-
+        try
+        {
+            var tasks = CreateGroupBroadcasts("ReceiveDetectionResultDeletion", detectionId, context);
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            TrackBroadcastFailure(context, ex, RealTimeDetectionChangeTypes.Deleted);
+            throw;
+        }
         TrackRealTimeMetrics(context);
     }
 
@@ -157,5 +180,13 @@ public class SignalRRealTimeNotificationService : IRealTimeNotificationService
             targetGroup,
             deliveryLatency,
             slaMet);
+    }
+
+    private void TrackBroadcastFailure(RealTimeDetectionNotificationContext context, Exception ex, string changeType)
+    {
+        var targetGroup = context.ProjectId.HasValue
+            ? RealTimeDetectionGroupNames.ForProject(context.ProjectId.Value)
+            : RealTimeDetectionGroupNames.ForSignal(context.CanSignalId);
+        _monitoringService.TrackBroadcastFailure(changeType, targetGroup, ex);
     }
 }

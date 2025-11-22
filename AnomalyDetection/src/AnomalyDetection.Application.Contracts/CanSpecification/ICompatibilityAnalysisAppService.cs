@@ -46,4 +46,27 @@ public interface ICompatibilityAnalysisAppService : IApplicationService
     /// Delete analysis
     /// </summary>
     Task DeleteAsync(Guid id);
+
+    /// <summary>
+    /// Export compatibility analysis details (issues & impacts)
+    /// </summary>
+    Task<ExportedFileDto> ExportAsync(CompatibilityAnalysisExportDto input);
+}
+
+public class CompatibilityAnalysisExportDto
+{
+    public Guid AnalysisId { get; set; }
+    public string Format { get; set; } = "csv"; // csv|json|pdf|excel
+    public bool IncludeIssues { get; set; } = true;
+    public bool IncludeImpacts { get; set; } = true;
+}
+
+public class ExportedFileDto
+{
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public int RecordCount { get; set; }
+    public DateTime ExportedAt { get; set; }
+    public string Format { get; set; } = string.Empty;
+    public byte[] FileData { get; set; } = Array.Empty<byte>();
 }

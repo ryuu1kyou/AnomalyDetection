@@ -1,0 +1,20 @@
+<div class="template-form" *ngIf="template() as t; else loadingTpl">
+  <h2>Create Detection Logic From Template: {{ t.name }}</h2>
+  <p>{{ t.description }}</p>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="form-body">
+    <div class="params" formGroupName="parameters">
+      <div class="param-field" *ngFor="let p of t.parameters">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ p.displayName || p.name }}</mat-label>
+          <input matInput [formControlName]="p.name" [type]="p.type === 'number' ? 'number' : 'text'" [required]="p.required" />
+          <mat-hint *ngIf="p.min || p.max">Range: {{ p.min ?? '—' }} - {{ p.max ?? '—' }}</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+    <button mat-raised-button color="primary" type="submit" [disabled]="creating()">Create Logic</button>
+    <button mat-button routerLink="/detection-templates" type="button">Cancel</button>
+  </form>
+</div>
+<ng-template #loadingTpl>
+  <div class="loading" *ngIf="loading()">Loading template...</div>
+</ng-template>

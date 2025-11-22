@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using AnomalyDetection.Application.Monitoring;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Volo.Abp.AspNetCore.SignalR;
@@ -12,6 +14,13 @@ namespace AnomalyDetection.Hubs;
 /// </summary>
 public class RealTimeDetectionHub : AbpHub
 {
+    private static int _connectionsCount = 0;
+    private readonly IMonitoringService _monitoringService;
+
+    public RealTimeDetectionHub(IMonitoringService monitoringService)
+    {
+        _monitoringService = monitoringService;
+    }
     public async Task SubscribeToProject(Guid projectId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"project_{projectId}");
@@ -60,18 +69,22 @@ public class RealTimeDetectionHub : AbpHub
 
     public override async Task OnConnectedAsync()
     {
+        var count = Interlocked.Increment(ref _connectionsCount);
+        _monitoringService.UpdateSignalRConnections(count);
         await base.OnConnectedAsync();
         await Clients.Caller.SendAsync("Connected", new
         {
             ConnectionId = Context.ConnectionId,
             Timestamp = DateTime.UtcNow,
+            ActiveConnections = count,
             Message = "Connected to AnomalyDetection Hub"
         });
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        // Clean up - automatic group removal by SignalR
+        var count = Interlocked.Decrement(ref _connectionsCount);
+        _monitoringService.UpdateSignalRConnections(count);
         await base.OnDisconnectedAsync(exception);
     }
 

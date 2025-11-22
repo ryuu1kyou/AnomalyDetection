@@ -18,6 +18,21 @@ export const APP_ROUTES: Routes = [
         }),
   },
   {
+    path: 'detection-templates',
+    loadChildren: () =>
+      import('./detection-templates/detection-templates.routes')
+        .then(r => {
+          console.debug('[Route] detection-templates routes loaded');
+          return r.DETECTION_TEMPLATES_ROUTES;
+        })
+        .catch(err => {
+          console.error('[Route] detection-templates routes failed', err);
+          throw err;
+        }),
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredPolicy: PERMISSIONS.DETECTION_LOGICS.DEFAULT }
+  },
+  {
     path: 'account',
     loadChildren: () => import('@abp/ng.account').then(c => c.createRoutes()),
   },
@@ -165,5 +180,62 @@ export const APP_ROUTES: Routes = [
           throw err;
         }),
     canActivate: [authGuard],
+  },
+  {
+    path: 'safety-trace-audit',
+    loadChildren: () =>
+      import('./safety-trace-audit/safety-trace-audit.routes')
+        .then(r => {
+          console.debug('[Route] safety-trace-audit routes loaded');
+          return r.SAFETY_TRACE_AUDIT_ROUTES;
+        })
+        .catch(err => {
+          console.error('[Route] safety-trace-audit routes failed', err);
+          throw err;
+        }),
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredPolicy: PERMISSIONS.SAFETY_TRACE.AUDIT.DEFAULT }
+  },
+  {
+    path: 'can-specification',
+    loadChildren: () =>
+      import('./can-specification/can-specification.routes')
+        .then(r => {
+            console.debug('[Route] can-specification routes loaded');
+            return r.CAN_SPECIFICATION_ROUTES;
+        })
+        .catch(err => {
+          console.error('[Route] can-specification routes failed', err);
+          throw err;
+        }),
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredPolicy: PERMISSIONS.CAN_SPECIFICATION.DEFAULT }
+  },
+  {
+    path: 'compatibility-analysis',
+    loadChildren: () =>
+      import('./compatibility-analysis/compatibility-analysis.routes')
+        .then(r => r.COMPATIBILITY_ANALYSIS_ROUTES)
+        .catch(err => { console.error('[Route] compatibility-analysis routes failed', err); throw err; }),
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredPolicy: PERMISSIONS.COMPATIBILITY_ANALYSIS.VIEW }
+  },
+  {
+    path: 'threshold-optimization',
+    loadChildren: () =>
+      import('./threshold-optimization/threshold-optimization.routes')
+        .then(r => r.THRESHOLD_OPTIMIZATION_ROUTES)
+        .catch(err => { console.error('[Route] threshold-optimization routes failed', err); throw err; }),
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredPolicy: PERMISSIONS.THRESHOLD_OPTIMIZATION.CALCULATE }
+  },
+  {
+    path: 'knowledge-base-stats',
+    loadChildren: () =>
+      import('./knowledge-base-stats/knowledge-base-stats.routes')
+        .then(r => r.KNOWLEDGE_BASE_STATS_ROUTES)
+        .catch(err => { console.error('[Route] knowledge-base-stats routes failed', err); throw err; }),
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredPolicy: PERMISSIONS.KNOWLEDGE_BASE.STATISTICS.VIEW }
   },
 ];

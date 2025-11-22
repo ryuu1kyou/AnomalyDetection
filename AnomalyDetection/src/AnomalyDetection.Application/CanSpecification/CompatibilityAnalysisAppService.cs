@@ -20,6 +20,7 @@ public class CompatibilityAnalysisAppService : ApplicationService, ICompatibilit
     private readonly CompatibilityAnalyzer _analyzer;
     private readonly CanSpecDiffService _diffService;
     private readonly IDistributedCache<CompatibilityStatusCacheItem> _statusCache;
+    private readonly Shared.Export.ExportService _exportService;
 
     private const string CompatibilityStatusCacheKeyFormat = "CanSpec:CompatStatus:{0}:{1}:{2}";
 
@@ -28,13 +29,15 @@ public class CompatibilityAnalysisAppService : ApplicationService, ICompatibilit
         IRepository<CanSpecImport, Guid> specRepository,
         CompatibilityAnalyzer analyzer,
         CanSpecDiffService diffService,
-        IDistributedCache<CompatibilityStatusCacheItem> statusCache)
+        IDistributedCache<CompatibilityStatusCacheItem> statusCache,
+        Shared.Export.ExportService exportService)
     {
         _analysisRepository = analysisRepository;
         _specRepository = specRepository;
         _analyzer = analyzer;
         _diffService = diffService;
         _statusCache = statusCache;
+        _exportService = exportService;
     }
 
     public async Task<CompatibilityAnalysisResultDto> AnalyzeCompatibilityAsync(
@@ -211,6 +214,78 @@ public class CompatibilityAnalysisAppService : ApplicationService, ICompatibilit
     public async Task DeleteAsync(Guid id)
     {
         await _analysisRepository.DeleteAsync(id);
+    }
+
+    public async Task<ExportedFileDto> ExportAsync(CompatibilityAnalysisExportDto input)
+    {
+        var analysis = await _analysisRepository.GetAsync(input.AnalysisId);
+
+        var rows = new List<object>();
+        rows.Add(new { Section = "Summary", analysis.CompatibilityLevel, analysis.CompatibilityScore, analysis.MigrationRisk, analysis.BreakingChangeCount, analysis.WarningCount, analysis.InfoCount, analysis.Summary });
+
+        if (input.IncludeIssues && analysis.Issues.Any())
+        {
+            foreach (var issue in analysis.Issues)
+            {
+                rows.Add(new {
+                    Section = "Issue",
+                    issue.Severity,
+                    issue.Category,
+                    issue.EntityType,
+                    issue.EntityName,
+                    issue.MessageId,
+                    issue.Description,
+                    issue.OldValue,
+                    issue.NewValue,
+                    issue.Recommendation
+                });
+            }
+        }
+
+        if (input.IncludeImpacts && analysis.Impacts.Any())
+        {
+            foreach (var impact in analysis.Impacts)
+            {
+                rows.Add(new {
+                    Section = "Impact",
+                    impact.AffectedArea,
+                    impact.AffectedMessageCount,
+                    impact.AffectedSignalCount,
+                    impact.Risk,
+                    impact.Impact,
+                    impact.MitigationStrategy,
+                    impact.EstimatedEffortHours
+                });
+            }
+        }
+
+        var exportFormat = input.Format?.ToLower() switch
+        {
+            "json" => Shared.Export.ExportService.ExportFormat.Json,
+            "pdf" => Shared.Export.ExportService.ExportFormat.Pdf,
+            "excel" => Shared.Export.ExportService.ExportFormat.Excel,
+            _ => Shared.Export.ExportService.ExportFormat.Csv
+        };
+
+        var request = new Shared.Export.ExportDetectionRequest
+        {
+            Results = rows,
+            Format = exportFormat,
+            FileNamePrefix = $"compat_analysis_{analysis.Id}",
+            GeneratedBy = CurrentUser.UserName ?? "system",
+            CsvOptions = new Shared.Export.CsvExportOptions { IncludeHeader = true }
+        };
+
+        var result = await _exportService.ExportDetectionResultsAsync(request);
+        return new ExportedFileDto
+        {
+            FileName = result.FileName,
+            ContentType = result.ContentType,
+            RecordCount = result.Metadata.RecordCount,
+            Format = result.Metadata.Format,
+            ExportedAt = result.Metadata.ExportedAt,
+            FileData = result.Data
+        };
     }
 
     private CompatibilityStatusDto BuildCompatibilityStatusDto(

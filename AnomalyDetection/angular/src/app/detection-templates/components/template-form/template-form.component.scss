@@ -1,0 +1,4 @@
+.template-form { padding: 1rem; max-width: 780px; }
+.form-body { display: flex; flex-direction: column; gap: 1rem; }
+.params { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1rem; }
+.loading { padding: 2rem; text-align: center; }

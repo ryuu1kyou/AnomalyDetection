@@ -22,6 +22,9 @@ public class AnomalyDetectionPermissionDefinitionProvider : PermissionDefinition
         DefineAnalysisPermissions(anomalyDetectionGroup);
         DefineAuditLogPermissions(anomalyDetectionGroup);
         DefineAdministrationPermissions(anomalyDetectionGroup);
+        DefineSafetyTracePermissions(anomalyDetectionGroup);
+        DefineCanSpecificationPermissions(anomalyDetectionGroup);
+        DefineKnowledgeBasePermissions(anomalyDetectionGroup);
     }
 
     private static void DefineCanSignalPermissions(PermissionGroupDefinition group)
@@ -314,6 +317,34 @@ public class AnomalyDetectionPermissionDefinitionProvider : PermissionDefinition
         analysisPermission.AddChild(
             AnomalyDetectionPermissions.Analysis.ManageAnalysisSettings,
             L("Permission:Analysis.ManageAnalysisSettings"));
+
+        // Threshold Optimization
+        var thresholdPermission = analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ThresholdOptimization.Default,
+            L("Permission:Analysis.ThresholdOptimization"));
+        thresholdPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ThresholdOptimization.Calculate,
+            L("Permission:Analysis.ThresholdOptimization.Calculate"));
+        thresholdPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ThresholdOptimization.Export,
+            L("Permission:Analysis.ThresholdOptimization.Export"));
+        thresholdPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.ThresholdOptimization.Apply,
+            L("Permission:Analysis.ThresholdOptimization.Apply"));
+
+        // Compatibility Analysis
+        var compatPermission = analysisPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.Compatibility.Default,
+            L("Permission:Analysis.Compatibility"));
+        compatPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.Compatibility.Run,
+            L("Permission:Analysis.Compatibility.Run"));
+        compatPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.Compatibility.View,
+            L("Permission:Analysis.Compatibility.View"));
+        compatPermission.AddChild(
+            AnomalyDetectionPermissions.Analysis.Compatibility.Export,
+            L("Permission:Analysis.Compatibility.Export"));
     }
 
     private static void DefineAuditLogPermissions(PermissionGroupDefinition group)
@@ -368,6 +399,74 @@ public class AnomalyDetectionPermissionDefinitionProvider : PermissionDefinition
         administrationPermission.AddChild(
             AnomalyDetectionPermissions.Administration.ManageBackups,
             L("Permission:Administration.ManageBackups"));
+    }
+
+    private static void DefineSafetyTracePermissions(PermissionGroupDefinition group)
+    {
+        var safetyTraceGroup = group.AddPermission(
+            AnomalyDetectionPermissions.SafetyTrace.Default,
+            L("Permission:SafetyTrace"));
+
+        var safetyTraceAudit = safetyTraceGroup.AddChild(
+            AnomalyDetectionPermissions.SafetyTrace.Audit.Default,
+            L("Permission:SafetyTrace.Audit"));
+        safetyTraceAudit.AddChild(
+            AnomalyDetectionPermissions.SafetyTrace.Audit.View,
+            L("Permission:SafetyTrace.Audit.View"));
+        safetyTraceAudit.AddChild(
+            AnomalyDetectionPermissions.SafetyTrace.Audit.Export,
+            L("Permission:SafetyTrace.Audit.Export"));
+
+        var safetyTraceRecords = safetyTraceGroup.AddChild(
+            AnomalyDetectionPermissions.SafetyTrace.Records.Default,
+            L("Permission:SafetyTrace.Records"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.Create, L("Permission:SafetyTrace.Records.Create"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.Edit, L("Permission:SafetyTrace.Records.Edit"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.Submit, L("Permission:SafetyTrace.Records.Submit"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.Approve, L("Permission:SafetyTrace.Records.Approve"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.Reject, L("Permission:SafetyTrace.Records.Reject"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.View, L("Permission:SafetyTrace.Records.View"));
+        safetyTraceRecords.AddChild(AnomalyDetectionPermissions.SafetyTrace.Records.Export, L("Permission:SafetyTrace.Records.Export"));
+    }
+
+    private static void DefineCanSpecificationPermissions(PermissionGroupDefinition group)
+    {
+        var canSpecPermission = group.AddPermission(
+            AnomalyDetectionPermissions.CanSpecification.Default,
+            L("Permission:CanSpecification"));
+
+        canSpecPermission.AddChild(AnomalyDetectionPermissions.CanSpecification.Import, L("Permission:CanSpecification.Import"));
+        canSpecPermission.AddChild(AnomalyDetectionPermissions.CanSpecification.View, L("Permission:CanSpecification.View"));
+
+        var canSpecDiff = canSpecPermission.AddChild(
+            AnomalyDetectionPermissions.CanSpecification.Diff.Default,
+            L("Permission:CanSpecification.Diff"));
+        canSpecDiff.AddChild(AnomalyDetectionPermissions.CanSpecification.Diff.View, L("Permission:CanSpecification.Diff.View"));
+        canSpecDiff.AddChild(AnomalyDetectionPermissions.CanSpecification.Diff.Export, L("Permission:CanSpecification.Diff.Export"));
+    }
+
+    private static void DefineKnowledgeBasePermissions(PermissionGroupDefinition group)
+    {
+        var kbPermission = group.AddPermission(
+            AnomalyDetectionPermissions.KnowledgeBase.Default,
+            L("Permission:KnowledgeBase"));
+
+        kbPermission.AddChild(
+            AnomalyDetectionPermissions.KnowledgeBase.View,
+            L("Permission:KnowledgeBase.View"));
+        kbPermission.AddChild(
+            AnomalyDetectionPermissions.KnowledgeBase.Manage,
+            L("Permission:KnowledgeBase.Manage"));
+
+        var kbStatsPermission = kbPermission.AddChild(
+            AnomalyDetectionPermissions.KnowledgeBase.Statistics.Default,
+            L("Permission:KnowledgeBase.Statistics"));
+        kbStatsPermission.AddChild(
+            AnomalyDetectionPermissions.KnowledgeBase.Statistics.View,
+            L("Permission:KnowledgeBase.Statistics.View"));
+        kbStatsPermission.AddChild(
+            AnomalyDetectionPermissions.KnowledgeBase.Statistics.Export,
+            L("Permission:KnowledgeBase.Statistics.Export"));
     }
 
     private static LocalizableString L(string name)

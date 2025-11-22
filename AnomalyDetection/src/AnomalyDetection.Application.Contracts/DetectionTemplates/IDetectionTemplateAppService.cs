@@ -43,6 +43,8 @@ public class DetectionTemplateDto
     public int DetectionType { get; set; }
     public Dictionary<string, object> DefaultParameters { get; set; } = new();
     public List<ParameterDefinitionDto> ParameterDefinitions { get; set; } = new();
+    public int? UseCount { get; set; }
+    public DateTime? LastUsedAt { get; set; }
 }
 
 /// <summary>

@@ -111,6 +111,22 @@ public static class AnomalyDetectionPermissions
         public const string ViewAnalysisReports = Default + ".ViewAnalysisReports";
         public const string ExportAnalysisData = Default + ".ExportAnalysisData";
         public const string ManageAnalysisSettings = Default + ".ManageAnalysisSettings";
+        // Threshold Optimization sub-permissions
+        public static class ThresholdOptimization
+        {
+            public const string Default = Analysis.Default + ".ThresholdOptimization";
+            public const string Calculate = Default + ".Calculate";
+            public const string Export = Default + ".Export";
+            public const string Apply = Default + ".Apply"; // Bulk apply recommended thresholds
+        }
+        // Compatibility Analysis sub-permissions
+        public static class Compatibility
+        {
+            public const string Default = Analysis.Default + ".Compatibility";
+            public const string Run = Default + ".Run";
+            public const string View = Default + ".View";
+            public const string Export = Default + ".Export";
+        }
     }
 
     // Audit Log Permissions
@@ -133,5 +149,56 @@ public static class AnomalyDetectionPermissions
         public const string ManageSystemSettings = Default + ".ManageSystemSettings";
         public const string ViewSystemHealth = Default + ".ViewSystemHealth";
         public const string ManageBackups = Default + ".ManageBackups";
+    }
+
+    // Safety Trace Permissions
+    public static class SafetyTrace
+    {
+        public const string Default = GroupName + ".SafetyTrace";
+        public static class Audit
+        {
+            public const string Default = SafetyTrace.Default + ".Audit";
+            public const string View = Default + ".View"; // view aggregate dashboard
+            public const string Export = Default + ".Export"; // export audit report
+        }
+        public static class Records
+        {
+            public const string Default = SafetyTrace.Default + ".Records";
+            public const string Create = Default + ".Create";
+            public const string Edit = Default + ".Edit";
+            public const string Submit = Default + ".Submit";
+            public const string Approve = Default + ".Approve";
+            public const string Reject = Default + ".Reject";
+            public const string View = Default + ".View";
+            public const string Export = Default + ".Export";
+        }
+    }
+
+    // CAN Specification Permissions
+    public static class CanSpecification
+    {
+        public const string Default = GroupName + ".CanSpecification";
+        public const string Import = Default + ".Import";
+        public const string View = Default + ".View"; // list & details
+        public static class Diff
+        {
+            public const string Default = CanSpecification.Default + ".Diff";
+            public const string View = Default + ".View";
+            public const string Export = Default + ".Export";
+        }
+    }
+
+    // Knowledge Base Permissions (new group for statistics export)
+    public static class KnowledgeBase
+    {
+        public const string Default = GroupName + ".KnowledgeBase";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage"; // create/update/delete articles
+        public static class Statistics
+        {
+            public const string Default = KnowledgeBase.Default + ".Statistics";
+            public const string View = Default + ".View";
+            public const string Export = Default + ".Export";
+        }
     }
 }

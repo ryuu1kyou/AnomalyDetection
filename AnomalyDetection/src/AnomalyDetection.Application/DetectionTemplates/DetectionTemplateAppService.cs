@@ -17,6 +17,8 @@ public class DetectionTemplateAppService : ApplicationService, IDetectionTemplat
     private readonly DetectionTemplateFactory _templateFactory;
     private readonly IRepository<CanAnomalyDetectionLogic, Guid> _detectionLogicRepository;
     private readonly IRepository<CanSignal, Guid> _canSignalRepository;
+    private static readonly object _usageLock = new();
+    private static readonly Dictionary<DetectionTemplateFactory.TemplateType, TemplateUsageInfo> _usage = new();
 
     public DetectionTemplateAppService(
         DetectionTemplateFactory templateFactory,
@@ -32,14 +34,24 @@ public class DetectionTemplateAppService : ApplicationService, IDetectionTemplat
     {
         var templates = _templateFactory.GetAvailableTemplates();
 
-        var dtos = templates.Select(t => new DetectionTemplateDto
+        var dtos = templates.Select(t =>
         {
-            Type = (int)t.Type,
-            Name = t.Name,
-            Description = t.Description,
-            DetectionType = (int)t.DetectionType,
-            DefaultParameters = new Dictionary<string, object>(t.DefaultParameters, StringComparer.OrdinalIgnoreCase),
-            ParameterDefinitions = t.ParameterDefinitions.Select(MapParameterDefinition).ToList()
+            TemplateUsageInfo usage;
+            lock (_usageLock)
+            {
+                _usage.TryGetValue(t.Type, out usage!);
+            }
+            return new DetectionTemplateDto
+            {
+                Type = (int)t.Type,
+                Name = t.Name,
+                Description = t.Description,
+                DetectionType = (int)t.DetectionType,
+                DefaultParameters = new Dictionary<string, object>(t.DefaultParameters, StringComparer.OrdinalIgnoreCase),
+                ParameterDefinitions = t.ParameterDefinitions.Select(MapParameterDefinition).ToList(),
+                UseCount = usage?.Count,
+                LastUsedAt = usage?.LastUsedAt
+            };
         }).ToList();
 
         return Task.FromResult(new ListResultDto<DetectionTemplateDto>(dtos));
@@ -56,6 +68,12 @@ public class DetectionTemplateAppService : ApplicationService, IDetectionTemplat
             throw new Volo.Abp.BusinessException("TEMPLATE_NOT_FOUND");
         }
 
+        TemplateUsageInfo usage;
+        lock (_usageLock)
+        {
+            _usage.TryGetValue(template.Type, out usage!);
+        }
+
         var dto = new DetectionTemplateDto
         {
             Type = (int)template.Type,
@@ -63,7 +81,9 @@ public class DetectionTemplateAppService : ApplicationService, IDetectionTemplat
             Description = template.Description,
             DetectionType = (int)template.DetectionType,
             DefaultParameters = new Dictionary<string, object>(template.DefaultParameters, StringComparer.OrdinalIgnoreCase),
-            ParameterDefinitions = template.ParameterDefinitions.Select(MapParameterDefinition).ToList()
+            ParameterDefinitions = template.ParameterDefinitions.Select(MapParameterDefinition).ToList(),
+            UseCount = usage?.Count,
+            LastUsedAt = usage?.LastUsedAt
         };
 
         return Task.FromResult(dto);
@@ -137,6 +157,18 @@ public class DetectionTemplateAppService : ApplicationService, IDetectionTemplat
         logic.UpdateSharingLevel(SharingLevel.Private);
 
         await _detectionLogicRepository.InsertAsync(logic, autoSave: true);
+
+        // Update usage stats
+        lock (_usageLock)
+        {
+            if (!_usage.TryGetValue(template.Type, out var info))
+            {
+                info = new TemplateUsageInfo();
+                _usage[template.Type] = info;
+            }
+            info.Count += 1;
+            info.LastUsedAt = Clock.Now;
+        }
 
         return new DetectionLogicDto
         {
@@ -467,4 +499,10 @@ public class DetectionTemplateAppService : ApplicationService, IDetectionTemplat
                 return double.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out numeric);
         }
     }
+}
+
+internal class TemplateUsageInfo
+{
+    public int Count { get; set; }
+    public DateTime LastUsedAt { get; set; }
 }

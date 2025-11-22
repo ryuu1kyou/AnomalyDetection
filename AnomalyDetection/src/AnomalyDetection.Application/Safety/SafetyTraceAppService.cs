@@ -7,16 +7,27 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
+using AnomalyDetection.Application.Monitoring;
 
 namespace AnomalyDetection.Safety;
 
 public class SafetyTraceAppService : ApplicationService, ISafetyTraceAppService
 {
     private readonly IRepository<SafetyTraceRecord, Guid> _repository;
+    private readonly IRepository<SafetyTraceLink, Guid> _linkRepository;
+    private readonly IRepository<SafetyTraceLinkHistory, Guid> _linkHistoryRepository;
+    private readonly IMonitoringService _monitoringService;
 
-    public SafetyTraceAppService(IRepository<SafetyTraceRecord, Guid> repository)
+    public SafetyTraceAppService(
+        IRepository<SafetyTraceRecord, Guid> repository,
+        IRepository<SafetyTraceLink, Guid> linkRepository,
+        IRepository<SafetyTraceLinkHistory, Guid> linkHistoryRepository,
+        IMonitoringService monitoringService)
     {
         _repository = repository;
+        _linkRepository = linkRepository;
+        _linkHistoryRepository = linkHistoryRepository;
+        _monitoringService = monitoringService;
     }
 
     public async Task<SafetyTraceRecordDto> GetAsync(Guid id)
@@ -97,6 +108,18 @@ public class SafetyTraceAppService : ApplicationService, ISafetyTraceAppService
         }
 
         await _repository.UpdateAsync(record, autoSave: true);
+        return ObjectMapper.Map<SafetyTraceRecord, SafetyTraceRecordDto>(record);
+    }
+
+    public async Task<SafetyTraceRecordDto> UpdateAsilLevelAsync(Guid id, int asilLevel, string reason)
+    {
+        var record = await _repository.GetAsync(id);
+        var oldLevel = (int)record.AsilLevel;
+        var oldStatus = record.ApprovalStatus;
+        record.UpdateAsilLevel((AsilLevel)asilLevel, CurrentUser.GetId(), reason);
+        await _repository.UpdateAsync(record, autoSave: true);
+        var reReview = oldStatus == ApprovalStatus.Approved && record.ApprovalStatus != ApprovalStatus.Approved;
+        _monitoringService.TrackAsilLevelChange(oldLevel, (int)record.AsilLevel, reReview);
         return ObjectMapper.Map<SafetyTraceRecord, SafetyTraceRecordDto>(record);
     }
 
@@ -193,5 +216,115 @@ public class SafetyTraceAppService : ApplicationService, ISafetyTraceAppService
         var record = await _repository.GetAsync(id);
         var summary = record.CalculateChangeImpact();
         return ObjectMapper.Map<ChangeImpactSummary, ChangeImpactSummaryDto>(summary);
+    }
+
+    // --- New link persistence & querying methods ---
+    public async Task<SafetyTraceLinkPersistenceResultDto> SyncLinkMatrixAsync(SafetyTraceLinkMatrixSyncInput input)
+    {
+        // Heuristic: all records with DetectionLogicId produce a link of type input.LinkType
+        var queryable = await _repository.GetQueryableAsync();
+        if (input.OnlyApproved)
+        {
+            queryable = queryable.Where(r => r.ApprovalStatus == ApprovalStatus.Approved);
+        }
+        var records = await AsyncExecuter.ToListAsync(queryable);
+        var candidates = records.Where(r => r.DetectionLogicId.HasValue)
+            .Select(r => (r.Id, r.DetectionLogicId!.Value))
+            .Distinct()
+            .ToHashSet();
+
+        var existingQueryable = await _linkRepository.GetQueryableAsync();
+        var existing = existingQueryable.Where(l => l.LinkType == input.LinkType).ToList();
+        var existingSet = existing.Select(e => (e.SourceRecordId, e.TargetRecordId)).ToHashSet();
+
+        var toAdd = candidates.Except(existingSet).ToList();
+        var toRemove = existingSet.Except(candidates).ToList();
+
+        var addedDtos = new System.Collections.Generic.List<SafetyTraceLinkDto>();
+        var removedDtos = new System.Collections.Generic.List<SafetyTraceLinkDto>();
+
+        foreach (var (sourceId, targetId) in toAdd)
+        {
+            var link = new SafetyTraceLink(GuidGenerator.Create(), sourceId, targetId, input.LinkType, input.Relation);
+            await _linkRepository.InsertAsync(link, autoSave: true);
+            await _linkHistoryRepository.InsertAsync(new SafetyTraceLinkHistory(GuidGenerator.Create(), link.Id, "Added", string.Empty, input.LinkType, "Sync add"), autoSave: true);
+            addedDtos.Add(new SafetyTraceLinkDto
+            {
+                Id = link.Id,
+                SourceRecordId = link.SourceRecordId,
+                TargetRecordId = link.TargetRecordId,
+                LinkType = link.LinkType,
+                Relation = link.Relation,
+                CreationTime = link.CreationTime,
+                LastModificationTime = link.LastModificationTime
+            });
+        }
+
+        foreach (var (sourceId, targetId) in toRemove)
+        {
+            var link = existing.First(l => l.SourceRecordId == sourceId && l.TargetRecordId == targetId);
+            await _linkRepository.DeleteAsync(link, autoSave: true);
+            await _linkHistoryRepository.InsertAsync(new SafetyTraceLinkHistory(GuidGenerator.Create(), link.Id, "Removed", link.LinkType, string.Empty, "Sync remove"), autoSave: true);
+            removedDtos.Add(new SafetyTraceLinkDto
+            {
+                Id = link.Id,
+                SourceRecordId = link.SourceRecordId,
+                TargetRecordId = link.TargetRecordId,
+                LinkType = link.LinkType,
+                Relation = link.Relation,
+                CreationTime = link.CreationTime,
+                LastModificationTime = link.LastModificationTime
+            });
+        }
+
+        return new SafetyTraceLinkPersistenceResultDto
+        {
+            ExecutedAt = DateTime.UtcNow,
+            AddedCount = addedDtos.Count,
+            RemovedCount = removedDtos.Count,
+            UpdatedCount = 0,
+            Diff = new SafetyTraceLinkDiffDto
+            {
+                Added = addedDtos,
+                Removed = removedDtos,
+                Updated = new System.Collections.Generic.List<SafetyTraceLinkDto>()
+            }
+        };
+    }
+
+    public async Task<System.Collections.Generic.List<SafetyTraceLinkDto>> GetLinksAsync(SafetyTraceLinkQueryInput input)
+    {
+        var queryable = await _linkRepository.GetQueryableAsync();
+        if (input.SourceRecordId.HasValue) queryable = queryable.Where(x => x.SourceRecordId == input.SourceRecordId.Value);
+        if (input.TargetRecordId.HasValue) queryable = queryable.Where(x => x.TargetRecordId == input.TargetRecordId.Value);
+        if (!string.IsNullOrWhiteSpace(input.LinkType)) queryable = queryable.Where(x => x.LinkType == input.LinkType);
+        var list = await AsyncExecuter.ToListAsync(queryable);
+        return list.Select(x => new SafetyTraceLinkDto
+        {
+            Id = x.Id,
+            SourceRecordId = x.SourceRecordId,
+            TargetRecordId = x.TargetRecordId,
+            LinkType = x.LinkType,
+            Relation = x.Relation,
+            CreationTime = x.CreationTime,
+            LastModificationTime = x.LastModificationTime
+        }).ToList();
+    }
+
+    public async Task<System.Collections.Generic.List<SafetyTraceLinkHistoryDto>> GetLinkHistoryAsync(Guid linkId)
+    {
+        var queryable = await _linkHistoryRepository.GetQueryableAsync();
+        queryable = queryable.Where(x => x.LinkId == linkId).OrderByDescending(x => x.ChangeTime);
+        var list = await AsyncExecuter.ToListAsync(queryable);
+        return list.Select(x => new SafetyTraceLinkHistoryDto
+        {
+            Id = x.Id,
+            LinkId = x.LinkId,
+            ChangeType = x.ChangeType,
+            OldLinkType = x.OldLinkType,
+            NewLinkType = x.NewLinkType,
+            Notes = x.Notes,
+            ChangeTime = x.ChangeTime
+        }).ToList();
     }
 }

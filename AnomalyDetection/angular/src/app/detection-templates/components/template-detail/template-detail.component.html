@@ -1,0 +1,28 @@
+<div class="template-detail" *ngIf="template() as t">
+  <h2>{{ t.name }} Template</h2>
+  <p>{{ t.description }}</p>
+  <mat-card>
+    <h3>Parameters</h3>
+    <table class="params">
+      <thead>
+        <tr><th>Name</th><th>Type</th><th>Default</th><th>Range</th><th>Required</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of t.parameters">
+          <td>{{ p.name }}</td>
+          <td>{{ p.type }}</td>
+          <td>{{ p.defaultValue ?? '—' }}</td>
+          <td>{{ p.min ?? '—' }} - {{ p.max ?? '—' }}</td>
+          <td>{{ p.required ? 'Yes' : 'No' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="meta">
+      <span>Template Type: {{ t.templateType }}</span>
+      <span>Version: {{ t.version || '—' }}</span>
+      <span>Last Used: {{ t.lastUsedAt || '—' }}</span>
+    </div>
+    <button mat-raised-button color="primary" [routerLink]="['/detection-templates','create']" [queryParams]="{ templateType: t.templateType }">Create Logic From This</button>
+  </mat-card>
+</div>
+<div *ngIf="!template() && !loading()" class="empty-state">No template found.</div>

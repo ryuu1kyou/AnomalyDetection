@@ -12,6 +12,13 @@ public interface ISafetyTraceAppService : IApplicationService
     Task<PagedResultDto<SafetyTraceRecordDto>> GetListAsync(GetSafetyTraceRecordsInput input);
     Task<SafetyTraceRecordDto> CreateAsync(CreateSafetyTraceRecordDto input);
     Task<SafetyTraceRecordDto> UpdateAsync(Guid id, UpdateSafetyTraceRecordDto input);
+    /// <summary>
+    /// Updates only the ASIL level for a record with audit + re-review logic and returns the updated DTO.
+    /// </summary>
+    /// <param name="id">Record identifier</param>
+    /// <param name="asilLevel">New ASIL level (int enum value)</param>
+    /// <param name="reason">Business justification (stored in audit trail)</param>
+    Task<SafetyTraceRecordDto> UpdateAsilLevelAsync(Guid id, int asilLevel, string reason);
     Task DeleteAsync(Guid id);
     Task SubmitAsync(Guid id);
     Task ApproveAsync(Guid id, ApprovalDto input);
@@ -25,6 +32,9 @@ public interface ISafetyTraceAppService : IApplicationService
     Task LinkTraceabilityAsync(Guid id, TraceabilityLinkInputDto input);
     Task<SafetyTraceAuditSnapshotDto> GetAuditSnapshotAsync(Guid id);
     Task<ChangeImpactSummaryDto> GetChangeImpactAsync(Guid id);
+    Task<SafetyTraceLinkPersistenceResultDto> SyncLinkMatrixAsync(SafetyTraceLinkMatrixSyncInput input);
+    Task<List<SafetyTraceLinkDto>> GetLinksAsync(SafetyTraceLinkQueryInput input);
+    Task<List<SafetyTraceLinkHistoryDto>> GetLinkHistoryAsync(Guid linkId);
 }
 
 public class SafetyTraceRecordDto : FullAuditedEntityDto<Guid>
@@ -202,4 +212,54 @@ public class ChangeImpactSummaryDto
     public int PendingHighRiskChanges { get; set; }
     public int OutstandingVerifications { get; set; }
     public int OutstandingValidations { get; set; }
+}
+
+public class SafetyTraceLinkDto : EntityDto<Guid>
+{
+    public Guid SourceRecordId { get; set; }
+    public Guid TargetRecordId { get; set; }
+    public string LinkType { get; set; } = string.Empty;
+    public string Relation { get; set; } = string.Empty;
+    public DateTime CreationTime { get; set; }
+    public DateTime? LastModificationTime { get; set; }
+}
+
+public class SafetyTraceLinkHistoryDto : EntityDto<Guid>
+{
+    public Guid LinkId { get; set; }
+    public string ChangeType { get; set; } = string.Empty;
+    public string OldLinkType { get; set; } = string.Empty;
+    public string NewLinkType { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public DateTime ChangeTime { get; set; }
+}
+
+public class SafetyTraceLinkMatrixSyncInput
+{
+    public bool OnlyApproved { get; set; } = true;
+    public string Relation { get; set; } = "implements"; // default relation label
+    public string LinkType { get; set; } = "DetectionLogic";
+}
+
+public class SafetyTraceLinkQueryInput
+{
+    public Guid? SourceRecordId { get; set; }
+    public Guid? TargetRecordId { get; set; }
+    public string? LinkType { get; set; }
+}
+
+public class SafetyTraceLinkDiffDto
+{
+    public List<SafetyTraceLinkDto> Added { get; set; } = new();
+    public List<SafetyTraceLinkDto> Removed { get; set; } = new();
+    public List<SafetyTraceLinkDto> Updated { get; set; } = new();
+}
+
+public class SafetyTraceLinkPersistenceResultDto
+{
+    public DateTime ExecutedAt { get; set; }
+    public int AddedCount { get; set; }
+    public int RemovedCount { get; set; }
+    public int UpdatedCount { get; set; }
+    public SafetyTraceLinkDiffDto Diff { get; set; } = new();
 }

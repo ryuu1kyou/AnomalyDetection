@@ -1,0 +1,5 @@
+/* Fallback font definitions to bypass remote Google Fonts inlining failures */
+:root {
+  --app-font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+body { font-family: var(--app-font-family); }

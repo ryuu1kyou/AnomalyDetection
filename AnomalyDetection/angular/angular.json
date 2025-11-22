@@ -102,14 +102,9 @@
                 "bundleName": "bootstrap-dim.rtl"
               },
               {
-                "input": "node_modules/@volo/ngx-lepton-x.lite/assets/css/font-bundle.css",
-                "inject": false,
-                "bundleName": "font-bundle"
-              },
-              {
-                "input": "node_modules/@volo/ngx-lepton-x.lite/assets/css/font-bundle.rtl.css",
-                "inject": false,
-                "bundleName": "font-bundle.rtl"
+                "input": "src/assets/styles/font-fallback.css",
+                "inject": true,
+                "bundleName": "font-fallback"
               },
               {
                 "input": "node_modules/@volo/ngx-lepton-x.lite/assets/css/ng-bundle.rtl.css",

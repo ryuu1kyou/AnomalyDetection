@@ -1029,7 +1029,7 @@
   resolved "https://registry.npmjs.org/@lmdb/lmdb-win32-x64/-/lmdb-win32-x64-3.4.2.tgz"
   integrity sha512-IY+r3bxKW6Q6sIPiMC0L533DEfRJSXibjSI3Ft/w9Q8KQBNqEIvUFXt+09wV8S5BRk0a8uSF19YWxuRwEfI90g==
 
-"@microsoft/signalr@^8.0.7":
+"@microsoft/signalr@^8.0.17":
   version "8.0.17"
   resolved "https://registry.npmjs.org/@microsoft/signalr/-/signalr-8.0.17.tgz"
   integrity sha512-5pM6xPtKZNJLO0Tq5nQasVyPFwi/WBY3QB5uc/v3dIPTpS1JXQbaXAQAPxFoQ5rTBFE094w8bbqkp17F9ReQvA==

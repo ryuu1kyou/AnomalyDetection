@@ -33,7 +33,7 @@ import {
   DetectionTemplateSummary,
   TemplateParameterDefinition,
 } from '../services/detection-logic.service';
-import { DetectionType } from '../../detection-results/models/detection-result.model';
+import { DetectionType } from '../../detection-logics/models/detection-logic.model';
 import { CanSignalService, CanSignalLookup } from '../../shared/services/can-signal.service';
 
 interface DetectionTypeOption {

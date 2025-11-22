@@ -1,0 +1,20 @@
+.template-list {
+  padding: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.filter-field { width: 280px; }
+
+.template-link { cursor: pointer; font-weight: 500; }
+.desc { font-size: 0.75rem; color: #666; }
+
+.param-chip { font-size: 0.7rem; }
+
+.table { width: 100%; }
+.loading { display: flex; justify-content: center; padding: 2rem; }

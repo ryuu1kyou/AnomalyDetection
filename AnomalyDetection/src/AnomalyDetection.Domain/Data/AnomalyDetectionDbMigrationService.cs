@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Configuration;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Identity;
@@ -24,17 +25,20 @@ public class AnomalyDetectionDbMigrationService : ITransientDependency
     private readonly IEnumerable<IAnomalyDetectionDbSchemaMigrator> _dbSchemaMigrators;
     private readonly ITenantRepository _tenantRepository;
     private readonly ICurrentTenant _currentTenant;
+    private readonly IConfiguration _configuration;
 
     public AnomalyDetectionDbMigrationService(
         IDataSeeder dataSeeder,
         ITenantRepository tenantRepository,
         ICurrentTenant currentTenant,
-        IEnumerable<IAnomalyDetectionDbSchemaMigrator> dbSchemaMigrators)
+        IEnumerable<IAnomalyDetectionDbSchemaMigrator> dbSchemaMigrators,
+        IConfiguration configuration)
     {
         _dataSeeder = dataSeeder;
         _tenantRepository = tenantRepository;
         _currentTenant = currentTenant;
         _dbSchemaMigrators = dbSchemaMigrators;
+        _configuration = configuration;
 
         Logger = NullLogger<AnomalyDetectionDbMigrationService>.Instance;
     }
@@ -45,6 +49,14 @@ public class AnomalyDetectionDbMigrationService : ITransientDependency
 
         if (initialMigrationAdded)
         {
+            return;
+        }
+
+        // Guard: if no host connection string configured, skip entire migration/seeding process gracefully.
+        var hostConnectionString = _configuration.GetConnectionString("Default");
+        if (string.IsNullOrWhiteSpace(hostConnectionString))
+        {
+            Logger.LogWarning("Skipping all migrations: 'Default' connection string not configured.");
             return;
         }
 
@@ -104,13 +116,24 @@ public class AnomalyDetectionDbMigrationService : ITransientDependency
     private async Task SeedDataAsync(Tenant? tenant = null)
     {
         Logger.LogInformation($"Executing {(tenant == null ? "host" : tenant.Name + " tenant")} database seed...");
-        
-        await _dataSeeder.SeedAsync(new DataSeedContext(tenant?.Id)
-            .WithProperty(IdentityDataSeedContributor.AdminEmailPropertyName,
-                AnomalyDetectionConsts.AdminEmailDefaultValue)
-            .WithProperty(IdentityDataSeedContributor.AdminPasswordPropertyName,
-                AnomalyDetectionConsts.AdminPasswordDefaultValue)
-        );
+        try
+        {
+            await _dataSeeder.SeedAsync(new DataSeedContext(tenant?.Id)
+                .WithProperty(IdentityDataSeedContributor.AdminEmailPropertyName,
+                    AnomalyDetectionConsts.AdminEmailDefaultValue)
+                .WithProperty(IdentityDataSeedContributor.AdminPasswordPropertyName,
+                    AnomalyDetectionConsts.AdminPasswordDefaultValue)
+            );
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogWarning("Skipping data seed: connection string not configured ({Message})", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Data seeding failed.");
+            throw;
+        }
     }
 
     private bool AddInitialMigrationIfNotExist()

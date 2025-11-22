@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AnomalyDetection.AnomalyDetection;
 using Volo.Abp.Domain.Entities.Auditing;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AnomalyDetection.Safety;
 
@@ -92,6 +93,56 @@ public class SafetyTraceRecord : FullAuditedAggregateRoot<Guid>
         ApprovalComments = comments;
         AddAuditEntry("Rejected", approverUserId, comments);
         AddLifecycleEvent(LifecycleStage.Validation, "Trace record rejected", approverUserId, comments);
+    }
+
+    /// <summary>
+    /// Updates the ASIL level. If the record was previously approved and the ASIL level changes
+    /// (especially to a higher level requiring additional scrutiny), the record is moved back to
+    /// an UnderReview state (or Submitted for lower ASIL) and prior approval metadata is cleared.
+    /// Adds audit trail & lifecycle event entries for traceability.
+    /// </summary>
+    /// <param name="newLevel">New ASIL level</param>
+    /// <param name="changedBy">User performing the change</param>
+    /// <param name="reason">Business reason / justification</param>
+    public void UpdateAsilLevel(AsilLevel newLevel, Guid changedBy, string reason)
+    {
+        if (newLevel == AsilLevel)
+        {
+            // No change - record informational audit and exit
+            AddAuditEntry("ASIL level change attempted with same value", changedBy, reason);
+            return;
+        }
+
+        var previousLevel = AsilLevel;
+        AsilLevel = newLevel;
+
+        // If previously approved, force re-review depending on new level risk profile
+        if (ApprovalStatus == ApprovalStatus.Approved)
+        {
+            // Clear previous approval metadata
+            ApprovedAt = null;
+            ApprovedBy = null;
+            ApprovalComments = string.Empty;
+
+            // Determine new workflow state: higher ASIL levels require UnderReview
+            ApprovalStatus = newLevel >= AsilLevel.C
+                ? ApprovalStatus.UnderReview
+                : ApprovalStatus.Submitted;
+        }
+        else if (ApprovalStatus == ApprovalStatus.Rejected)
+        {
+            // Transition rejected items back into review when ASIL changes (risk may have altered)
+            ApprovalStatus = newLevel >= AsilLevel.C
+                ? ApprovalStatus.UnderReview
+                : ApprovalStatus.Submitted;
+        }
+
+        // Increment version to mark structural/safety relevant change
+        Version += 1;
+
+        var notes = $"ASIL level changed {previousLevel} -> {newLevel}. Reason: {reason}";
+        AddAuditEntry("ASIL level updated", changedBy, notes);
+        AddLifecycleEvent(LifecycleStage.Validation, "ASIL level change applied", changedBy, notes);
     }
 
     public void AddVerification(string method, string result, Guid verifierId)
@@ -264,6 +315,7 @@ public enum ApprovalStatus
     Rejected = 4
 }
 
+[NotMapped]
 public class VerificationRecord
 {
     public string Method { get; set; } = string.Empty;
@@ -272,6 +324,7 @@ public class VerificationRecord
     public DateTime VerifiedAt { get; set; }
 }
 
+[NotMapped]
 public class ValidationRecord
 {
     public string Criteria { get; set; } = string.Empty;
@@ -280,6 +333,7 @@ public class ValidationRecord
     public DateTime ValidatedAt { get; set; }
 }
 
+[NotMapped]
 public class AuditEntry
 {
     public string Action { get; set; } = string.Empty;
@@ -299,6 +353,7 @@ public enum LifecycleStage
     Operation = 6
 }
 
+[NotMapped]
 public class LifecycleEvent
 {
     public LifecycleStage Stage { get; set; }
@@ -316,6 +371,7 @@ public enum ChangeApprovalStatus
     Rejected = 3
 }
 
+[NotMapped]
 public class ChangeRequestRecord
 {
     public string ChangeId { get; set; } = string.Empty;
@@ -339,6 +395,7 @@ public enum TraceabilityArtifactType
     Evidence = 6
 }
 
+[NotMapped]
 public class TraceabilityLinkRecord
 {
     public string SourceId { get; set; } = string.Empty;
@@ -349,6 +406,7 @@ public class TraceabilityLinkRecord
     public DateTime LinkedAt { get; set; }
 }
 
+[NotMapped]
 public class SafetyTraceAuditSnapshot
 {
     public Guid RecordId { get; set; }
@@ -365,6 +423,7 @@ public class SafetyTraceAuditSnapshot
     public List<ValidationRecord> Validations { get; set; } = new();
 }
 
+[NotMapped]
 public class ChangeImpactSummary
 {
     public bool RequiresSafetyApproval { get; set; }

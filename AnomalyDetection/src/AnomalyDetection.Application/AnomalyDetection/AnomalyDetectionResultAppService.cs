@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
+using System.Diagnostics;
+using AnomalyDetection.RealTime;
+using AnomalyDetection.AnomalyDetection.Events;
+using Volo.Abp.EventBus.Local;
+using AnomalyDetection.Application.Monitoring;
 using System.Threading.Tasks;
 using AnomalyDetection.AnomalyDetection.Dtos;
 using AnomalyDetection.KnowledgeBase;
@@ -20,15 +25,24 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
     private readonly IRepository<AnomalyDetectionResult, Guid> _resultRepository;
     private readonly ExportService _exportService;
     private readonly IKnowledgeArticleRecommendationService _recommendationService;
+    private readonly IRealTimeNotificationService _realTimeNotificationService;
+    private readonly ILocalEventBus _localEventBus;
+    private readonly IMonitoringService _monitoringService;
 
     public AnomalyDetectionResultAppService(
         IRepository<AnomalyDetectionResult, Guid> resultRepository,
         ExportService exportService,
-        IKnowledgeArticleRecommendationService recommendationService)
+        IKnowledgeArticleRecommendationService recommendationService,
+        IRealTimeNotificationService realTimeNotificationService,
+        ILocalEventBus localEventBus,
+        IMonitoringService monitoringService)
     {
         _resultRepository = resultRepository;
         _exportService = exportService;
         _recommendationService = recommendationService;
+        _realTimeNotificationService = realTimeNotificationService;
+        _localEventBus = localEventBus;
+        _monitoringService = monitoringService;
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionResults.View)]
@@ -111,6 +125,16 @@ public class AnomalyDetectionResultAppService : ApplicationService, IAnomalyDete
 
         var recommendations = await _recommendationService.GetRecommendationsAsync(recommendationContext);
         dto.RecommendedArticles = ObjectMapper.Map<List<KnowledgeArticleRecommendationResult>, List<KnowledgeArticleSummaryDto>>(recommendations);
+
+        var latencyMs = (DateTime.UtcNow - result.DetectedAt).TotalMilliseconds;
+        // Publish domain/local event (handler will handle broadcast + metrics)
+        await _localEventBus.PublishAsync(new DetectionResultCreatedEvent(
+            result.Id,
+            result.DetectionLogicId,
+            result.CanSignalId,
+            result.DetectedAt,
+            latencyMs));
+        _monitoringService.TrackDetectionResultCreated(result.DetectionLogicId.ToString(), result.CanSignalId.ToString(), latencyMs);
 
         return dto;
     }

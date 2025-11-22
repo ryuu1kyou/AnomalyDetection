@@ -22,6 +22,14 @@ export const PERMISSIONS = {
     EXECUTE: 'AnomalyDetection.DetectionLogics.Execute'
   },
 
+  // Detection Templates permissions (Req4)
+  DETECTION_TEMPLATES: {
+    DEFAULT: 'AnomalyDetection.DetectionTemplates',
+    VIEW: 'AnomalyDetection.DetectionTemplates.View',
+    MANAGE: 'AnomalyDetection.DetectionTemplates.Manage',
+    CREATE_FROM: 'AnomalyDetection.DetectionTemplates.CreateFrom'
+  },
+
   // Detection Results permissions
   DETECTION_RESULTS: {
     DEFAULT: 'AnomalyDetection.DetectionResults',
@@ -62,6 +70,66 @@ export const PERMISSIONS = {
     ANALYZE_PATTERNS: 'AnomalyDetection.AnomalyAnalysis.AnalyzePatterns',
     GENERATE_RECOMMENDATIONS: 'AnomalyDetection.AnomalyAnalysis.GenerateRecommendations',
     VIEW_METRICS: 'AnomalyDetection.AnomalyAnalysis.ViewMetrics'
+  }
+  ,
+
+  // Safety Trace permissions (dashboard & records)
+  SAFETY_TRACE: {
+    DEFAULT: 'AnomalyDetection.SafetyTrace',
+    AUDIT: {
+      DEFAULT: 'AnomalyDetection.SafetyTrace.Audit',
+      VIEW: 'AnomalyDetection.SafetyTrace.Audit.View',
+      EXPORT: 'AnomalyDetection.SafetyTrace.Audit.Export'
+    },
+    RECORDS: {
+      DEFAULT: 'AnomalyDetection.SafetyTrace.Records',
+      CREATE: 'AnomalyDetection.SafetyTrace.Records.Create',
+      EDIT: 'AnomalyDetection.SafetyTrace.Records.Edit',
+      SUBMIT: 'AnomalyDetection.SafetyTrace.Records.Submit',
+      APPROVE: 'AnomalyDetection.SafetyTrace.Records.Approve',
+      REJECT: 'AnomalyDetection.SafetyTrace.Records.Reject',
+      VIEW: 'AnomalyDetection.SafetyTrace.Records.View',
+      EXPORT: 'AnomalyDetection.SafetyTrace.Records.Export'
+    }
+  },
+
+  // CAN Specification permissions (import & diff)
+  CAN_SPECIFICATION: {
+    DEFAULT: 'AnomalyDetection.CanSpecification',
+    IMPORT: 'AnomalyDetection.CanSpecification.Import',
+    VIEW: 'AnomalyDetection.CanSpecification.View',
+    DIFF: {
+      DEFAULT: 'AnomalyDetection.CanSpecification.Diff',
+      VIEW: 'AnomalyDetection.CanSpecification.Diff.View',
+      EXPORT: 'AnomalyDetection.CanSpecification.Diff.Export'
+    }
+  },
+
+  // Threshold Optimization permissions
+  THRESHOLD_OPTIMIZATION: {
+    DEFAULT: 'AnomalyDetection.Analysis.ThresholdOptimization',
+    CALCULATE: 'AnomalyDetection.Analysis.ThresholdOptimization.Calculate',
+    EXPORT: 'AnomalyDetection.Analysis.ThresholdOptimization.Export'
+  },
+
+  // Compatibility Analysis permissions
+  COMPATIBILITY_ANALYSIS: {
+    DEFAULT: 'AnomalyDetection.Analysis.Compatibility',
+    RUN: 'AnomalyDetection.Analysis.Compatibility.Run',
+    VIEW: 'AnomalyDetection.Analysis.Compatibility.View',
+    EXPORT: 'AnomalyDetection.Analysis.Compatibility.Export'
+  },
+
+  // Knowledge Base permissions
+  KNOWLEDGE_BASE: {
+    DEFAULT: 'AnomalyDetection.KnowledgeBase',
+    VIEW: 'AnomalyDetection.KnowledgeBase.View',
+    MANAGE: 'AnomalyDetection.KnowledgeBase.Manage',
+    STATISTICS: {
+      DEFAULT: 'AnomalyDetection.KnowledgeBase.Statistics',
+      VIEW: 'AnomalyDetection.KnowledgeBase.Statistics.View',
+      EXPORT: 'AnomalyDetection.KnowledgeBase.Statistics.Export'
+    }
   }
 } as const;
 

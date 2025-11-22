@@ -28,11 +28,17 @@ namespace AnomalyDetection.Application.Monitoring
         private readonly Counter<long> _errorsCounter;
         private readonly Counter<long> _realTimeNotificationsCounter;
         private readonly Histogram<double> _realTimeProcessingLatencyHistogram;
+    private readonly ObservableGauge<int> _signalRConnectionsGauge;
+    private readonly Counter<long> _detectionResultsCounter;
+    private readonly Counter<long> _broadcastFailuresCounter;
+    private readonly Counter<long> _asilLevelChangesCounter;
+    private readonly Counter<long> _asilReReviewCounter;
 
         // State tracking
         private int _activeSessions = 0;
         private int _activeDatabaseConnections = 0;
         private double _cacheHitRate = 0.0;
+    private int _activeSignalRConnections = 0;
 
         public MonitoringService(
             TelemetryClient telemetryClient,
@@ -97,6 +103,32 @@ namespace AnomalyDetection.Application.Monitoring
                 "realtime_notification_processing_seconds",
                 "seconds",
                 "Latency between data change and realtime notification");
+
+            _signalRConnectionsGauge = _meter.CreateObservableGauge<int>(
+                "signalr_active_connections",
+                () => _activeSignalRConnections,
+                "connections",
+                "Number of active SignalR realtime connections");
+
+            _detectionResultsCounter = _meter.CreateCounter<long>(
+                "detection_results_total",
+                "results",
+                "Total number of detection results created (derive per-minute rate in Grafana)");
+
+            _broadcastFailuresCounter = _meter.CreateCounter<long>(
+                "broadcast_failures_total",
+                "failures",
+                "Total number of realtime broadcast failures");
+
+            _asilLevelChangesCounter = _meter.CreateCounter<long>(
+                "asil_level_change_total",
+                "changes",
+                "Total number of ASIL level changes (labels: old_level, new_level)");
+
+            _asilReReviewCounter = _meter.CreateCounter<long>(
+                "asil_re_review_trigger_total",
+                "triggers",
+                "Total number of ASIL re-review triggers caused by ASIL level changes");
         }
 
         public void TrackDetectionExecution(string logicName, string signalName, double executionTimeMs, bool success)
@@ -333,6 +365,71 @@ namespace AnomalyDetection.Application.Monitoring
         public void Dispose()
         {
             _meter?.Dispose();
+        }
+
+        public void UpdateSignalRConnections(int count)
+        {
+            _activeSignalRConnections = count;
+            _logger.LogDebug("SignalR active connections updated: {Count}", count);
+        }
+
+        public void TrackDetectionResultCreated(string detectionLogicId, string canSignalId, double latencyMs)
+        {
+            var tags = new KeyValuePair<string, object?>[]
+            {
+                new("detection_logic_id", detectionLogicId),
+                new("can_signal_id", canSignalId)
+            };
+            _detectionResultsCounter.Add(1, tags);
+            var telemetry = new EventTelemetry("DetectionResultCreated");
+            telemetry.Properties["DetectionLogicId"] = detectionLogicId;
+            telemetry.Properties["CanSignalId"] = canSignalId;
+            telemetry.Metrics["CreationLatencyMs"] = latencyMs;
+            _telemetryClient.TrackEvent(telemetry);
+            _logger.LogInformation("Detection result created tracked: Logic={Logic} Signal={Signal} Latency={Latency}ms", detectionLogicId, canSignalId, latencyMs);
+        }
+
+        public void TrackBroadcastFailure(string changeType, string targetGroup, Exception ex)
+        {
+            var tags = new KeyValuePair<string, object?>[]
+            {
+                new("change_type", changeType),
+                new("target_group", targetGroup),
+                new("exception", ex.GetType().Name)
+            };
+            _broadcastFailuresCounter.Add(1, tags);
+            var telemetry = new ExceptionTelemetry(ex);
+            telemetry.Properties["ChangeType"] = changeType;
+            telemetry.Properties["TargetGroup"] = targetGroup;
+            _telemetryClient.TrackException(telemetry);
+            _logger.LogError(ex, "Broadcast failure: ChangeType={ChangeType} Group={Group}", changeType, targetGroup);
+        }
+
+        public void TrackAsilLevelChange(int oldLevel, int newLevel, bool reReviewTriggered)
+        {
+            var tags = new KeyValuePair<string, object?>[]
+            {
+                new("old_level", oldLevel),
+                new("new_level", newLevel),
+                new("re_review", reReviewTriggered)
+            };
+            _asilLevelChangesCounter.Add(1, tags);
+            if (reReviewTriggered)
+            {
+                var triggerTags = new KeyValuePair<string, object?>[]
+                {
+                    new("old_level", oldLevel),
+                    new("new_level", newLevel)
+                };
+                _asilReReviewCounter.Add(1, triggerTags);
+            }
+
+            var evt = new EventTelemetry("AsilLevelChange");
+            evt.Properties["OldLevel"] = oldLevel.ToString();
+            evt.Properties["NewLevel"] = newLevel.ToString();
+            evt.Properties["ReReview"] = reReviewTriggered.ToString();
+            _telemetryClient.TrackEvent(evt);
+            _logger.LogInformation("ASIL level change tracked {Old}->{New} ReReview={ReReview}", oldLevel, newLevel, reReviewTriggered);
         }
     }
 }

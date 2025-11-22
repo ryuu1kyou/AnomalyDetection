@@ -10,6 +10,9 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using AnomalyDetection.Services;
+using AnomalyDetection.Shared.Export;
+using Microsoft.AspNetCore.Authorization;
+using AnomalyDetection.Permissions;
 
 namespace AnomalyDetection.CanSpecification;
 
@@ -18,17 +21,21 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
     private readonly IRepository<CanSpecImport, Guid> _specRepository;
     private readonly DbcParser _dbcParser;
     private readonly CanSpecDiffService _diffService;
+    private readonly ExportService _exportService;
 
     public CanSpecImportAppService(
         IRepository<CanSpecImport, Guid> specRepository,
         DbcParser dbcParser,
-        CanSpecDiffService diffService)
+        CanSpecDiffService diffService,
+        ExportService exportService)
     {
         _specRepository = specRepository;
         _dbcParser = dbcParser;
         _diffService = diffService;
+        _exportService = exportService;
     }
 
+    [Authorize(AnomalyDetectionPermissions.CanSpecification.Import)]
     public async Task<CanSpecImportResultDto> ImportSpecificationAsync(
         Stream fileStream,
         CreateCanSpecImportDto input)
@@ -142,6 +149,8 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
     public async Task<PagedResultDto<CanSpecImportDto>> GetListAsync(
         PagedAndSortedResultRequestDto input)
     {
+        // Optional view permission check
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.View);
         var query = await _specRepository.GetQueryableAsync();
 
         var totalCount = await AsyncExecuter.CountAsync(query);
@@ -160,6 +169,7 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
 
     public async Task<CanSpecImportDto> GetAsync(Guid id)
     {
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.View);
         var spec = await _specRepository.GetAsync(id);
         var dto = ObjectMapper.Map<CanSpecImport, CanSpecImportDto>(spec);
         var summary = BuildDiffSummary(spec.Diffs);
@@ -171,6 +181,7 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
         Guid specId,
         PagedAndSortedResultRequestDto input)
     {
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.View);
         var spec = await _specRepository.GetAsync(specId);
 
         var messages = spec.Messages
@@ -189,6 +200,7 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
         Guid oldSpecId,
         Guid newSpecId)
     {
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.View);
         var oldSpec = await _specRepository.GetAsync(oldSpecId);
         var newSpec = await _specRepository.GetAsync(newSpecId);
 
@@ -214,6 +226,7 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
         Guid specId,
         PagedAndSortedResultRequestDto input)
     {
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.Diff.View);
         var spec = await _specRepository.GetAsync(specId);
 
         var diffs = spec.Diffs
@@ -230,6 +243,7 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
 
     public async Task<CanSpecDiffSummaryDto> GetDiffSummaryAsync(Guid specId)
     {
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.Diff.View);
         var spec = await _specRepository.GetAsync(specId);
         var summary = BuildDiffSummary(spec.Diffs);
         return ObjectMapper.Map<CanSpecDiffSummary, CanSpecDiffSummaryDto>(summary);
@@ -237,7 +251,49 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
 
     public async Task DeleteAsync(Guid id)
     {
+        await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.View);
         await _specRepository.DeleteAsync(id);
+    }
+
+    [Authorize(AnomalyDetectionPermissions.CanSpecification.Diff.Export)]
+    public async Task<byte[]> ExportDiffsAsync(Guid specId, string format)
+    {
+        var spec = await _specRepository.GetAsync(specId);
+        var rows = spec.Diffs.Select(d => new
+        {
+            d.Type,
+            d.EntityType,
+            d.EntityName,
+            d.MessageId,
+            Severity = d.Severity.ToString(),
+            d.ChangeCategory,
+            d.ImpactedSubsystem,
+            d.OldValue,
+            d.NewValue,
+            d.ChangeSummary,
+            d.Details,
+            d.ComparisonDate
+        }).ToList();
+
+        var exportFormat = format?.ToLower() switch
+        {
+            "json" => ExportService.ExportFormat.Json,
+            "pdf" => ExportService.ExportFormat.Pdf,
+            "excel" => ExportService.ExportFormat.Excel,
+            _ => ExportService.ExportFormat.Csv
+        };
+
+        var request = new ExportDetectionRequest
+        {
+            Results = rows,
+            Format = exportFormat,
+            FileNamePrefix = $"can_spec_diffs_{specId}" ,
+            GeneratedBy = CurrentUser.UserName ?? "system",
+            CsvOptions = new CsvExportOptions { IncludeHeader = true }
+        };
+
+        var result = await _exportService.ExportDetectionResultsAsync(request);
+        return result.Data;
     }
 
     private async Task<string> ComputeFileHashAsync(Stream stream)

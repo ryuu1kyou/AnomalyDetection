@@ -10,18 +10,17 @@ import {
   PagedResultDto,
   PagedAndSortedResultRequestDto,
   ListResultDto,
-  TenantFeatureDto,
-  CreateTenantFeatureDto,
-  UpdateTenantFeatureDto
+  TenantFeatureDto
 } from '../models/tenant.model';
 
-export interface CreateTenantFeatureDto {
+// Local feature DTOs (not exported by tenant.model). Keep internal to service to avoid broken imports.
+interface CreateTenantFeatureDto {
   featureName: string;
   featureValue: string;
   isEnabled?: boolean;
 }
 
-export interface UpdateTenantFeatureDto {
+interface UpdateTenantFeatureDto {
   featureValue: string;
   isEnabled: boolean;
 }

@@ -939,6 +939,40 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
 
         #endregion
 
+        #region SafetyTraceLink (Aggregate Root) & History
+
+        builder.Entity<SafetyTraceLink>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "SafetyTraceLinks", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+            b.Property(x => x.SourceRecordId).IsRequired();
+            b.Property(x => x.TargetRecordId).IsRequired();
+            b.Property(x => x.LinkType).IsRequired().HasMaxLength(100);
+            b.Property(x => x.Relation).HasMaxLength(100);
+
+            b.HasIndex(x => new { x.SourceRecordId, x.TargetRecordId }).IsUnique();
+            b.HasIndex(x => x.LinkType);
+            b.HasIndex(x => x.CreationTime);
+        });
+
+        builder.Entity<SafetyTraceLinkHistory>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "SafetyTraceLinkHistories", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+            b.Property(x => x.LinkId).IsRequired();
+            b.Property(x => x.ChangeType).IsRequired().HasMaxLength(50);
+            b.Property(x => x.OldLinkType).HasMaxLength(100);
+            b.Property(x => x.NewLinkType).HasMaxLength(100);
+            b.Property(x => x.Notes).HasMaxLength(1000);
+            b.Property(x => x.ChangeTime).IsRequired();
+
+            b.HasIndex(x => x.LinkId);
+            b.HasIndex(x => x.ChangeType);
+            b.HasIndex(x => x.ChangeTime);
+        });
+
+        #endregion
+
         // ============================================================================
         // 7. OEM Traceability (追加機能)
         // ============================================================================

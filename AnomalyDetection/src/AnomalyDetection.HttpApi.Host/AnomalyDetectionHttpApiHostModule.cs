@@ -257,6 +257,9 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
     private void ConfigureHealthChecks(ServiceConfigurationContext context)
     {
         context.Services.AddAnomalyDetectionHealthChecks();
+        // Register SignalR latency hub filter & metrics endpoint dependencies
+        context.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IHubFilter, RealTime.Latency.DetectionHubLatencyFilter>();
+        context.Services.AddSingleton<RealTime.Latency.HubLatencyMetricsProvider>();
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
@@ -308,6 +311,22 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
         app.UseConfiguredEndpoints(endpoints =>
         {
             endpoints.MapHub<RealTimeDetectionHub>("/signalr-hubs/detection");
+            endpoints.MapGet("/metrics/signalr-latency", async context =>
+            {
+                var provider = context.RequestServices.GetRequiredService<RealTime.Latency.HubLatencyMetricsProvider>();
+                var snap = provider.GetSnapshot();
+                var json = System.Text.Json.JsonSerializer.Serialize(snap);
+                context.Response.ContentType = "application/json";
+                await System.IO.File.WriteAllTextAsync(System.IO.Path.GetTempFileName(), ""); // no-op placeholder to satisfy async pattern in this environment
+                await context.Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(json));
+            });
+            endpoints.MapGet("/metrics/signalr-prom", async context =>
+            {
+                var provider = context.RequestServices.GetRequiredService<RealTime.Latency.HubLatencyMetricsProvider>();
+                var prom = provider.GetPrometheusMetrics();
+                context.Response.ContentType = "text/plain; version=0.0.4";
+                await context.Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(prom));
+            });
         });
     }
 }
