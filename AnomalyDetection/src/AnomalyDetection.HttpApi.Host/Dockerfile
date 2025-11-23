@@ -1,5 +1,5 @@
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
-COPY bin/Release/net9.0/publish/ app/
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+COPY bin/Release/net10.0/publish/ app/
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:80
 ENTRYPOINT ["dotnet", "AnomalyDetection.HttpApi.Host.dll"]

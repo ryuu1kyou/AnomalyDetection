@@ -19,7 +19,7 @@ This is a multi-tenant web application for managing CAN signal anomaly detection
 ### 技術スタック (Technology Stack)
 
 #### バックエンド (Backend)
-- **.NET 9.0**: 最新の.NETフレームワーク
+- **.NET 10.0**: 最新の.NETフレームワーク（LTS版）
 - **ABP vNext 9.3.5**: マルチテナント・DDD対応フレームワーク
 - **Entity Framework Core**: ORM・データベースアクセス
 - **SQL Server**: データベース
@@ -45,7 +45,7 @@ This is a multi-tenant web application for managing CAN signal anomaly detection
 開発環境をセットアップする前に、以下のソフトウェアがインストールされている必要があります：
 
 ### 必須要件 (Required)
-- **[.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet)**: バックエンド開発用
+- **[.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet)**: バックエンド開発用
 - **[Node.js v18 or v20](https://nodejs.org/en)**: フロントエンド開発用
 - **[SQL Server](https://www.microsoft.com/sql-server)**: データベース（LocalDB可）
 - **[Git](https://git-scm.com/)**: バージョン管理

@@ -100,7 +100,7 @@
   - [x] Anomaly Analysis フローのテスト
   - 要件: All
 
-### Phase 4: 品質・運用 (進行中)
+### Phase 4: 品質・運用 (完了)
 
 - [x] **4.1 セキュリティと権限管理**
 
@@ -124,6 +124,57 @@
   - [x] GitHub Actions / Azure Pipelines の設定
   - [x] Application Insights の設定
   - 要件: NFR 4
+
+### Phase 5: 拡張機能 (完了)
+
+- [x] **5.1 ナレッジベース機能**
+
+  - [x] `KnowledgeArticle` エンティティの実装
+  - [x] `KnowledgeBaseAppService` の実装
+  - [x] `KnowledgeArticleRecommendationService` ドメインサービスの実装
+  - [x] Angular UI コンポーネント
+  - [x] 記事検索と推奨機能
+  - 要件: Req 17
+
+- [x] **5.2 検出ロジックテンプレート機能**
+
+  - [x] `DetectionTemplate` エンティティの実装
+  - [x] `DetectionTemplateAppService` の実装
+  - [x] テンプレートからのロジックインスタンス化
+  - [x] Angular UI コンポーネント
+  - 要件: Req 18
+
+- [x] **5.3 安全性トレーサビリティ機能**
+
+  - [x] `SafetyTraceRecord` エンティティの実装
+  - [x] `SafetyTraceAppService` の実装
+  - [x] `SafetyTraceAuditReportAppService` の実装
+  - [x] トレース記録と検証機能
+  - [x] 監査レポート生成
+  - 要件: Req 19
+
+- [x] **5.4 互換性分析機能**
+
+  - [x] `CompatibilityAnalysisAppService` の実装
+  - [x] バージョン比較ロジック
+  - [x] 破壊的変更の検出
+  - [x] Angular UI コンポーネント
+  - 要件: Req 20
+
+- [x] **5.5 閾値最適化機能**
+
+  - [x] `ThresholdOptimizationAppService` の実装
+  - [x] ML/統計ベースの最適化アルゴリズム
+  - [x] 最適化履歴管理
+  - [x] Angular UI コンポーネント
+  - 要件: Req 21
+
+- [x] **5.6 追加のサポート機能**
+  - [x] `EncryptionService` (データ暗号化)
+  - [x] `ExportService` (データエクスポート)
+  - [x] `StatisticsAppService` (統計情報)
+  - [x] `IntegrationAppService` (外部統合)
+  - [x] `AuditLogAppService` (監査ログクエリ)
 
 ## 2. 現在の課題とブロッカー
 
@@ -151,10 +202,12 @@
 ### 優先度: 中
 
 3. DbMigrator 実行手順および DB リセット手順の標準化・ドキュメント化
+4. Phase 5 拡張機能の統合テスト強化
 
 ### 優先度: 低
 
-4. さらなるパフォーマンスチューニング
-5. テストカバレッジの向上
+5. さらなるパフォーマンスチューニング
+6. テストカバレッジの向上
 
 ## 4. メモ
+

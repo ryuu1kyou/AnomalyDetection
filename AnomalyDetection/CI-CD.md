@@ -185,7 +185,7 @@ SNYK_TOKEN                  # Snyk セキュリティスキャン用
 #### Variable Groups
 ```yaml
 # anomaly-detection-common
-DOTNET_VERSION: '9.0.x'
+DOTNET_VERSION: '10.0.x'
 NODE_VERSION: '18.x'
 BUILD_CONFIGURATION: 'Release'
 

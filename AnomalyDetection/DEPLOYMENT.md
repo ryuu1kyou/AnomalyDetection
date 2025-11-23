@@ -9,6 +9,8 @@
 5. [デプロイ手順](#デプロイ手順)
 6. [ヘルスチェック](#ヘルスチェック)
 7. [トラブルシューティング](#トラブルシューティング)
+8. [デプロイメントチェックリスト](#デプロイメントチェックリスト)
+9. [実装サマリー](#実装サマリー)
 
 ---
 
@@ -335,7 +337,7 @@ az webapp create \
   --name anomalydetection-api \
   --resource-group anomalydetection-rg \
   --plan anomalydetection-plan \
-  --runtime "DOTNETCORE:9.0"
+  --runtime "DOTNETCORE:10.0"
 
 # Web App (Frontend)
 az webapp create \
@@ -366,7 +368,7 @@ az webapp config appsettings set \
 cd AnomalyDetection/src/AnomalyDetection.HttpApi.Host
 dotnet publish -c Release -o ./publish
 az webapp deployment source config-zip \
-  --name anomalydetection-api \
+  --name anomaly detection-api \
   --resource-group anomalydetection-rg \
   --src ./publish.zip
 
@@ -512,137 +514,234 @@ dotnet-dump analyze <dump-file>
 
 ---
 
-## パフォーマンス最適化
+## デプロイメントチェックリスト
 
-### データベース最適化
+### デプロイメント前チェックリスト
 
-```sql
--- インデックス作成
-CREATE NONCLUSTERED INDEX IX_CanSignals_SystemType 
-ON CanSignals(SystemType) INCLUDE (SignalName, CanId);
+#### 1. 環境準備
 
-CREATE NONCLUSTERED INDEX IX_DetectionResults_CanSignalId_ExecutionTime 
-ON DetectionResults(CanSignalId, ExecutionTime DESC);
+##### 1.1 インフラストラクチャ
+- [ ] サーバーリソースの確認（CPU、メモリ、ディスク容量）
+- [ ] ネットワーク設定の確認（ファイアウォール、ロードバランサー）
+- [ ] SSL証明書の有効性確認
+- [ ] DNS設定の確認
+- [ ] バックアップシステムの動作確認
 
--- 統計情報更新
-UPDATE STATISTICS CanSignals WITH FULLSCAN;
-UPDATE STATISTICS DetectionResults WITH FULLSCAN;
+##### 1.2 データベース
+- [ ] データベースサーバーの稼働確認
+- [ ] データベース接続文字列の確認
+- [ ] マイグレーションスクリプトの準備
+- [ ] データベースバックアップの実行
+- [ ] インデックス最適化の実行
+
+##### 1.3 外部サービス
+- [ ] Redis接続の確認
+- [ ] SMTP設定の確認
+- [ ] 外部API接続の確認
+- [ ] 監視サービスの設定確認
+
+#### 2. アプリケーション準備
+
+##### 2.1 ビルド・テスト
+- [ ] 最新コードのビルド成功確認
+- [ ] 単体テストの実行・成功確認
+- [ ] 統合テストの実行・成功確認
+- [ ] E2Eテストの実行・成功確認
+- [ ] セキュリティスキャンの実行・問題なし確認
+
+##### 2.2 設定ファイル
+- [ ] 本番環境用設定ファイルの準備
+- [ ] 環境変数の設定確認
+- [ ] ログレベルの設定確認
+- [ ] パフォーマンス設定の確認
+
+##### 2.3 Docker イメージ
+- [ ] Dockerイメージのビルド成功確認
+- [ ] イメージサイズの最適化確認
+- [ ] セキュリティスキャンの実行
+- [ ] コンテナレジストリへのプッシュ確認
+
+#### 3. セキュリティ
+
+##### 3.1 認証・認可
+- [ ] 認証設定の確認
+- [ ] 権限設定の確認
+- [ ] API キーの設定確認
+- [ ] JWT設定の確認
+
+##### 3.2 ネットワークセキュリティ
+- [ ] HTTPS設定の確認
+- [ ] セキュリティヘッダーの設定確認
+- [ ] CORS設定の確認
+- [ ] ファイアウォール設定の確認
+
+### デプロイメント実行チェックリスト
+
+#### 1. デプロイメント手順
+
+##### 1.1 事前準備
+- [ ] メンテナンス通知の送信
+- [ ] 現在のバージョンの記録
+- [ ] ロールバック手順の確認
+- [ ] 関係者への通知
+
+##### 1.2 デプロイメント実行
+- [ ] データベースマイグレーションの実行
+- [ ] アプリケーションのデプロイ
+- [ ] 設定ファイルの更新
+- [ ] サービスの再起動
+
+##### 1.3 即座の確認
+- [ ] アプリケーションの起動確認
+- [ ] ヘルスチェックの成功確認
+- [ ] ログエラーの確認
+- [ ] 基本機能の動作確認
+
+### デプロイメント後チェックリスト
+
+#### 1. 機能テスト
+
+##### 1.1 スモークテスト
+```powershell
+# スモークテスト実行
+.\scripts\smoke-test.ps1 -BaseUrl "https://your-domain.com"
 ```
 
-### Redis キャッシュ設定
+- [ ] フロントエンドアクセス確認
+- [ ] API エンドポイント確認
+- [ ] 認証機能確認
+- [ ] データベース接続確認
 
-```json
-{
-  "Redis": {
-    "Configuration": "your-redis-server:6379,password=<password>,ssl=true,abortConnect=false",
-    "IsEnabled": true,
-    "DatabaseId": 0,
-    "KeyPrefix": "AnomalyDetection:"
-  }
-}
-```
+##### 1.2 主要機能テスト
+- [ ] ユーザーログイン・ログアウト
+- [ ] CAN信号管理機能
+- [ ] 異常検出ロジック管理機能
+- [ ] プロジェクト管理機能
+- [ ] OEMトレーサビリティ機能
+- [ ] 類似パターン検索機能
+- [ ] 異常分析機能
 
-### アプリケーション設定
+#### 2. システム監視
 
-```json
-{
-  "Kestrel": {
-    "Limits": {
-      "MaxConcurrentConnections": 100,
-      "MaxConcurrentUpgradedConnections": 100,
-      "MaxRequestBodySize": 10485760,
-      "KeepAliveTimeout": "00:02:00"
-    }
-  }
-}
-```
+##### 2.1 アプリケーション監視
+- [ ] CPU使用率の確認
+- [ ] メモリ使用率の確認
+- [ ] ディスク使用率の確認
+- [ ] ネットワーク使用率の確認
+
+##### 2.2 アプリケーションメトリクス
+- [ ] レスポンスタイムの確認
+- [ ] エラー率 の確認
+- [ ] スループットの確認
+- [ ] アクティブユーザー数の確認
+
+##### 2.3 ログ監視
+- [ ] アプリケーションログの確認
+- [ ] エラーログの確認
+- [ ] セキュリティログの確認
+- [ ] パフォーマンスログの確認
+
+#### 3. データ整合性
+
+##### 3.1 データベース
+- [ ] データマイグレーションの成功確認
+- [ ] データ整合性の確認
+- [ ] インデックスの確認
+- [ ] パフォーマンスの確認
+
+##### 3.2 キャッシュ
+- [ ] Redisキャッシュの動作確認
+- [ ] キャッシュヒット率の確認
+- [ ] キャッシュ無効化の動作確認
+
+#### 4. セキュリティ確認
+
+##### 4.1 アクセス制御
+- [ ] 認証機能の動作確認
+- [ ] 権限制御の動作確認
+- [ ] セッション管理の確認
+- [ ]  API セキュリティの確認
+
+##### 4.2 ネットワークセキュリティ
+- [ ] HTTPS通信の確認
+- [ ] セキュリティヘッダーの確認
+- [ ] 不正アクセス検知の確認
 
 ---
 
-## バックアップ・リストア
+## 実装サマリー
 
-### データベースバックアップ
+### 実装完了機能
 
-```bash
-# 自動バックアップスクリプト
-#!/bin/bash
-# backup-database.sh
+#### 1. Docker設定 ✅
 
-BACKUP_DIR="/backup/anomalydetection"
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/AnomalyDetection_$DATE.bak"
+##### コンテナ構成
+- **Backend**: ABP vNext Web API (.NET 10.0 LTS)
+- **Frontend**: Angular 17 + Nginx
+- **Database**: SQL Server 2022
+- **Cache**: Redis 7
+- **Reverse Proxy**: Nginx (本番環境)
 
-sqlcmd -S $DB_SERVER -U $DB_USER -P $DB_PASSWORD -Q \
-  "BACKUP DATABASE AnomalyDetection_Production TO DISK = '$BACKUP_FILE' WITH COMPRESSION"
+##### 設定ファイル
+- `docker-compose.yml` - 開発環境用
+- `docker-compose.prod.yml` - 本番環境用
+- `docker-compose.monitoring.yml` - 監視スタック用
 
-# 古いバックアップを削除 (30日以上前)
-find $BACKUP_DIR -name "*.bak" -mtime +30 -delete
+#### 2. CI/CD パイプライン ✅
+
+##### GitHub Actions ワークフロー
+- **メインCI/CD** (`.github/workflows/ci-cd.yml`)
+- **セキュリティスキャン** (`.github/workflows/security-scan.yml`)
+- **パフォーマンステスト** (`.github/workflows/performance-test.yml`)
+
+##### Azure DevOps パイプライン
+- `azure-pipelines.yml` - 企業環境向け設定
+
+#### 3. 監視システム ✅
+
+##### メトリクス収集
+- **Prometheus** - メトリクス収集・保存
+- **Grafana** - 可視化ダッシュボード
+- **Application Insights** - APM監視
+
+##### ログ管理
+- **ELK Stack** (Elasticsearch, Logstash, Kibana)
+- **Filebeat** - ログ収集
+- 構造化ログ出力
+
+### 使用方法
+
+#### 開発環境セットアップ
+
+```powershell
+# 開発環境の起動
+.\docker-setup.ps1
+
+# ヘルスチェック実行
+.\scripts\docker-health-check.ps1
 ```
 
-### データベースリストア
+#### 本番環境デプロイ
 
-```bash
-# リストア
-sqlcmd -S $DB_SERVER -U $DB_USER -P $DB_PASSWORD -Q \
-  "RESTORE DATABASE AnomalyDetection_Production FROM DISK = '$BACKUP_FILE' WITH REPLACE"
+```powershell
+# 本番環境設定
+.\docker-setup.ps1 -Environment prod
+
+# デプロイメントテスト
+.\scripts\deployment-test.ps1 -Environment production -BaseUrl "https://your-domain.com"
 ```
 
----
+#### 監視システム起動
 
-## 監視・アラート
+```powershell
+# 監視スタック起動
+.\scripts\setup-monitoring.ps1
 
-### Application Insights 設定
-
-```json
-{
-  "ApplicationInsights": {
-    "InstrumentationKey": "${APPINSIGHTS_INSTRUMENTATIONKEY}",
-    "EnableAdaptiveSampling": true,
-    "EnablePerformanceCounterCollectionModule": true
-  }
-}
+# アクセス先
+# Grafana: http://localhost:3000
+# Prometheus: http://localhost:9090
+# Alertmanager: http://localhost:9093
 ```
-
-### Prometheus メトリクス
-
-```
-# エンドポイント
-GET https://api.anomalydetection.example.com/metrics
-```
-
-### ログ集約 (Elasticsearch)
-
-```json
-{
-  "Serilog": {
-    "WriteTo": [
-      {
-        "Name": "Elasticsearch",
-        "Args": {
-          "nodeUris": "${ELASTICSEARCH_URL}",
-          "indexFormat": "anomalydetection-logs-{0:yyyy.MM.dd}",
-          "autoRegisterTemplate": true
-        }
-      }
-    ]
-  }
-}
-```
-
----
-
-## セキュリティチェックリスト
-
-- [ ] SSL/TLS 証明書が有効
-- [ ] データベース接続が暗号化されている
-- [ ] 環境変数にパスワードが平文で保存されていない
-- [ ] CORS が適切に設定されている
-- [ ] セキュリティヘッダーが設定されている
-- [ ] 認証・認可が正しく機能している
-- [ ] ログに機密情報が含まれていない
-- [ ] ファイアウォールが適切に設定されている
-- [ ] 定期的なセキュリティスキャンが実施されている
-- [ ] バックアップが定期的に取得されている
 
 ---
 
@@ -652,7 +751,12 @@ GET https://api.anomalydetection.example.com/metrics
 
 1. エラーメッセージ
 2. アプリケーションログ
-3. 環境情報 (OS, .NET バージョン, データベースバージョン)
+3. 環境情報 (OS, .NET バージョン、データベースバージョン)
 4. 再現手順
 
 **サポート連絡先**: support@anomalydetection.example.com
+
+---
+
+**実装完了**: 2024年10月28日  
+**最終更新**: 2025年11月23日
