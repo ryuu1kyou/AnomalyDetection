@@ -14,6 +14,7 @@ namespace AnomalyDetection.Controllers.AnomalyDetection;
 [RemoteService(Name = "Default")]
 [Area("app")]
 [Route("api/app/anomaly-analysis")]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class AnomalyAnalysisController : AbpControllerBase
 {
     private readonly IAnomalyAnalysisAppService _anomalyAnalysisAppService;

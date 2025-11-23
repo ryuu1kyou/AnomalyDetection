@@ -3,13 +3,15 @@ import { Environment } from '@abp/ng.core';
 const baseUrl = 'http://localhost:4200';
 
 const oAuthConfig = {
-  issuer: 'https://localhost:44318/',
+  issuer: 'http://localhost:5000/',
   redirectUri: baseUrl,
   clientId: 'AnomalyDetection_App',
   responseType: 'code',
-  // Include standard OIDC scopes required by ABP along with API scope.
   scope: 'openid profile email roles offline_access AnomalyDetection',
-  requireHttps: true,
+  requireHttps: false,
+  showDebugInformation: true, // Enable debug logs for OAuth flow
+  strictDiscoveryDocumentValidation: false,
+  skipIssuerCheck: true, // Skip issuer validation in development
 };
 
 export const environment: Environment = {
@@ -22,7 +24,7 @@ export const environment: Environment = {
   localization: { defaultResourceName: 'AnomalyDetection' },
   apis: {
     default: {
-      url: 'https://localhost:44318',
+      url: 'http://localhost:5000',
       rootNamespace: 'AnomalyDetection',
     },
     AbpAccountPublic: {
@@ -31,6 +33,6 @@ export const environment: Environment = {
     },
   },
   signalR: {
-    detectionHubUrl: 'https://localhost:44318/signalr-hubs/detection',
+    detectionHubUrl: 'http://localhost:5000/signalr-hubs/detection',
   },
 };

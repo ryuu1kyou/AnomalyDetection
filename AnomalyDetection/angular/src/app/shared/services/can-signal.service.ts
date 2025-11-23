@@ -13,6 +13,19 @@ export interface CanSignalDto {
   canId: string;
   systemType: number;
   description: string;
+  dataType?: number;
+  byteOrder?: number;
+  startBit?: number;
+  bitLength?: number;
+  factor?: number;
+  offset?: number;
+  minValue?: number;
+  maxValue?: number;
+  unit?: string;
+  creationTime?: string;
+  creatorId?: string;
+  lastModificationTime?: string;
+  lastModifierId?: string;
 }
 
 export interface CanSignalLookup {
@@ -25,6 +38,29 @@ export interface CanSignalLookup {
 export class CanSignalService {
   private readonly http = inject(HttpClient);
   private readonly apiBase = '/api/app/can-signals';
+
+  getCanSignals(params?: {
+    skipCount?: number;
+    maxResultCount?: number;
+    sorting?: string;
+    filter?: string;
+  }): Observable<PagedResult<CanSignalDto>> {
+    let httpParams = new HttpParams();
+    if (params?.skipCount !== undefined) {
+      httpParams = httpParams.set('SkipCount', params.skipCount.toString());
+    }
+    if (params?.maxResultCount !== undefined) {
+      httpParams = httpParams.set('MaxResultCount', params.maxResultCount.toString());
+    }
+    if (params?.sorting) {
+      httpParams = httpParams.set('Sorting', params.sorting);
+    }
+    if (params?.filter) {
+      httpParams = httpParams.set('Filter', params.filter);
+    }
+
+    return this.http.get<PagedResult<CanSignalDto>>(this.apiBase, { params: httpParams });
+  }
 
   searchCanSignals(term: string): Observable<CanSignalLookup[]> {
     const params = new HttpParams()

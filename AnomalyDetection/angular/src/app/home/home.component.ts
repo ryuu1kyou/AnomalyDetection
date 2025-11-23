@@ -22,10 +22,9 @@ export class HomeComponent implements OnInit {
 
   ngOnInit() {
     console.log('[HomeComponent] ngOnInit called - Instance:', Date.now());
-    if (!this.authService.isAuthenticated) {
-      // Auto redirect to login instead of showing ABP default welcome.
-      this.authService.navigateToLogin();
-    }
+    console.log('[HomeComponent] User authenticated:', this.authService.isAuthenticated);
+    // authGuard ensures authentication before reaching this component
+    // No need for manual redirect here
   }
 
   login() {

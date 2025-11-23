@@ -1,0 +1,85 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Angular (Dev)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["start"],
+      "options": {
+        "cwd": "${workspaceFolder}/angular"
+      },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "frontend"
+      }
+    },
+    {
+      "label": "Start Angular (Prod)",
+      "type": "shell",
+      "command": "ng",
+      "args": ["serve", "--configuration=production"],
+      "options": {
+        "cwd": "${workspaceFolder}/angular"
+      },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "frontend"
+      }
+    },
+    {
+      "label": "Start Backend API",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run"],
+      "options": {
+        "cwd": "${workspaceFolder}/src/AnomalyDetection.HttpApi.Host"
+      },
+      "problemMatcher": "$msCompile",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "backend"
+      }
+    },
+    {
+      "label": "Build Backend",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["build"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run Database Migration",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run"],
+      "options": {
+        "cwd": "${workspaceFolder}/src/AnomalyDetection.DbMigrator"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Start Full Application",
+      "dependsOn": [
+        "Start Backend API",
+        "Start Angular (Dev)"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

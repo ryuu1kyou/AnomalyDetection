@@ -16,6 +16,7 @@ export const APP_ROUTES: Routes = [
           console.error('[Route] home component load failed', err);
           throw err;
         }),
+    canActivate: [authGuard],
   },
   {
     path: 'detection-templates',
@@ -30,7 +31,7 @@ export const APP_ROUTES: Routes = [
           throw err;
         }),
     canActivate: [authGuard, permissionGuard],
-    data: { requiredPolicy: PERMISSIONS.DETECTION_LOGICS.DEFAULT }
+    data: { requiredPolicy: PERMISSIONS.DETECTION_LOGICS.DEFAULT },
   },
   {
     path: 'account',
@@ -194,48 +195,57 @@ export const APP_ROUTES: Routes = [
           throw err;
         }),
     canActivate: [authGuard, permissionGuard],
-    data: { requiredPolicy: PERMISSIONS.SAFETY_TRACE.AUDIT.DEFAULT }
+    data: { requiredPolicy: PERMISSIONS.SAFETY_TRACE.AUDIT.DEFAULT },
   },
   {
     path: 'can-specification',
     loadChildren: () =>
       import('./can-specification/can-specification.routes')
         .then(r => {
-            console.debug('[Route] can-specification routes loaded');
-            return r.CAN_SPECIFICATION_ROUTES;
+          console.debug('[Route] can-specification routes loaded');
+          return r.CAN_SPECIFICATION_ROUTES;
         })
         .catch(err => {
           console.error('[Route] can-specification routes failed', err);
           throw err;
         }),
     canActivate: [authGuard, permissionGuard],
-    data: { requiredPolicy: PERMISSIONS.CAN_SPECIFICATION.DEFAULT }
+    data: { requiredPolicy: PERMISSIONS.CAN_SPECIFICATION.DEFAULT },
   },
   {
     path: 'compatibility-analysis',
     loadChildren: () =>
       import('./compatibility-analysis/compatibility-analysis.routes')
         .then(r => r.COMPATIBILITY_ANALYSIS_ROUTES)
-        .catch(err => { console.error('[Route] compatibility-analysis routes failed', err); throw err; }),
+        .catch(err => {
+          console.error('[Route] compatibility-analysis routes failed', err);
+          throw err;
+        }),
     canActivate: [authGuard, permissionGuard],
-    data: { requiredPolicy: PERMISSIONS.COMPATIBILITY_ANALYSIS.VIEW }
+    data: { requiredPolicy: PERMISSIONS.COMPATIBILITY_ANALYSIS.VIEW },
   },
   {
     path: 'threshold-optimization',
     loadChildren: () =>
       import('./threshold-optimization/threshold-optimization.routes')
         .then(r => r.THRESHOLD_OPTIMIZATION_ROUTES)
-        .catch(err => { console.error('[Route] threshold-optimization routes failed', err); throw err; }),
+        .catch(err => {
+          console.error('[Route] threshold-optimization routes failed', err);
+          throw err;
+        }),
     canActivate: [authGuard, permissionGuard],
-    data: { requiredPolicy: PERMISSIONS.THRESHOLD_OPTIMIZATION.CALCULATE }
+    data: { requiredPolicy: PERMISSIONS.THRESHOLD_OPTIMIZATION.CALCULATE },
   },
   {
     path: 'knowledge-base-stats',
     loadChildren: () =>
       import('./knowledge-base-stats/knowledge-base-stats.routes')
         .then(r => r.KNOWLEDGE_BASE_STATS_ROUTES)
-        .catch(err => { console.error('[Route] knowledge-base-stats routes failed', err); throw err; }),
+        .catch(err => {
+          console.error('[Route] knowledge-base-stats routes failed', err);
+          throw err;
+        }),
     canActivate: [authGuard, permissionGuard],
-    data: { requiredPolicy: PERMISSIONS.KNOWLEDGE_BASE.STATISTICS.VIEW }
+    data: { requiredPolicy: PERMISSIONS.KNOWLEDGE_BASE.STATISTICS.VIEW },
   },
 ];

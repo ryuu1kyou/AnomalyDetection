@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.Projects.Dtos;
+using AnomalyDetection.Projects.Mappers;
 using AnomalyDetection.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -16,11 +17,20 @@ namespace AnomalyDetection.Projects;
 public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDetectionProjectAppService
 {
     private readonly IRepository<AnomalyDetectionProject, Guid> _projectRepository;
+    private readonly AnomalyDetectionProjectMapper _projectMapper;
+    private readonly ProjectMilestoneMapper _milestoneMapper;
+    private readonly ProjectMemberMapper _memberMapper;
 
     public AnomalyDetectionProjectAppService(
-        IRepository<AnomalyDetectionProject, Guid> projectRepository)
+        IRepository<AnomalyDetectionProject, Guid> projectRepository,
+        AnomalyDetectionProjectMapper projectMapper,
+        ProjectMilestoneMapper milestoneMapper,
+        ProjectMemberMapper memberMapper)
     {
         _projectRepository = projectRepository;
+        _projectMapper = projectMapper;
+        _milestoneMapper = milestoneMapper;
+        _memberMapper = memberMapper;
     }
 
     public async Task<PagedResultDto<AnomalyDetectionProjectDto>> GetListAsync(GetProjectsInput input)
@@ -75,7 +85,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         var items = await AsyncExecuter.ToListAsync(
             queryable.Skip(input.SkipCount).Take(input.MaxResultCount));
 
-        var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(items);
+        var dtos = items.Select(x => _projectMapper.Map(x)).ToList();
 
         return new PagedResultDto<AnomalyDetectionProjectDto>(totalCount, dtos);
     }
@@ -107,7 +117,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<AnomalyDetectionProjectDto> GetAsync(Guid id)
     {
         var project = await _projectRepository.GetAsync(id);
-        return ObjectMapper.Map<AnomalyDetectionProject, AnomalyDetectionProjectDto>(project);
+        return _projectMapper.Map(project);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.Create)]
@@ -126,7 +136,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         var project = ObjectMapper.Map<CreateProjectDto, AnomalyDetectionProject>(input);
 
         project = await _projectRepository.InsertAsync(project, autoSave: true);
-        return ObjectMapper.Map<AnomalyDetectionProject, AnomalyDetectionProjectDto>(project);
+        return _projectMapper.Map(project);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.Edit)]
@@ -140,7 +150,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         ObjectMapper.Map(input, project);
 
         project = await _projectRepository.UpdateAsync(project, autoSave: true);
-        return ObjectMapper.Map<AnomalyDetectionProject, AnomalyDetectionProjectDto>(project);
+        return _projectMapper.Map(project);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.Delete)]
@@ -166,14 +176,14 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ListResultDto<AnomalyDetectionProjectDto>> GetByStatusAsync(ProjectStatus status)
     {
         var projects = await _projectRepository.GetListAsync(x => x.Status == status);
-        var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
+        var dtos = projects.Select(x => _projectMapper.Map(x)).ToList();
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
 
     public async Task<ListResultDto<AnomalyDetectionProjectDto>> GetByProjectManagerAsync(Guid projectManagerId)
     {
         var projects = await _projectRepository.GetListAsync(x => x.ProjectManagerId == projectManagerId);
-        var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
+        var dtos = projects.Select(x => _projectMapper.Map(x)).ToList();
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
 
@@ -183,14 +193,14 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         var projects = await AsyncExecuter.ToListAsync(
             queryable.Where(x => x.Members.Any(m => m.UserId == userId && m.IsActive)));
 
-        var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
+        var dtos = projects.Select(x => _projectMapper.Map(x)).ToList();
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
 
     public async Task<ListResultDto<AnomalyDetectionProjectDto>> GetActiveProjectsAsync()
     {
         var projects = await _projectRepository.GetListAsync(x => x.Status == ProjectStatus.Active);
-        var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
+        var dtos = projects.Select(x => _projectMapper.Map(x)).ToList();
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
 
@@ -200,7 +210,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
             x.EndDate.HasValue && x.EndDate.Value < DateTime.UtcNow &&
             x.Status != ProjectStatus.Completed && x.Status != ProjectStatus.Cancelled);
 
-        var dtos = ObjectMapper.Map<List<AnomalyDetectionProject>, List<AnomalyDetectionProjectDto>>(projects);
+        var dtos = projects.Select(x => _projectMapper.Map(x)).ToList();
         return new ListResultDto<AnomalyDetectionProjectDto>(dtos);
     }
 
@@ -279,7 +289,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         project.AddMilestone(milestone);
         await _projectRepository.UpdateAsync(project, autoSave: true);
 
-        return ObjectMapper.Map<ProjectMilestone, ProjectMilestoneDto>(milestone);
+        return _milestoneMapper.Map(milestone);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.ManageMilestones)]
@@ -298,7 +308,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         }
 
         await _projectRepository.UpdateAsync(project, autoSave: true);
-        return ObjectMapper.Map<ProjectMilestone, ProjectMilestoneDto>(milestone);
+        return _milestoneMapper.Map(milestone);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.ManageMilestones)]
@@ -312,7 +322,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ListResultDto<ProjectMilestoneDto>> GetMilestonesAsync(Guid projectId)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        var dtos = ObjectMapper.Map<List<ProjectMilestone>, List<ProjectMilestoneDto>>(project.Milestones.ToList());
+        var dtos = project.Milestones.Select(x => _milestoneMapper.Map(x)).ToList();
         return new ListResultDto<ProjectMilestoneDto>(dtos);
     }
 
@@ -323,7 +333,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
             .Where(m => m.DueDate < DateTime.UtcNow && m.Status != MilestoneStatus.Completed)
             .ToList();
 
-        var dtos = ObjectMapper.Map<List<ProjectMilestone>, List<ProjectMilestoneDto>>(overdueMilestones);
+        var dtos = overdueMilestones.Select(x => _milestoneMapper.Map(x)).ToList();
         return new ListResultDto<ProjectMilestoneDto>(dtos);
     }
 
@@ -350,7 +360,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         project.AddMember(member);
 
         await _projectRepository.UpdateAsync(project, autoSave: true);
-        return ObjectMapper.Map<ProjectMember, ProjectMemberDto>(member);
+        return _memberMapper.Map(member);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.ManageMembers)]
@@ -369,7 +379,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         }
 
         await _projectRepository.UpdateAsync(project, autoSave: true);
-        return ObjectMapper.Map<ProjectMember, ProjectMemberDto>(member);
+        return _memberMapper.Map(member);
     }
 
     [Authorize(AnomalyDetectionPermissions.Projects.ManageMembers)]
@@ -383,7 +393,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
     public async Task<ListResultDto<ProjectMemberDto>> GetMembersAsync(Guid projectId)
     {
         var project = await _projectRepository.GetAsync(projectId);
-        var dtos = ObjectMapper.Map<List<ProjectMember>, List<ProjectMemberDto>>(project.Members.ToList());
+        var dtos = project.Members.Select(x => _memberMapper.Map(x)).ToList();
         return new ListResultDto<ProjectMemberDto>(dtos);
     }
 
@@ -392,7 +402,7 @@ public class AnomalyDetectionProjectAppService : ApplicationService, IAnomalyDet
         var project = await _projectRepository.GetAsync(projectId);
         var activeMembers = project.Members.Where(m => m.IsActive).ToList();
 
-        var dtos = ObjectMapper.Map<List<ProjectMember>, List<ProjectMemberDto>>(activeMembers);
+        var dtos = activeMembers.Select(x => _memberMapper.Map(x)).ToList();
         return new ListResultDto<ProjectMemberDto>(dtos);
     }
 

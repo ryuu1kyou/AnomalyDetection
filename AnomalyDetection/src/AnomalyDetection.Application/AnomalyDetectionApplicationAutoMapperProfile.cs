@@ -101,15 +101,15 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Identity.Name))
             .ForMember(dest => dest.Version, opt => opt.MapFrom(src => src.Identity.Version.ToString()))
             .ForMember(dest => dest.OemCode, opt => opt.MapFrom(src => src.Identity.OemCode))
-            .ForMember(dest => dest.DetectionType, opt => opt.MapFrom(src => src.Specification.DetectionType))
+            .ForMember(dest => dest.DetectionType, opt => opt.MapFrom(src => (DetectionType)(int)src.Specification.DetectionType))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Specification.Description))
             .ForMember(dest => dest.Purpose, opt => opt.MapFrom(src => src.Specification.TargetSystemType.ToString()))
             .ForMember(dest => dest.LogicContent, opt => opt.MapFrom(src => src.Implementation != null ? src.Implementation.Content : string.Empty))
             .ForMember(dest => dest.Algorithm, opt => opt.MapFrom(src => src.Implementation != null ? src.Implementation.Language : string.Empty))
             .ForMember(dest => dest.IsExecutable, opt => opt.MapFrom(src => src.Implementation != null && src.Implementation.IsExecutable()))
             .ForMember(dest => dest.AsilLevel, opt => opt.MapFrom(src => src.Safety.AsilLevel))
-            .ForMember(dest => dest.SafetyRequirementId, opt => opt.MapFrom(src => src.Safety.SafetyRequirementId))
-            .ForMember(dest => dest.SafetyGoalId, opt => opt.MapFrom(src => src.Safety.SafetyGoalId));
+            .ForMember(dest => dest.SafetyRequirementId, opt => opt.MapFrom(src => src.Safety.SafetyRequirementId ?? string.Empty))
+            .ForMember(dest => dest.SafetyGoalId, opt => opt.MapFrom(src => src.Safety.SafetyGoalId ?? string.Empty));
 
         CreateMap<DetectionParameter, DetectionParameterDto>()
             .ForMember(dest => dest.MinValue, opt => opt.MapFrom(src => src.Constraints != null ? src.Constraints.MinValue : null))

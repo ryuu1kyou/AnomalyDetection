@@ -36,17 +36,6 @@ const localeLoaderFn = async (locale: string) => {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    {
-      provide: APP_INITIALIZER,
-      multi: true,
-      useFactory: (auth: AuthService) => () => {
-        if (!auth.isAuthenticated) {
-          // Defer navigation slightly to avoid blocking other initializers
-          setTimeout(() => auth.navigateToLogin(), 0);
-        }
-      },
-      deps: [AuthService],
-    },
     provideRouter(APP_ROUTES),
     APP_ROUTE_PROVIDER,
     provideAnimations(),

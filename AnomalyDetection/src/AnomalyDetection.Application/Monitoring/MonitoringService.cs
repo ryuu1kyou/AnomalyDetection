@@ -13,7 +13,7 @@ namespace AnomalyDetection.Application.Monitoring
 {
     public class MonitoringService : IMonitoringService, ISingletonDependency
     {
-        private readonly TelemetryClient _telemetryClient;
+        private readonly TelemetryClient? _telemetryClient;
         private readonly ILogger<MonitoringService> _logger;
         private readonly Meter _meter;
 
@@ -28,21 +28,21 @@ namespace AnomalyDetection.Application.Monitoring
         private readonly Counter<long> _errorsCounter;
         private readonly Counter<long> _realTimeNotificationsCounter;
         private readonly Histogram<double> _realTimeProcessingLatencyHistogram;
-    private readonly ObservableGauge<int> _signalRConnectionsGauge;
-    private readonly Counter<long> _detectionResultsCounter;
-    private readonly Counter<long> _broadcastFailuresCounter;
-    private readonly Counter<long> _asilLevelChangesCounter;
-    private readonly Counter<long> _asilReReviewCounter;
+        private readonly ObservableGauge<int> _signalRConnectionsGauge;
+        private readonly Counter<long> _detectionResultsCounter;
+        private readonly Counter<long> _broadcastFailuresCounter;
+        private readonly Counter<long> _asilLevelChangesCounter;
+        private readonly Counter<long> _asilReReviewCounter;
 
         // State tracking
         private int _activeSessions = 0;
         private int _activeDatabaseConnections = 0;
         private double _cacheHitRate = 0.0;
-    private int _activeSignalRConnections = 0;
+        private int _activeSignalRConnections = 0;
 
         public MonitoringService(
-            TelemetryClient telemetryClient,
-            ILogger<MonitoringService> logger)
+            ILogger<MonitoringService> logger,
+            TelemetryClient? telemetryClient = null)
         {
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -149,13 +149,16 @@ namespace AnomalyDetection.Application.Monitoring
             _detectionLatencyHistogram.Record(executionTimeMs / 1000.0, tagArray);
 
             // Application Insights
-            var telemetry = new EventTelemetry("DetectionExecution");
-            telemetry.Properties["LogicName"] = logicName;
-            telemetry.Properties["SignalName"] = signalName;
-            telemetry.Properties["Success"] = success.ToString();
-            telemetry.Metrics["ExecutionTimeMs"] = executionTimeMs;
+            if (_telemetryClient != null)
+            {
+                var telemetry = new EventTelemetry("DetectionExecution");
+                telemetry.Properties["LogicName"] = logicName;
+                telemetry.Properties["SignalName"] = signalName;
+                telemetry.Properties["Success"] = success.ToString();
+                telemetry.Metrics["ExecutionTimeMs"] = executionTimeMs;
 
-            _telemetryClient.TrackEvent(telemetry);
+                _telemetryClient.TrackEvent(telemetry);
+            }
 
             _logger.LogInformation(
                 "Detection execution tracked: Logic={LogicName}, Signal={SignalName}, Time={ExecutionTimeMs}ms, Success={Success}",
@@ -186,15 +189,18 @@ namespace AnomalyDetection.Application.Monitoring
             }
 
             // Application Insights
-            var requestTelemetry = new RequestTelemetry
+            if (_telemetryClient != null)
             {
-                Name = $"{method} {endpoint}",
-                Duration = TimeSpan.FromMilliseconds(responseTimeMs),
-                ResponseCode = statusCode.ToString(),
-                Success = statusCode < 400
-            };
+                var requestTelemetry = new RequestTelemetry
+                {
+                    Name = $"{method} {endpoint}",
+                    Duration = TimeSpan.FromMilliseconds(responseTimeMs),
+                    ResponseCode = statusCode.ToString(),
+                    Success = statusCode < 400
+                };
 
-            _telemetryClient.TrackRequest(requestTelemetry);
+                _telemetryClient.TrackRequest(requestTelemetry);
+            }
         }
         public void TrackException(Exception exception, string context, Dictionary<string, string>? properties = null)
         {
@@ -209,18 +215,21 @@ namespace AnomalyDetection.Application.Monitoring
             _errorsCounter.Add(1, tagArray);
 
             // Application Insights
-            var exceptionTelemetry = new ExceptionTelemetry(exception);
-            exceptionTelemetry.Properties["Context"] = context;
-
-            if (properties != null)
+            if (_telemetryClient != null)
             {
-                foreach (var prop in properties)
-                {
-                    exceptionTelemetry.Properties[prop.Key] = prop.Value;
-                }
-            }
+                var exceptionTelemetry = new ExceptionTelemetry(exception);
+                exceptionTelemetry.Properties["Context"] = context;
 
-            _telemetryClient.TrackException(exceptionTelemetry);
+                if (properties != null)
+                {
+                    foreach (var prop in properties)
+                    {
+                        exceptionTelemetry.Properties[prop.Key] = prop.Value;
+                    }
+                }
+
+                _telemetryClient.TrackException(exceptionTelemetry);
+            }
 
             _logger.LogError(exception, "Exception tracked in context: {Context}", context);
         }
@@ -228,33 +237,39 @@ namespace AnomalyDetection.Application.Monitoring
         public void TrackCustomMetric(string metricName, double value, Dictionary<string, string>? properties = null)
         {
             // Application Insights
-            var metricTelemetry = new MetricTelemetry(metricName, value);
-
-            if (properties != null)
+            if (_telemetryClient != null)
             {
-                foreach (var prop in properties)
-                {
-                    metricTelemetry.Properties[prop.Key] = prop.Value;
-                }
-            }
+                var metricTelemetry = new MetricTelemetry(metricName, value);
 
-            _telemetryClient.TrackMetric(metricTelemetry);
+                if (properties != null)
+                {
+                    foreach (var prop in properties)
+                    {
+                        metricTelemetry.Properties[prop.Key] = prop.Value;
+                    }
+                }
+
+                _telemetryClient.TrackMetric(metricTelemetry);
+            }
 
             _logger.LogDebug("Custom metric tracked: {MetricName} = {Value}", metricName, value);
         }
 
         public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
         {
-            var dependencyTelemetry = new DependencyTelemetry
+            if (_telemetryClient != null)
             {
-                Name = dependencyName,
-                Data = commandName,
-                Timestamp = startTime,
-                Duration = duration,
-                Success = success
-            };
+                var dependencyTelemetry = new DependencyTelemetry
+                {
+                    Name = dependencyName,
+                    Data = commandName,
+                    Timestamp = startTime,
+                    Duration = duration,
+                    Success = success
+                };
 
-            _telemetryClient.TrackDependency(dependencyTelemetry);
+                _telemetryClient.TrackDependency(dependencyTelemetry);
+            }
         }
 
         public void UpdateActiveSessions(int count)
@@ -296,25 +311,28 @@ namespace AnomalyDetection.Application.Monitoring
 
         public void TrackBusinessMetric(string eventName, Dictionary<string, string>? properties = null, Dictionary<string, double>? metrics = null)
         {
-            var eventTelemetry = new EventTelemetry(eventName);
-
-            if (properties != null)
+            if (_telemetryClient != null)
             {
-                foreach (var prop in properties)
-                {
-                    eventTelemetry.Properties[prop.Key] = prop.Value;
-                }
-            }
+                var eventTelemetry = new EventTelemetry(eventName);
 
-            if (metrics != null)
-            {
-                foreach (var metric in metrics)
+                if (properties != null)
                 {
-                    eventTelemetry.Metrics[metric.Key] = metric.Value;
+                    foreach (var prop in properties)
+                    {
+                        eventTelemetry.Properties[prop.Key] = prop.Value;
+                    }
                 }
-            }
 
-            _telemetryClient.TrackEvent(eventTelemetry);
+                if (metrics != null)
+                {
+                    foreach (var metric in metrics)
+                    {
+                        eventTelemetry.Metrics[metric.Key] = metric.Value;
+                    }
+                }
+
+                _telemetryClient.TrackEvent(eventTelemetry);
+            }
 
             _logger.LogInformation("Business metric tracked: {EventName}", eventName);
         }
@@ -337,22 +355,25 @@ namespace AnomalyDetection.Application.Monitoring
                 _realTimeProcessingLatencyHistogram.Record(processingLatency.Value.TotalSeconds, tagArray);
             }
 
-            var eventTelemetry = new EventTelemetry("RealTimeDelivery")
+            if (_telemetryClient != null)
             {
-                Properties =
+                var eventTelemetry = new EventTelemetry("RealTimeDelivery")
                 {
-                    ["ChangeType"] = changeType,
-                    ["TargetGroup"] = targetGroup,
-                    ["Success"] = success.ToString()
+                    Properties =
+                    {
+                        ["ChangeType"] = changeType,
+                        ["TargetGroup"] = targetGroup,
+                        ["Success"] = success.ToString()
+                    }
+                };
+
+                if (processingLatency.HasValue)
+                {
+                    eventTelemetry.Metrics["ProcessingLatencySeconds"] = processingLatency.Value.TotalSeconds;
                 }
-            };
 
-            if (processingLatency.HasValue)
-            {
-                eventTelemetry.Metrics["ProcessingLatencySeconds"] = processingLatency.Value.TotalSeconds;
+                _telemetryClient.TrackEvent(eventTelemetry);
             }
-
-            _telemetryClient.TrackEvent(eventTelemetry);
 
             _logger.LogInformation(
                 "Realtime delivery tracked: ChangeType={ChangeType}, Group={Group}, Latency={Latency}s, Success={Success}",
@@ -381,11 +402,16 @@ namespace AnomalyDetection.Application.Monitoring
                 new("can_signal_id", canSignalId)
             };
             _detectionResultsCounter.Add(1, tags);
-            var telemetry = new EventTelemetry("DetectionResultCreated");
-            telemetry.Properties["DetectionLogicId"] = detectionLogicId;
-            telemetry.Properties["CanSignalId"] = canSignalId;
-            telemetry.Metrics["CreationLatencyMs"] = latencyMs;
-            _telemetryClient.TrackEvent(telemetry);
+
+            if (_telemetryClient != null)
+            {
+                var telemetry = new EventTelemetry("DetectionResultCreated");
+                telemetry.Properties["DetectionLogicId"] = detectionLogicId;
+                telemetry.Properties["CanSignalId"] = canSignalId;
+                telemetry.Metrics["CreationLatencyMs"] = latencyMs;
+                _telemetryClient.TrackEvent(telemetry);
+            }
+
             _logger.LogInformation("Detection result created tracked: Logic={Logic} Signal={Signal} Latency={Latency}ms", detectionLogicId, canSignalId, latencyMs);
         }
 
@@ -398,10 +424,15 @@ namespace AnomalyDetection.Application.Monitoring
                 new("exception", ex.GetType().Name)
             };
             _broadcastFailuresCounter.Add(1, tags);
-            var telemetry = new ExceptionTelemetry(ex);
-            telemetry.Properties["ChangeType"] = changeType;
-            telemetry.Properties["TargetGroup"] = targetGroup;
-            _telemetryClient.TrackException(telemetry);
+
+            if (_telemetryClient != null)
+            {
+                var telemetry = new ExceptionTelemetry(ex);
+                telemetry.Properties["ChangeType"] = changeType;
+                telemetry.Properties["TargetGroup"] = targetGroup;
+                _telemetryClient.TrackException(telemetry);
+            }
+
             _logger.LogError(ex, "Broadcast failure: ChangeType={ChangeType} Group={Group}", changeType, targetGroup);
         }
 
@@ -424,11 +455,15 @@ namespace AnomalyDetection.Application.Monitoring
                 _asilReReviewCounter.Add(1, triggerTags);
             }
 
-            var evt = new EventTelemetry("AsilLevelChange");
-            evt.Properties["OldLevel"] = oldLevel.ToString();
-            evt.Properties["NewLevel"] = newLevel.ToString();
-            evt.Properties["ReReview"] = reReviewTriggered.ToString();
-            _telemetryClient.TrackEvent(evt);
+            if (_telemetryClient != null)
+            {
+                var evt = new EventTelemetry("AsilLevelChange");
+                evt.Properties["OldLevel"] = oldLevel.ToString();
+                evt.Properties["NewLevel"] = newLevel.ToString();
+                evt.Properties["ReReview"] = reReviewTriggered.ToString();
+                _telemetryClient.TrackEvent(evt);
+            }
+
             _logger.LogInformation("ASIL level change tracked {Old}->{New} ReReview={ReReview}", oldLevel, newLevel, reReviewTriggered);
         }
     }
