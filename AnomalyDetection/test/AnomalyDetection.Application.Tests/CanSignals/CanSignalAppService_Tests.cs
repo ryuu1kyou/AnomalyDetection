@@ -1,22 +1,35 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using AnomalyDetection.CanSignals;
 using AnomalyDetection.CanSignals.Dtos;
 using AnomalyDetection.MultiTenancy;
 using Shouldly;
 using Volo.Abp.Application.Dtos;
-using Volo.Abp.Validation;
 using Xunit;
+using Volo.Abp.Domain.Repositories;
+using NSubstitute;
+using AnomalyDetection.CanSpecification;
+using System.Linq.Expressions;
+using System.Linq;
 
 namespace AnomalyDetection.CanSignals;
 
 public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<AnomalyDetectionApplicationTestModule>
 {
     private readonly ICanSignalAppService _canSignalAppService;
+    private readonly IRepository<CanSignal, Guid> _canSignalRepository;
 
     public CanSignalAppService_Tests()
     {
         _canSignalAppService = GetRequiredService<ICanSignalAppService>();
+        _canSignalRepository = GetRequiredService<IRepository<CanSignal, Guid>>();
+
+        // Configure repository to support basic CRUD flow
+        _canSignalRepository.GetListAsync(Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+           .Returns(Task.FromResult(new List<CanSignal>()));
+
+        _canSignalRepository.InsertAsync(Arg.Any<CanSignal>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(callInfo.Arg<CanSignal>()));
     }
 
     [Fact]
@@ -97,8 +110,9 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
     public async Task CreateAsync_With_Duplicate_CanId_Should_Throw_Exception()
     {
         // Arrange
-        var canId = "DUPLICATE_" + Guid.NewGuid().ToString("N")[..6];
-        
+        // Use valid hex string for CAN ID (e.g. "1A2B3C")
+        var canId = "1A2B3C";
+
         var firstInput = new CreateCanSignalDto
         {
             SignalName = "FirstSignal",
@@ -139,14 +153,39 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
             OemCode = new OemCode("TEST", "Test OEM")
         };
 
+        // Arrange specific mock behavior for this test
+        // First CreateAsync: no existing signal (returns null)
+        // Second CreateAsync: existing signal found (returns a signal)
+        var existingSignal = new CanSignal(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            new SignalIdentifier("ExistingSignal", canId),
+            new SignalSpecification(0, 8, SignalDataType.Unsigned, new SignalValueRange(0, 255)),
+            CanSystemType.Body,
+            new OemCode("TEST", "Test OEM"),
+            "Existing signal");
+
+        // Configure the mock to return null first, then the existing signal
+        var callCount = 0;
+        _canSignalRepository.FirstOrDefaultAsync(
+            Arg.Any<Expression<Func<CanSignal, bool>>>(),
+            Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                callCount++;
+                return callCount == 1
+                    ? Task.FromResult((CanSignal)null!)
+                    : Task.FromResult(existingSignal);
+            });
+
         // Act & Assert
         await _canSignalAppService.CreateAsync(firstInput);
-        
+
         var exception = await Should.ThrowAsync<Exception>(async () =>
         {
             await _canSignalAppService.CreateAsync(secondInput);
         });
-        
+
         exception.ShouldNotBeNull();
     }
 
@@ -157,7 +196,7 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         var createInput = new CreateCanSignalDto
         {
             SignalName = "GetTestSignal",
-            CanId = "GET123",
+            CanId = "AAA123",
             Description = "Signal for get test",
             SystemType = CanSystemType.Engine,
             StartBit = 0,
@@ -193,7 +232,7 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         var createInput = new CreateCanSignalDto
         {
             SignalName = "UpdateTestSignal",
-            CanId = "UPD123",
+            CanId = "BBB123",
             Description = "Signal for update test",
             SystemType = CanSystemType.Engine,
             StartBit = 0,
@@ -215,7 +254,7 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         var updateInput = new UpdateCanSignalDto
         {
             SignalName = "UpdatedSignalName",
-            CanId = "UPD123",
+            CanId = "BBB123",
             Description = "Updated description",
             SystemType = CanSystemType.Brake,
             StartBit = 0,
@@ -251,7 +290,7 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         var createInput = new CreateCanSignalDto
         {
             SignalName = "DeleteTestSignal",
-            CanId = "DEL123",
+            CanId = "CCC123",
             Description = "Signal for delete test",
             SystemType = CanSystemType.Engine,
             StartBit = 0,
@@ -292,7 +331,7 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         // Assert
         result.ShouldNotBeNull();
         result.Items.ShouldNotBeNull();
-        
+
         // All returned items should have the specified system type
         foreach (var item in result.Items)
         {

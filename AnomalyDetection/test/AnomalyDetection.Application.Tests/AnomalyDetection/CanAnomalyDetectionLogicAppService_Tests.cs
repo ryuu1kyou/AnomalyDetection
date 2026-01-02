@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.AnomalyDetection.Dtos;
 using Shouldly;
 using Volo.Abp.Application.Dtos;
@@ -69,8 +68,8 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>
-            {
+            Algorithm = "JSON",
+            Parameters = [
                 new CreateDetectionParameterDto
                 {
                     Name = "MinThreshold",
@@ -87,7 +86,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
                     Description = "Maximum threshold value",
                     IsRequired = true
                 }
-            }
+            ]
         };
 
         // Act
@@ -114,7 +113,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -141,7 +140,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -153,7 +152,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             DetectionType = DetectionType.RateOfChange,
             SharingLevel = SharingLevel.OemPartner,
             LogicContent = "{ \"type\": \"rate\", \"threshold\": 10 }",
-            Parameters = new List<UpdateDetectionParameterDto>()
+            Parameters = []
         };
 
         // Act
@@ -178,7 +177,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -205,7 +204,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
         // Assert
         result.ShouldNotBeNull();
         result.Items.ShouldNotBeNull();
-        
+
         // All returned items should have the specified detection type
         foreach (var item in result.Items)
         {
@@ -225,7 +224,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
         // Assert
         result.ShouldNotBeNull();
         result.Items.ShouldNotBeNull();
-        
+
         // All returned items should have the specified sharing level
         foreach (var item in result.Items)
         {
@@ -245,7 +244,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
         // Assert
         result.ShouldNotBeNull();
         result.Items.ShouldNotBeNull();
-        
+
         // All returned items should have the specified ASIL level
         foreach (var item in result.Items)
         {
@@ -264,8 +263,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             DetectionType = DetectionType.OutOfRange,
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.B, // Higher ASIL level requires approval
+            SafetyRequirementId = "REQ-001",
+            SafetyGoalId = "GOAL-001",
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Algorithm = "JSON",
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -289,8 +291,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             DetectionType = DetectionType.OutOfRange,
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.B,
+            SafetyRequirementId = "REQ-002",
+            SafetyGoalId = "GOAL-002",
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Algorithm = "JSON",
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -315,8 +320,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             DetectionType = DetectionType.OutOfRange,
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.B,
+            SafetyRequirementId = "REQ-003",
+            SafetyGoalId = "GOAL-003",
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Algorithm = "JSON",
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -342,7 +350,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -368,11 +376,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
-        
+
         var testData = new Dictionary<string, object>
         {
             ["inputValue"] = 50.0,
@@ -399,7 +407,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -427,7 +435,7 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SharingLevel = SharingLevel.Private,
             AsilLevel = AsilLevel.QM,
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
-            Parameters = new List<CreateDetectionParameterDto>()
+            Parameters = []
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);

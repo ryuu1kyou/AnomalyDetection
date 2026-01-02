@@ -354,15 +354,28 @@ public class CanSignalAppService : ApplicationService, ICanSignalAppService
 
         var importedSignals = new List<CanSignal>();
         var existingSignals = await _canSignalRepository.GetListAsync();
-        var existingMap = existingSignals.ToDictionary(x => x.Identifier.CanId, x => x);
+
+        // Fix: Use composite key for map to handle multiple signals per Message ID correctly
+        var existingMap = new Dictionary<string, CanSignal>();
+        foreach (var s in existingSignals)
+        {
+            // Convert CAN ID to uppercase for consistent key generation
+            var key = $"{s.Identifier.CanId.ToUpperInvariant()}_{s.Identifier.SignalName}";
+            if (!existingMap.ContainsKey(key))
+            {
+                existingMap[key] = s;
+            }
+        }
 
         foreach (var msg in parseResult.Messages)
         {
+            var msgIdHex = msg.MessageId.ToString("X"); // Convert uint to Hex string
+
             foreach (var sig in msg.Signals)
             {
-                var uniqueCanId = GenerateUniqueCanId(msg.MessageId, sig.Name);
+                var uniqueKey = $"{msgIdHex}_{sig.Name}";
 
-                if (existingMap.TryGetValue(uniqueCanId, out var existing))
+                if (existingMap.TryGetValue(uniqueKey, out var existing))
                 {
                     // Update
                     var spec = new SignalSpecification(
@@ -380,7 +393,8 @@ public class CanSignalAppService : ApplicationService, ICanSignalAppService
                 else
                 {
                     // Insert
-                    var identifier = new SignalIdentifier(sig.Name, uniqueCanId);
+                    // Fix: Use msgIdHex (valid Hex string) instead of composite key for SignalIdentifier
+                    var identifier = new SignalIdentifier(sig.Name, msgIdHex);
                     var spec = new SignalSpecification(
                         sig.StartBit,
                         sig.BitLength,
@@ -411,9 +425,7 @@ public class CanSignalAppService : ApplicationService, ICanSignalAppService
 
     private string GenerateUniqueCanId(uint messageId, string signalName)
     {
-        // Construct CanId as "{MessageId}_{SignalName}" to ensure uniqueness if the system requires unique CanId.
-        // Using Hex format for MessageId for readability.
-        return $"0x{messageId:X}_{signalName}";
+        return $"{messageId:X}_{signalName}";
     }
 
     [Authorize(AnomalyDetectionPermissions.CanSignals.Export)]

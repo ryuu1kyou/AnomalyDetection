@@ -141,7 +141,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
 
                 var logic = new CanAnomalyDetectionLogic(
                     Guid.NewGuid(),
-                    context.Items.ContainsKey("TenantId") ? (Guid?)context.Items["TenantId"] : null,
+                    context.TryGetItems(out var items) && items.ContainsKey("TenantId") ? (Guid?)items["TenantId"] : null,
                     identity,
                     specification,
                     safety);
@@ -151,7 +151,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                     var implementation = new LogicImplementation(
                         ImplementationType.Script,
                         src.LogicContent,
-                        src.Algorithm ?? "Default");
+                        !string.IsNullOrEmpty(src.Algorithm) ? src.Algorithm : "Default");
                     logic.UpdateImplementation(implementation);
                 }
 

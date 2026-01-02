@@ -30,6 +30,16 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase<Anomaly
             currentTenant,
             currentUser,
             httpContextAccessor);
+
+        _auditLogRepository.InsertAsync(Arg.Any<AnomalyDetectionAuditLog>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(callInfo.Arg<AnomalyDetectionAuditLog>()));
+
+        // Setup default HttpContext with Session to avoid InvalidOperationException
+        var context = new DefaultHttpContext();
+        var session = Substitute.For<ISession>();
+        context.Session = session;
+        // Fix: Set HttpContext before calling Returns to avoid NSubstitute error
+        httpContextAccessor.HttpContext = context;
     }
 
     [Fact]
@@ -113,6 +123,10 @@ public class AuditLogSecurityTests : AnomalyDetectionApplicationTestBase<Anomaly
         var httpContext = new DefaultHttpContext();
         httpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse(ipAddress);
         httpContext.Request.Headers["User-Agent"] = userAgent;
+
+        // Add Session mock
+        var session = Substitute.For<ISession>();
+        httpContext.Session = session;
 
         var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
         httpContextAccessor.HttpContext.Returns(httpContext);

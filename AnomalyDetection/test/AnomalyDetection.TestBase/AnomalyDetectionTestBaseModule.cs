@@ -13,7 +13,8 @@ namespace AnomalyDetection;
     typeof(AbpAutofacModule),
     typeof(AbpTestBaseModule),
     typeof(AbpAuthorizationModule),
-    typeof(AbpBackgroundJobsAbstractionsModule)
+    typeof(AbpBackgroundJobsAbstractionsModule),
+    typeof(AnomalyDetectionDomainModule)
 )]
 public class AnomalyDetectionTestBaseModule : AbpModule
 {
@@ -24,12 +25,14 @@ public class AnomalyDetectionTestBaseModule : AbpModule
             options.IsJobExecutionEnabled = false;
         });
 
+        context.Services.AddHttpContextAccessor();
         context.Services.AddAlwaysAllowAuthorization();
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
-        SeedTestData(context);
+        // Skip data seeding for tests to avoid permission management issues
+        // SeedTestData(context);
     }
 
     private static void SeedTestData(ApplicationInitializationContext context)

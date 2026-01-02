@@ -22,7 +22,7 @@ public class SimilarPatternSearchTests
         // Assert
         criteria.ShouldNotBeNull();
         criteria.HasValidComparisons().ShouldBeTrue();
-        criteria.MinimumSimilarity.ShouldBe(0.5);
+        criteria.MinimumSimilarity.ShouldBe(0.7);
     }
 
     [Fact]

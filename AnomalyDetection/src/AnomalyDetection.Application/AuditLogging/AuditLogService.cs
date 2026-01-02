@@ -44,7 +44,7 @@ public class AuditLogService : IAuditLogService, ITransientDependency
         Dictionary<string, object>? metadata = null)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        
+
         var auditLog = new AnomalyDetectionAuditLog(
             tenantId: _currentTenant.Id,
             entityId: entityId,
@@ -52,8 +52,8 @@ public class AuditLogService : IAuditLogService, ITransientDependency
             action: action,
             level: level,
             description: description,
-            oldValues: oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
-            newValues: newValues != null ? JsonSerializer.Serialize(newValues) : null,
+            oldValues: oldValues != null ? SanitizeJson(JsonSerializer.Serialize(oldValues)) : null,
+            newValues: newValues != null ? SanitizeJson(JsonSerializer.Serialize(newValues)) : null,
             metadata: metadata,
             ipAddress: httpContext?.Connection?.RemoteIpAddress?.ToString(),
             userAgent: httpContext?.Request?.Headers["User-Agent"].ToString(),
@@ -222,6 +222,17 @@ public class AuditLogService : IAuditLogService, ITransientDependency
             description: description,
             level: level,
             metadata: auditMetadata
+        );
+    }
+    private string SanitizeJson(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return json;
+        // Regex to find "key": "value" where key is sensitive
+        // Case insensitive matching for Password, Secret, Token, Key, Auth, Credential
+        return System.Text.RegularExpressions.Regex.Replace(
+            json,
+            @"(?i)""(password|secret|token|apikey|auth|credential|access_?token)""\s*:\s*""[^""]*""",
+            @"""$1"": ""***"""
         );
     }
 }

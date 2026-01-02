@@ -32,6 +32,9 @@ public class AuditLogServiceTests : AnomalyDetectionApplicationTestBase<AnomalyD
             _currentTenant,
             _currentUser,
             _httpContextAccessor);
+
+        _auditLogRepository.InsertAsync(Arg.Any<AnomalyDetectionAuditLog>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(callInfo.Arg<AnomalyDetectionAuditLog>()));
     }
 
     [Fact]

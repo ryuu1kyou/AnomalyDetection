@@ -466,7 +466,7 @@ public class OemApprovalTests : AnomalyDetectionDomainTestBase<AnomalyDetectionD
         isUrgent.ShouldBeFalse();
     }
 
-    private OemApproval CreateTestApproval()
+    private static OemApproval CreateTestApproval()
     {
         return new OemApproval(
             Guid.NewGuid(),

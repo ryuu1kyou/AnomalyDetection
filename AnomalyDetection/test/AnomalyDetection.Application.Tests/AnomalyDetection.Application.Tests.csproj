@@ -9,8 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj" />
-    <ProjectReference Include="..\AnomalyDetection.Domain.Tests\AnomalyDetection.Domain.Tests.csproj" />
+    <ProjectReference
+      Include="..\..\src\AnomalyDetection.Application\AnomalyDetection.Application.csproj" />
+    <ProjectReference
+      Include="..\AnomalyDetection.Domain.Tests\AnomalyDetection.Domain.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>

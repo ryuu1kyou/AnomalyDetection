@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.Application.Contracts.OemTraceability;
 using AnomalyDetection.Application.Contracts.OemTraceability.Dtos;
-using AnomalyDetection.OemTraceability;
 using Shouldly;
 using Volo.Abp;
 using Xunit;
@@ -390,7 +389,7 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
             OemCode = oemCode,
             Type = ApprovalType.Customization,
             ApprovalReason = "Test approval",
-            ApprovalData = new Dictionary<string, object>(),
+            ApprovalData = [],
             DueDate = dueDate,
             Priority = priority
         };

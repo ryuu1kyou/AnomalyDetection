@@ -4,15 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.CanSignals;
 using AnomalyDetection.AnomalyDetection;
-using AnomalyDetection.SimilarPatternSearch;
 using AnomalyDetection.MultiTenancy;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
 
-namespace AnomalyDetection.Domain.Tests.SimilarPatternSearch;
+namespace AnomalyDetection.SimilarPatternSearch;
 
 public class SimilarPatternSearchServiceTests
 {
@@ -28,12 +25,12 @@ public class SimilarPatternSearchServiceTests
     public async Task SearchSimilarSignalsAsync_Should_Find_Similar_Signals()
     {
         // Arrange
-        var targetSignal = CreateTestCanSignal("ENGINE_RPM", "0x123", CanSystemType.Engine);
+        var targetSignal = CreateTestCanSignal("ENGINE_RPM", "123", CanSystemType.Engine);
         var candidateSignals = new List<CanSignal>
         {
-            CreateTestCanSignal("ENGINE_SPEED", "0x124", CanSystemType.Engine), // 類似
-            CreateTestCanSignal("ENGINE_TEMP", "0x125", CanSystemType.Engine),  // 部分的に類似
-            CreateTestCanSignal("BRAKE_PRESSURE", "0x200", CanSystemType.Brake) // 非類似
+            CreateTestCanSignal("ENGINE_SPEED", "124", CanSystemType.Engine), // 類似
+            CreateTestCanSignal("ENGINE_TEMP", "125", CanSystemType.Engine),  // 部分的に類似
+            CreateTestCanSignal("BRAKE_PRESSURE", "200", CanSystemType.Brake) // 非類似
         };
 
         var criteria = SimilaritySearchCriteria.CreateDefault();
@@ -57,8 +54,8 @@ public class SimilarPatternSearchServiceTests
     public async Task CompareTestDataAsync_Should_Compare_Detection_Results()
     {
         // Arrange
-        var sourceSignal = CreateTestCanSignal("ENGINE_RPM", "0x123", CanSystemType.Engine);
-        var targetSignal = CreateTestCanSignal("ENGINE_SPEED", "0x124", CanSystemType.Engine);
+        var sourceSignal = CreateTestCanSignal("ENGINE_RPM", "123", CanSystemType.Engine);
+        var targetSignal = CreateTestCanSignal("ENGINE_SPEED", "124", CanSystemType.Engine);
 
         var sourceResults = new List<AnomalyDetectionResult>
         {
@@ -88,8 +85,8 @@ public class SimilarPatternSearchServiceTests
     public void CalculateSimilarity_Should_Return_High_Score_For_Similar_Signals()
     {
         // Arrange
-        var signal1 = CreateTestCanSignal("ENGINE_RPM", "0x123", CanSystemType.Engine);
-        var signal2 = CreateTestCanSignal("ENGINE_SPEED", "0x123", CanSystemType.Engine); // 同じCAN ID
+        var signal1 = CreateTestCanSignal("ENGINE_RPM", "123", CanSystemType.Engine);
+        var signal2 = CreateTestCanSignal("ENGINE_SPEED", "123", CanSystemType.Engine); // 同じCAN ID
         var criteria = SimilaritySearchCriteria.CreateDefault();
 
         // Act
@@ -103,8 +100,8 @@ public class SimilarPatternSearchServiceTests
     public void CalculateSimilarity_Should_Return_Low_Score_For_Different_Signals()
     {
         // Arrange
-        var signal1 = CreateTestCanSignal("ENGINE_RPM", "0x123", CanSystemType.Engine);
-        var signal2 = CreateTestCanSignal("BRAKE_PRESSURE", "0x200", CanSystemType.Brake);
+        var signal1 = CreateTestCanSignal("ENGINE_RPM", "123", CanSystemType.Engine);
+        var signal2 = CreateTestCanSignal("BRAKE_PRESSURE", "200", CanSystemType.Brake);
         var criteria = SimilaritySearchCriteria.CreateDefault();
 
         // Act
@@ -118,8 +115,8 @@ public class SimilarPatternSearchServiceTests
     public void CalculateSimilarityBreakdown_Should_Provide_Detailed_Scores()
     {
         // Arrange
-        var signal1 = CreateTestCanSignal("ENGINE_RPM", "0x123", CanSystemType.Engine);
-        var signal2 = CreateTestCanSignal("ENGINE_SPEED", "0x124", CanSystemType.Engine);
+        var signal1 = CreateTestCanSignal("ENGINE_RPM", "123", CanSystemType.Engine);
+        var signal2 = CreateTestCanSignal("ENGINE_SPEED", "124", CanSystemType.Engine);
         var criteria = SimilaritySearchCriteria.CreateDefault();
 
         // Act
@@ -136,8 +133,8 @@ public class SimilarPatternSearchServiceTests
     public void DetermineRecommendationLevel_Should_Return_Appropriate_Level()
     {
         // Arrange
-        var signal1 = CreateTestCanSignal("ENGINE_RPM", "0x123", CanSystemType.Engine);
-        var signal2 = CreateTestCanSignal("ENGINE_SPEED", "0x123", CanSystemType.Engine);
+        var signal1 = CreateTestCanSignal("ENGINE_RPM", "123", CanSystemType.Engine);
+        var signal2 = CreateTestCanSignal("ENGINE_SPEED", "123", CanSystemType.Engine);
         var criteria = SimilaritySearchCriteria.CreateDefault();
         
         var breakdown = _similarPatternSearchService.CalculateSimilarityBreakdown(signal1, signal2, criteria);
@@ -158,8 +155,8 @@ public class SimilarPatternSearchServiceTests
     public void String_Similarity_Should_Work_Correctly(string str1, string str2, double expectedMinSimilarity)
     {
         // Arrange
-        var signal1 = CreateTestCanSignal(str1, "0x123", CanSystemType.Engine);
-        var signal2 = CreateTestCanSignal(str2, "0x124", CanSystemType.Engine);
+        var signal1 = CreateTestCanSignal(str1, "123", CanSystemType.Engine);
+        var signal2 = CreateTestCanSignal(str2, "124", CanSystemType.Engine);
         var criteria = SimilaritySearchCriteria.CreateDefault();
 
         // Act
@@ -171,7 +168,7 @@ public class SimilarPatternSearchServiceTests
 
     #region Helper Methods
 
-    private CanSignal CreateTestCanSignal(string signalName, string canId, CanSystemType systemType)
+    private static CanSignal CreateTestCanSignal(string signalName, string canId, CanSystemType systemType)
     {
         var identifier = new SignalIdentifier(signalName, canId);
         var valueRange = new SignalValueRange(0, 100);
@@ -188,7 +185,7 @@ public class SimilarPatternSearchServiceTests
             $"Test signal: {signalName}");
     }
 
-    private AnomalyDetectionResult CreateTestAnomalyDetectionResult(Guid signalId, AnomalyLevel level)
+    private static AnomalyDetectionResult CreateTestAnomalyDetectionResult(Guid signalId, AnomalyLevel level)
     {
         var inputData = new DetectionInputData(50.0, DateTime.UtcNow);
         var details = new DetectionDetails(DetectionType.OutOfRange, "Test condition");
