@@ -23,5 +23,10 @@ public class CanSignalIntegration_Tests : SystemIntegrationTestBase
 
         var content = await response.Content.ReadAsStringAsync();
         content.ShouldNotBeNullOrWhiteSpace();
+        // Verify it is JSON (starts with { or [)
+        if (!content.TrimStart().StartsWith("{") && !content.TrimStart().StartsWith("["))
+        {
+            throw new Exception($"Expected JSON but got: {content}");
+        }
     }
 }
