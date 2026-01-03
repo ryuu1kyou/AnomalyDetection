@@ -1,0 +1,135 @@
+<div class="dashboard-wrap">
+  <!-- Premium Header -->
+  <header class="page-header-premium">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1>統計ダッシュボード</h1>
+        <p>異常検出システムのリアルタイム分析とパフォーマンス指標</p>
+      </div>
+      <div class="header-actions">
+        <button mat-flat-button color="primary" class="premium-btn" (click)="refreshData()">
+          <mat-icon>refresh</mat-icon>
+          <span>データ更新</span>
+        </button>
+        <button mat-stroked-button class="ml-2" (click)="exportDashboard()">
+          <mat-icon>file_download</mat-icon>
+          <span>レポート出力</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Advanced Filters -->
+  <section class="filters-section mb-4">
+    <div class="glass-effect p-4">
+      <form [formGroup]="filterForm" class="filter-flex">
+        <mat-form-field appearance="outline" class="flex-field">
+          <mat-label>開始日</mat-label>
+          <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="flex-field">
+          <mat-label>終了日</mat-label>
+          <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="flex-field">
+          <mat-label>システムカテゴリ</mat-label>
+          <mat-select formControlName="systemType">
+            <mat-option value="">全システム</mat-option>
+            <mat-option value="Engine">動力・エンジン</mat-option>
+            <mat-option value="Brake">制動・ブレーキ</mat-option>
+            <mat-option value="Steering">操舵・ステアリング</mat-option>
+            <mat-option value="Safety">安全機能</mat-option>
+            <mat-option value="ADAS">運転支援システム</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-raised-button color="accent" class="apply-btn" (click)="applyFilters()">
+          反映
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Loading State -->
+  <div class="premium-loader" *ngIf="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>データを分析中...</span>
+  </div>
+
+  <!-- Dashboard Content -->
+  <main class="dashboard-grid" *ngIf="!loading">
+    <!-- Dashboard Overview Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3" *ngFor="let metric of overviewMetrics">
+        <div class="corp-card h-100 p-4">
+          <div class="metric-top">
+            <div class="metric-icon-wrap" [class]="metric.color">
+              <mat-icon>{{ metric.icon }}</mat-icon>
+            </div>
+            <div
+              class="metric-trend-pill"
+              *ngIf="metric.trend"
+              [class]="getTrendClass(metric.trend)"
+            >
+              <mat-icon>{{ getTrendIcon(metric.trend) }}</mat-icon>
+              <span>{{ metric.trend.percentage }}%</span>
+            </div>
+          </div>
+          <div class="metric-main mt-3">
+            <div class="metric-value-display">{{ metric.value }}</div>
+            <div class="metric-label-display">{{ metric.title }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Main Chart: Detection Trend -->
+      <div class="col-lg-8">
+        <div class="corp-card p-4 h-100">
+          <div class="card-header-flex mb-4">
+            <h3>異常検出数推移</h3>
+            <div class="chart-legend-wrap">
+              <span class="dot primary"></span>
+              <span class="legend-text">検出モデルA</span>
+            </div>
+          </div>
+          <div class="chart-frame">
+            <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'">
+            </canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side Chart: Distribution -->
+      <div class="col-lg-4">
+        <div class="corp-card p-4 h-100">
+          <h3 class="mb-4">重大度分布</h3>
+          <div class="chart-frame pie-frame">
+            <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'doughnut'">
+            </canvas>
+          </div>
+          <div class="distribution-list mt-4">
+            <div class="dist-item" *ngFor="let item of detectionStats?.anomalyLevelDistribution">
+              <span class="dist-label text-truncate">{{ item.category }}</span>
+              <div class="dist-bar-wrap">
+                <div
+                  class="dist-bar-fill"
+                  [style.width.%]="item.percentage"
+                  [attr.data-level]="item.category"
+                ></div>
+              </div>
+              <span class="dist-val">{{ item.value }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

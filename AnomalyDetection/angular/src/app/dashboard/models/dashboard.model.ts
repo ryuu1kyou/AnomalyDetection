@@ -21,6 +21,7 @@ export interface DashboardStatistics {
   systemUptime: number;
   activeConnections: number;
   processingQueue: number;
+  detectionStatistics?: DetectionStatistics;
 }
 
 export interface DetectionStatistics {
@@ -61,8 +62,9 @@ export interface SystemAnomalyReport {
 }
 
 export interface TimeSeriesData {
-  date: Date;
-  value: number;
+  date: string;
+  count: number;
+  value?: number;
   label?: string;
 }
 

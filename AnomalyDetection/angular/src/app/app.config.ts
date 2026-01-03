@@ -22,6 +22,7 @@ import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { environment } from '../environments/environment';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { APP_ROUTES } from './app.routes';
 import { APP_ROUTE_PROVIDER } from './route.provider';
 
@@ -68,5 +69,6 @@ export const appConfig: ApplicationConfig = {
     // Locale providers for Japanese formatting
     { provide: LOCALE_ID, useValue: 'ja' },
     { provide: MAT_DATE_LOCALE, useValue: 'ja-JP' },
+    provideCharts(withDefaultRegisterables()),
   ],
 };

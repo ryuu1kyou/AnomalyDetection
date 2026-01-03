@@ -13,15 +13,148 @@
 
 ### 1.2 技術スタック
 - **フレームワーク**: ABP Framework (ASP.NET Core ベース)
-- **言語**: C# (.NET 10予定)
+- **言語**: C# (.NET 10)
 - **ORM**: Entity Framework Core
-- **データベース**: SQL Server / PostgreSQL
+- **データベース**: SQL Server
 - **フロントエンド**: Angular
 - **認証**: OAuth 2.0 / OpenID Connect
 
 ## 2. ドメインモデル設計
 
-### 2.1 Value Objects
+### 2.1 ドメインモデル（図解）
+
+```mermaid
+classDiagram
+    class CanSignal {
+        +Guid Id
+        +SignalIdentifier Identifier
+        +SignalSpecification Specification
+        +PhysicalValueConversion Conversion
+        +SignalTiming Timing
+        +OemCode OemCode
+        +SignalStatus Status
+    }
+
+    class CanAnomalyDetectionLogic {
+        +Guid Id
+        +DetectionLogicIdentity Identity
+        +DetectionLogicSpecification Specification
+        +SafetyClassification SafetyClassification
+        +DetectionLogicStatus Status
+    }
+
+    class DetectionParameter {
+        +Guid Id
+        +string Name
+        +string DataType
+    }
+
+    class CanSignalMapping {
+        +Guid Id
+        +Guid CanSignalId
+        +string SignalRole
+    }
+
+    class AnomalyDetectionResult {
+        +Guid Id
+        +Guid DetectionLogicId
+        +Guid CanSignalId
+        +AnomalyLevel AnomalyLevel
+        +double ConfidenceScore
+    }
+
+    class OemCustomization {
+        +Guid Id
+        +Guid EntityId
+        +string EntityType
+        +OemCode OemCode
+        +CustomizationStatus Status
+    }
+
+    class KnowledgeArticle {
+        +Guid Id
+        +string Title
+        +KnowledgeCategory Category
+    }
+
+    class CanSpecImport {
+        +Guid Id
+        +string FileName
+        +ImportStatus Status
+        +DateTime ImportedAt
+    }
+
+    class CompatibilityAnalysis {
+        +Guid Id
+        +Guid OldSpecId
+        +Guid NewSpecId
+        +CompatibilityLevel Level
+    }
+
+    CanAnomalyDetectionLogic "1" *-- "many" DetectionParameter : Has
+    CanAnomalyDetectionLogic "1" *-- "many" CanSignalMapping : Mapping
+    CanSignalMapping "..1" --> "1" CanSignal : References
+    AnomalyDetectionResult "many" --> "1" CanAnomalyDetectionLogic : GeneratedFrom
+    AnomalyDetectionResult "many" --> "1" CanSignal : Target
+    KnowledgeArticle "many" -- "many" CanSignal : Related
+    KnowledgeArticle "many" -- "many" CanAnomalyDetectionLogic : Related
+    CanSpecImport "1" -- "many" CanSignal : Defines
+    CompatibilityAnalysis "many" --> "2" CanSpecImport : Compares
+    OemCustomization "0..1" -- "1" CanSignal : Customizes
+    OemCustomization "0..1" -- "1" CanAnomalyDetectionLogic : Customizes
+```
+
+### 2.2 コンテキストマップ（Context Map）
+
+本プロジェクトにおける境界づけられたコンテキスト（Bounded Context）とその相関関係を以下に示します。
+
+```mermaid
+graph TD
+    subgraph CoreContexts ["コア・コンテキスト"]
+        Spec(("CAN仕様管理"))
+    end
+
+    subgraph ManagementContexts ["管理・ロジックコンテキスト"]
+        Logic{{"異常検出ロジック"}}
+        Trace{{"OEMトレーサビリティ"}}
+        Analysis{{"異常分析・実行"}}
+    end
+
+    subgraph SupportContexts ["支援コンテキスト"]
+        KB["ナレッジベース"]
+        Safety["安全性・監査"]
+        Project["プロジェクト管理"]
+    end
+
+    %% 相互作用の定義
+    Spec -->|提供| Logic
+    Spec -->|対象データ| Analysis
+    Logic -->|実行定義| Analysis
+    
+    Trace -.->|カスタマイズ| Spec
+    Trace -.->|カスタマイズ| Logic
+    
+    KB ==>|関連情報| Spec
+    KB ==>|関連情報| Logic
+    
+    Safety -.->|証跡記録| Spec
+    Safety -.->|証跡記録| Logic
+    Safety -.->|証跡記録| Trace
+    
+    Project -->|管理対象| Spec
+    Project -->|管理対象| Logic
+
+    %% スタイル定義
+    style Spec fill:#f9f,stroke:#333,stroke-width:2px
+    style Logic fill:#bbf,stroke:#333,stroke-width:2px
+    style Analysis fill:#bbf,stroke:#333,stroke-width:2px
+    style Trace fill:#bbf,stroke:#333,stroke-width:2px
+    style KB fill:#fff,stroke:#333,stroke-width:2px
+    style Safety fill:#fff,stroke:#333,stroke-width:2px
+    style Project fill:#fff,stroke:#333,stroke-width:2px
+```
+
+### 2.3 Value Objects
 
 #### 2.1.1 OemCode
 OEM組織を識別するコードと名称。

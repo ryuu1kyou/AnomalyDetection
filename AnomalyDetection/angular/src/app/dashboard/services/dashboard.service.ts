@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   DashboardStatistics,
@@ -21,6 +21,20 @@ export class DashboardService {
   private readonly baseUrl = `${environment.apis.default.url}/api/app/statistics`;
 
   constructor(private http: HttpClient) {}
+
+  // Combined statistics for the new dashboard
+  getStatistics(input: GetDetectionStatisticsInput): Observable<DashboardStatistics> {
+    return this.getDashboardStatistics().pipe(
+      switchMap(stats => {
+        return this.getDetectionStatistics(input).pipe(
+          map(detStats => ({
+            ...stats,
+            detectionStatistics: detStats
+          }))
+        );
+      })
+    );
+  }
 
   // Dashboard overview statistics
   getDashboardStatistics(): Observable<DashboardStatistics> {
