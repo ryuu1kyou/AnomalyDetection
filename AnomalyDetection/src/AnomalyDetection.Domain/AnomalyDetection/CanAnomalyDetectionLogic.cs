@@ -59,6 +59,21 @@ public class CanAnomalyDetectionLogic : FullAuditedAggregateRoot<Guid>, IMultiTe
     }
 
     // ビジネスメソッド
+    public void UpdateIdentity(DetectionLogicIdentity newIdentity)
+    {
+        Identity = newIdentity ?? throw new ArgumentNullException(nameof(newIdentity));
+    }
+
+    public void UpdateSpecification(DetectionLogicSpecification newSpecification)
+    {
+        Specification = newSpecification ?? throw new ArgumentNullException(nameof(newSpecification));
+    }
+
+    public void UpdateSafety(SafetyClassification newSafety)
+    {
+        Safety = newSafety ?? throw new ArgumentNullException(nameof(newSafety));
+    }
+
     public void UpdateImplementation(LogicImplementation newImplementation)
     {
         if (newImplementation == null)

@@ -10,13 +10,13 @@ namespace AnomalyDetection.CanSignals;
 public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
 {
     public Guid? TenantId { get; private set; }
-    
+
     // 値オブジェクト
     public SignalIdentifier Identifier { get; private set; } = default!;
     public SignalSpecification Specification { get; private set; } = default!;
     public PhysicalValueConversion Conversion { get; private set; } = default!;
     public SignalTiming Timing { get; private set; } = default!;
-    
+
     // エンティティ属性
     public CanSystemType SystemType { get; private set; }
     public string? Description { get; private set; }
@@ -25,7 +25,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public SignalVersion Version { get; private set; } = default!;
     public DateTime? EffectiveDate { get; private set; }
     public SignalStatus Status { get; private set; }
-    
+
     // メタデータ
     public string? SourceDocument { get; private set; }
     public string? Notes { get; private set; }
@@ -47,7 +47,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SystemType = systemType;
         OemCode = oemCode ?? throw new ArgumentNullException(nameof(oemCode));
         Description = ValidateDescription(description);
-        
+
         // デフォルト値の設定
         Conversion = new PhysicalValueConversion(1.0, 0.0, "");
         Timing = new SignalTiming(100, 300, SignalSendType.Cyclic); // 100ms cycle, 300ms timeout
@@ -58,11 +58,26 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     }
 
     // ビジネスメソッド
+    public void UpdateIdentifier(SignalIdentifier newIdentifier)
+    {
+        Identifier = newIdentifier ?? throw new ArgumentNullException(nameof(newIdentifier));
+    }
+
+    public void UpdateSystemType(CanSystemType newSystemType)
+    {
+        SystemType = newSystemType;
+    }
+
+    public void UpdateOemCode(OemCode newOemCode)
+    {
+        OemCode = newOemCode ?? throw new ArgumentNullException(nameof(newOemCode));
+    }
+
     public void UpdateSpecification(SignalSpecification newSpecification, string changeReason)
     {
         if (newSpecification == null)
             throw new ArgumentNullException(nameof(newSpecification));
-            
+
         if (Specification.Equals(newSpecification))
             return;
 
@@ -71,7 +86,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
         Specification = newSpecification;
         Version = Version.Increment();
-        
+
         // ドメインイベントを発行（実装は後で）
         // AddDomainEvent(new CanSignalSpecificationUpdatedDomainEvent(this, changeReason));
     }
@@ -95,7 +110,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (IsStandard)
             return;
-            
+
         IsStandard = true;
         // AddDomainEvent(new CanSignalMarkedAsStandardDomainEvent(this));
     }
@@ -104,7 +119,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (!IsStandard)
             return;
-            
+
         IsStandard = false;
     }
 
@@ -112,7 +127,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (Status == SignalStatus.Active)
             return;
-            
+
         Status = SignalStatus.Active;
         EffectiveDate = DateTime.UtcNow;
     }
@@ -137,9 +152,9 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (string.IsNullOrWhiteSpace(note))
             return;
-            
-        Notes = string.IsNullOrEmpty(Notes) 
-            ? note 
+
+        Notes = string.IsNullOrEmpty(Notes)
+            ? note
             : $"{Notes}; {note}";
     }
 
@@ -147,7 +162,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (otherSignal == null)
             return false;
-            
+
         return Identifier.CanId == otherSignal.Identifier.CanId &&
                Specification.IsCompatibleWith(otherSignal.Specification) &&
                SystemType == otherSignal.SystemType;
@@ -157,7 +172,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (otherSignal == null || otherSignal.Id == Id)
             return false;
-            
+
         // 同じCAN IDで異なる仕様の場合は競合
         return Identifier.CanId == otherSignal.Identifier.CanId &&
                !Specification.IsCompatibleWith(otherSignal.Specification);
@@ -167,21 +182,21 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         // 値範囲チェック
         if (!Specification.ValueRange.IsInRange(rawValue))
-            throw new ArgumentOutOfRangeException(nameof(rawValue), 
+            throw new ArgumentOutOfRangeException(nameof(rawValue),
                 $"Raw value {rawValue} is outside valid range {Specification.ValueRange}");
-                
+
         return Conversion.ConvertToPhysical(rawValue);
     }
 
     public double ConvertPhysicalToRaw(double physicalValue)
     {
         var rawValue = Conversion.ConvertToRaw(physicalValue);
-        
+
         // 変換後の値が仕様範囲内かチェック
         if (!Specification.ValueRange.IsInRange(rawValue))
-            throw new ArgumentOutOfRangeException(nameof(physicalValue), 
+            throw new ArgumentOutOfRangeException(nameof(physicalValue),
                 $"Physical value {physicalValue} converts to raw value {rawValue} which is outside valid range");
-                
+
         return rawValue;
     }
 
@@ -199,7 +214,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (description != null && description.Length > 1000)
             throw new ArgumentException("Description cannot exceed 1000 characters", nameof(description));
-            
+
         return description?.Trim();
     }
 
@@ -207,7 +222,7 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         if (sourceDocument != null && sourceDocument.Length > 500)
             throw new ArgumentException("Source document cannot exceed 500 characters", nameof(sourceDocument));
-            
+
         return sourceDocument?.Trim();
     }
 }
@@ -244,7 +259,7 @@ public class SignalVersion : ValueObject
     {
         if (version < 0)
             throw new ArgumentOutOfRangeException(paramName, "Version number cannot be negative");
-            
+
         return version;
     }
 

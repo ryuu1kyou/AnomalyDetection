@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.AnomalyDetection.Dtos;
 using AnomalyDetection.KnowledgeBase;
+using NSubstitute;
 using Shouldly;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Domain.Repositories;
 using Xunit;
 
 namespace AnomalyDetection.KnowledgeBase;
@@ -14,11 +18,92 @@ public class KnowledgeBaseAppService_Tests : AnomalyDetectionApplicationTestBase
 {
     private readonly IKnowledgeBaseAppService _knowledgeBaseAppService;
     private readonly IAnomalyDetectionResultAppService _anomalyDetectionResultAppService;
+    private readonly IRepository<KnowledgeArticle, Guid> _knowledgeArticleRepository;
+    private readonly IRepository<KnowledgeArticleComment, Guid> _commentRepository;
+
+    private readonly Dictionary<Guid, KnowledgeArticle> _articles = new();
+    private readonly Dictionary<Guid, KnowledgeArticleComment> _comments = new();
 
     public KnowledgeBaseAppService_Tests()
     {
         _knowledgeBaseAppService = GetRequiredService<IKnowledgeBaseAppService>();
         _anomalyDetectionResultAppService = GetRequiredService<IAnomalyDetectionResultAppService>();
+        _knowledgeArticleRepository = GetRequiredService<IRepository<KnowledgeArticle, Guid>>();
+        _commentRepository = GetRequiredService<IRepository<KnowledgeArticleComment, Guid>>();
+
+        SetupKnowledgeArticleRepository();
+        SetupCommentRepository();
+    }
+
+    private void SetupKnowledgeArticleRepository()
+    {
+        _knowledgeArticleRepository.InsertAsync(Arg.Any<KnowledgeArticle>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var article = callInfo.Arg<KnowledgeArticle>();
+                _articles[article.Id] = article;
+                return Task.FromResult(article);
+            });
+
+        _knowledgeArticleRepository.UpdateAsync(Arg.Any<KnowledgeArticle>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var article = callInfo.Arg<KnowledgeArticle>();
+                _articles[article.Id] = article;
+                return Task.FromResult(article);
+            });
+
+        _knowledgeArticleRepository.GetAsync(Arg.Any<Guid>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_articles.TryGetValue(id, out var article))
+                {
+                    return Task.FromResult(article);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(KnowledgeArticle), id);
+            });
+
+        _knowledgeArticleRepository.GetAsync(Arg.Any<Guid>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_articles.TryGetValue(id, out var article))
+                {
+                    return Task.FromResult(article);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(KnowledgeArticle), id);
+            });
+
+        _knowledgeArticleRepository.GetListAsync(includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult<List<KnowledgeArticle>>(_articles.Values.ToList()));
+
+        _knowledgeArticleRepository.GetListAsync(Arg.Any<System.Linq.Expressions.Expression<Func<KnowledgeArticle, bool>>>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<KnowledgeArticle, bool>>>().Compile();
+                return Task.FromResult(_articles.Values.AsQueryable().Where(predicate).ToList());
+            });
+
+        _knowledgeArticleRepository.GetListAsync()
+            .Returns(callInfo => Task.FromResult<List<KnowledgeArticle>>(_articles.Values.ToList()));
+    }
+
+    private void SetupCommentRepository()
+    {
+        _commentRepository.InsertAsync(Arg.Any<KnowledgeArticleComment>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var comment = callInfo.Arg<KnowledgeArticleComment>();
+                _comments[comment.Id] = comment;
+                return Task.FromResult(comment);
+            });
+
+        _commentRepository.CountAsync(Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_comments.Count));
+
+        _commentRepository.GetQueryableAsync()
+            .Returns(callInfo => Task.FromResult(_comments.Values.AsQueryable()));
     }
 
     [Fact]

@@ -187,6 +187,7 @@ public class CanSignalAppService : ApplicationService, ICanSignalAppService
         var conversion = new PhysicalValueConversion(input.Factor, input.Offset, input.Unit);
         var timing = new SignalTiming(input.CycleTime, input.TimeoutTime);
 
+        canSignal.UpdateIdentifier(identifier);
         canSignal.UpdateSpecification(specification, input.ChangeReason);
         canSignal.UpdateConversion(conversion);
         canSignal.UpdateTiming(timing);

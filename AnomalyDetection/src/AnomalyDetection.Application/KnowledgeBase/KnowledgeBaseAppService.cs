@@ -200,6 +200,14 @@ public class KnowledgeBaseAppService : ApplicationService, IKnowledgeBaseAppServ
     public async Task PublishAsync(Guid id)
     {
         var article = await _knowledgeArticleRepository.GetAsync(id);
+
+        // Fix: Add null check
+        if (article == null)
+        {
+            throw new Volo.Abp.BusinessException("KnowledgeBase:ArticleNotFound")
+                .WithData("id", id);
+        }
+
         article.Publish();
         await _knowledgeArticleRepository.UpdateAsync(article, autoSave: true);
     }

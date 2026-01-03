@@ -109,8 +109,99 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
     {
         var logic = await _detectionLogicRepository.GetAsync(id);
 
-        // Update logic properties based on input
-        // This is a simplified implementation
+        // Update logic identity
+        var identity = new DetectionLogicIdentity(input.Name, logic.Identity.Version, logic.Identity.OemCode);
+        logic.UpdateIdentity(identity);
+
+        // Update specification
+        var specification = new DetectionLogicSpecification(
+            (AnomalyType)(int)input.DetectionType,
+            input.Description,
+            logic.Specification.TargetSystemType,
+            logic.Specification.Complexity,
+            input.Purpose);
+        logic.UpdateSpecification(specification);
+
+        // Update safety
+        var safety = new SafetyClassification(input.AsilLevel, input.SafetyRequirementId, input.SafetyGoalId);
+        logic.UpdateSafety(safety);
+
+        // Update implementation if provided
+        if (!string.IsNullOrEmpty(input.LogicContent))
+        {
+            var implementation = new LogicImplementation(
+                logic.Implementation.Type,
+                input.LogicContent,
+                input.Algorithm);
+            logic.UpdateImplementation(implementation);
+        }
+
+        // Update sharing level
+        logic.UpdateSharingLevel(input.SharingLevel);
+
+        // Update parameters
+        if (input.Parameters != null)
+        {
+            foreach (var paramInput in input.Parameters)
+            {
+                var existing = logic.Parameters.FirstOrDefault(p => p.Name == paramInput.Name);
+                if (existing != null)
+                {
+                    logic.UpdateParameter(paramInput.Name, paramInput.Value);
+                }
+                else
+                {
+                    var constraints = new ParameterConstraints(
+                        paramInput.MinValue, paramInput.MaxValue,
+                        paramInput.MinLength, paramInput.MaxLength,
+                        paramInput.Pattern);
+
+                    logic.AddParameter(new DetectionParameter(
+                        paramInput.Name,
+                        paramInput.DataType,
+                        paramInput.DefaultValue,
+                        constraints,
+                        paramInput.Description,
+                        paramInput.IsRequired,
+                        paramInput.Unit));
+                }
+            }
+        }
+
+        // Update signal mappings
+        if (input.SignalMappings != null)
+        {
+            // Remove missing mappings
+            var currentSignalIds = input.SignalMappings.Select(m => m.CanSignalId).ToList();
+            var mappingsToRemove = logic.SignalMappings.Where(m => !currentSignalIds.Contains(m.CanSignalId)).ToList();
+            foreach (var mapping in mappingsToRemove)
+            {
+                logic.RemoveSignalMapping(mapping.CanSignalId);
+            }
+
+            // Update or add mappings
+            foreach (var mappingInput in input.SignalMappings)
+            {
+                var existing = logic.SignalMappings.FirstOrDefault(m => m.CanSignalId == mappingInput.CanSignalId);
+                var config = new SignalMappingConfiguration(
+                    mappingInput.ScalingFactor, mappingInput.Offset,
+                    mappingInput.FilterExpression, mappingInput.CustomProperties);
+
+                if (existing != null)
+                {
+                    existing.UpdateRole(mappingInput.SignalRole);
+                    existing.UpdateDescription(mappingInput.Description);
+                    existing.UpdateConfiguration(config);
+                    existing.SetRequired(mappingInput.IsRequired);
+                }
+                else
+                {
+                    logic.AddSignalMapping(new CanSignalMapping(
+                        mappingInput.CanSignalId, mappingInput.SignalRole,
+                        mappingInput.IsRequired, mappingInput.Description, config));
+                }
+            }
+        }
 
         logic = await _detectionLogicRepository.UpdateAsync(logic, autoSave: true);
         return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);

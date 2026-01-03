@@ -126,9 +126,9 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
             queryable = queryable.Where(c => c.Status == status.Value);
         }
 
-        var customizations = await queryable
-            .OrderByDescending(c => c.CreationTime)
-            .ToListAsync();
+        var customizations = await AsyncExecuter.ToListAsync(
+            queryable.OrderByDescending(c => c.CreationTime)
+        );
 
         return ObjectMapper.Map<List<OemCustomization>, List<OemCustomizationDto>>(customizations);
     }
@@ -160,13 +160,14 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
             queryable = queryable.Where(c => c.Status == status.Value);
         }
 
-        var totalCount = await queryable.CountAsync();
+        var totalCount = await AsyncExecuter.CountAsync(queryable);
 
-        var customizations = await queryable
-            .OrderByDescending(c => c.CreationTime)
-            .Skip(skipCount)
-            .Take(maxResultCount)
-            .ToListAsync();
+        var customizations = await AsyncExecuter.ToListAsync(
+            queryable
+                .OrderByDescending(c => c.CreationTime)
+                .Skip(skipCount)
+                .Take(maxResultCount)
+        );
 
         var dtos = ObjectMapper.Map<List<OemCustomization>, List<OemCustomizationDto>>(customizations);
         return new PagedResultDto<OemCustomizationDto>(totalCount, dtos);
@@ -304,14 +305,22 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
     public async Task<List<OemApprovalDto>> GetUrgentApprovalsAsync(string? oemCode = null)
     {
         var approvals = await _approvalRepository.GetUrgentApprovalsAsync(oemCode);
+        if (approvals == null)
+        {
+            return new List<OemApprovalDto>();
+        }
+
         var dtos = ObjectMapper.Map<List<OemApproval>, List<OemApprovalDto>>(approvals);
 
         // Set computed properties
         foreach (var dto in dtos)
         {
-            var approval = approvals.First(a => a.Id == dto.Id);
-            dto.IsOverdue = approval.IsOverdue();
-            dto.IsUrgent = approval.IsUrgent();
+            var approval = approvals.FirstOrDefault(a => a.Id == dto.Id);
+            if (approval != null)
+            {
+                dto.IsOverdue = approval.IsOverdue();
+                dto.IsUrgent = approval.IsUrgent();
+            }
         }
 
         return dtos;
@@ -320,14 +329,22 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
     public async Task<List<OemApprovalDto>> GetOverdueApprovalsAsync(string? oemCode = null)
     {
         var approvals = await _approvalRepository.GetOverdueApprovalsAsync(oemCode);
+        if (approvals == null)
+        {
+            return new List<OemApprovalDto>();
+        }
+
         var dtos = ObjectMapper.Map<List<OemApproval>, List<OemApprovalDto>>(approvals);
 
         // Set computed properties
         foreach (var dto in dtos)
         {
-            var approval = approvals.First(a => a.Id == dto.Id);
-            dto.IsOverdue = approval.IsOverdue();
-            dto.IsUrgent = approval.IsUrgent();
+            var approval = approvals.FirstOrDefault(a => a.Id == dto.Id);
+            if (approval != null)
+            {
+                dto.IsOverdue = approval.IsOverdue();
+                dto.IsUrgent = approval.IsUrgent();
+            }
         }
 
         return dtos;
@@ -363,9 +380,9 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
             queryable = queryable.Where(c => c.CreationTime <= input.EndDate.Value);
         }
 
-        var customizations = await queryable
-            .OrderByDescending(c => c.CreationTime)
-            .ToListAsync();
+        var customizations = await AsyncExecuter.ToListAsync(
+            queryable.OrderByDescending(c => c.CreationTime)
+        );
 
         // Prepare export data
         var exportData = customizations.Select(c => new

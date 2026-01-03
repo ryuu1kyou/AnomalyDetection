@@ -32,6 +32,7 @@ using AnomalyDetection.Services;
 using Volo.Abp.AutoMapper;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using System.Linq;
 using Volo.Abp.Data;
 using Volo.Abp.TenantManagement;
 
@@ -46,94 +47,59 @@ public class AnomalyDetectionApplicationTestModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        // Register mock repositories for testing
-        context.Services.AddTransient(provider => Substitute.For<IOemCustomizationRepository>());
-        context.Services.AddTransient(provider => Substitute.For<IOemApprovalRepository>());
-        // context.Services.AddTransient(provider => Substitute.For<IAnomalyDetectionAuditLogRepository>()); // Removed duplicate
+        // ===== REPOSITORY MOCKS =====
+        // Configure repositories with consistent default behaviors
 
-        // Fix: Add missing repositories causing DependencyResolutionException
-        context.Services.AddTransient(provider =>
-        {
-            var repo = Substitute.For<IRepository<CompatibilityAnalysis, Guid>>();
-            repo.GetListAsync(Arg.Any<Expression<Func<CompatibilityAnalysis, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-                .Returns(Task.FromResult(new List<CompatibilityAnalysis>()));
-            return repo;
-        });
-        context.Services.AddTransient(provider =>
-        {
-            var repo = Substitute.For<IRepository<CanSignal, Guid>>();
-            repo.GetListAsync(Arg.Any<Expression<Func<CanSignal, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-                .Returns(Task.FromResult(new List<CanSignal>()));
-            repo.GetListAsync(Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-               .Returns(Task.FromResult(new List<CanSignal>()));
-            // Fix: Add FindAsync/GetAsync default returns if needed, though null return for specific ID is standard for 'not found'.
-            return repo;
-        });
-        context.Services.AddTransient(provider =>
-        {
-            var repo = Substitute.For<IRepository<KnowledgeArticle, Guid>>();
-            repo.GetListAsync(Arg.Any<Expression<Func<KnowledgeArticle, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-                .Returns(Task.FromResult(new List<KnowledgeArticle>()));
-            return repo;
-        });
-        context.Services.AddTransient(provider =>
-        {
-            var repo = Substitute.For<IRepository<KnowledgeArticleComment, Guid>>();
-            repo.GetListAsync(Arg.Any<Expression<Func<KnowledgeArticleComment, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-               .Returns(Task.FromResult(new List<KnowledgeArticleComment>()));
-            return repo;
-        });
-        context.Services.AddTransient(provider => Substitute.For<IRepository<CanSpecImport, Guid>>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<CanSignal, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<CanSpecImport, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<KnowledgeArticle, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<KnowledgeArticleComment, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<CompatibilityAnalysis, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<CanAnomalyDetectionLogic, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<AnomalyDetectionResult, Guid>());
 
-        // Fix: Ensure AnomalyDetectionResult repository returns empty list by default to prevent NullReferenceException
-        // Register repositories
-        context.Services.AddSingleton(provider =>
-        {
-            var repo = Substitute.For<IRepository<CanAnomalyDetectionLogic, Guid>>();
-            repo.GetListAsync(Arg.Any<Expression<Func<CanAnomalyDetectionLogic, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-                .Returns(Task.FromResult(new List<CanAnomalyDetectionLogic>()));
-            return repo;
-        });
-        context.Services.AddSingleton(provider =>
-        {
-            var repo = Substitute.For<IRepository<AnomalyDetectionResult, Guid>>();
-            repo.GetListAsync(Arg.Any<Expression<Func<AnomalyDetectionResult, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-                .Returns(Task.FromResult(new List<AnomalyDetectionResult>()));
-            return repo;
-        });
-        // context.Services.AddSingleton(provider => Substitute.For<IRepository<CanSignal, Guid>>()); // REMOVED DUPLICATE
-        context.Services.AddSingleton(provider => Substitute.For<IAnomalyDetectionAuditLogRepository>());
-        context.Services.AddSingleton(provider => Substitute.For<Volo.Abp.AuditLogging.IAuditLogRepository>()); // Required for AuditingStore
-        context.Services.AddSingleton(provider => Substitute.For<IRepository<IdentityUser, Guid>>());
+        // OEM Traceability repositories
+        context.Services.AddSingleton(provider => CreateRepositoryMock<OemCustomization, Guid>());
+        context.Services.AddSingleton(provider => CreateRepositoryMock<OemApproval, Guid>());
+        context.Services.AddSingleton(provider => Substitute.For<IOemCustomizationRepository>());
+        context.Services.AddSingleton(provider => Substitute.For<IOemApprovalRepository>());
 
-        // Register multi-tenancy repositories
+        // Multi-tenancy repositories
+        context.Services.AddSingleton(provider => CreateRepositoryMock<IdentityUser, Guid>());
         context.Services.AddSingleton(provider => Substitute.For<ITenantRepository>());
         context.Services.AddSingleton(provider => Substitute.For<IExtendedTenantRepository>());
         context.Services.AddSingleton(provider => Substitute.For<IOemMasterRepository>());
 
-        // Register mock services for testing (using interfaces where possible)
-        // context.Services.AddSingleton(provider => Substitute.For<IHttpContextAccessor>()); // Let real one work
+        // Audit log repositories
+        context.Services.AddSingleton(provider => Substitute.For<IAnomalyDetectionAuditLogRepository>());
+        context.Services.AddSingleton(provider => Substitute.For<IAuditLogRepository>());
+
+        // ===== SERVICE MOCKS =====
+
+        // Current user mock with valid ID
         context.Services.AddSingleton(provider =>
         {
             var user = Substitute.For<ICurrentUser>();
-            user.Id.Returns(Guid.NewGuid()); // Fix: Return a valid GUID
+            user.Id.Returns(Guid.NewGuid());
             user.IsAuthenticated.Returns(true);
+            user.UserName.Returns("test-user");
             return user;
         });
-        // context.Services.AddSingleton(provider => Substitute.For<ICurrentTenant>()); // Let ABP provide real one so Change() works
+
+        // Other framework services
         context.Services.AddSingleton(provider => Substitute.For<IDataSeeder>());
-        context.Services.AddSingleton(provider => Substitute.For<IUnitOfWorkManager>());
         context.Services.AddSingleton(provider => Substitute.For<IPermissionChecker>());
         context.Services.AddSingleton(provider => Substitute.For<IAuthorizationService>());
         context.Services.AddSingleton(provider => Substitute.For<IEmailSender>());
         context.Services.AddSingleton(provider => Substitute.For<IBackgroundJobManager>());
-        // context.Services.AddSingleton(provider => Substitute.For<ITimeZoneConverter>());
         context.Services.AddSingleton(provider => Substitute.For<ISettingProvider>());
         context.Services.AddSingleton(provider => Substitute.For<IFeatureChecker>());
-        context.Services.AddSingleton(provider => Substitute.For<ICanSpecificationParser>());
-        context.Services.AddSingleton(provider => Substitute.For<ExportService>()); // ExportService mocks.AddAlwaysAllowAuthorization();
 
-        // Concrete Service Implementations
+        // Parser mock
+        context.Services.AddSingleton(provider => Substitute.For<ICanSpecificationParser>());
+
+        // ===== CONCRETE SERVICE IMPLEMENTATIONS =====
+
         context.Services.AddTransient<CanSignalMapper>();
         context.Services.AddTransient<DbcParser>();
         context.Services.AddTransient<CompatibilityAnalyzer>();
@@ -141,13 +107,90 @@ public class AnomalyDetectionApplicationTestModule : AbpModule
         context.Services.AddTransient<ExportService>();
         context.Services.AddTransient<TraceabilityQueryService>();
 
-        // Ensure auto-mapper and other configs
+        // ===== AUTOMAPPER CONFIGURATION =====
+
         Configure<AbpAutoMapperOptions>(options =>
         {
             options.AddMaps<AnomalyDetectionApplicationModule>();
+            options.AddProfile<AnomalyDetectionApplicationAutoMapperProfile>();
         });
+
+        // ===== HTTP CONTEXT & AUTHORIZATION =====
 
         context.Services.AddHttpContextAccessor();
         context.Services.AddAlwaysAllowAuthorization();
+    }
+
+    private static IRepository<TEntity, TKey> CreateRepositoryMock<TEntity, TKey>()
+        where TEntity : class, Volo.Abp.Domain.Entities.IEntity<TKey>
+        where TKey : notnull
+    {
+        var store = new Dictionary<TKey, TEntity>();
+        var repo = Substitute.For<IRepository<TEntity, TKey>>();
+
+        repo.GetListAsync(Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(store.Values.ToList()));
+
+        repo.GetListAsync(Arg.Any<Expression<Func<TEntity, bool>>>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<Expression<Func<TEntity, bool>>>().Compile();
+                return Task.FromResult(store.Values.Where(predicate).ToList());
+            });
+
+        repo.GetAsync(Arg.Any<TKey>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<TKey>();
+                if (store.TryGetValue(id, out var entity)) return Task.FromResult(entity);
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(TEntity), id);
+            });
+
+        repo.GetAsync(Arg.Any<TKey>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<TKey>();
+                if (store.TryGetValue(id, out var entity)) return Task.FromResult(entity);
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(TEntity), id);
+            });
+
+        repo.FirstOrDefaultAsync(Arg.Any<Expression<Func<TEntity, bool>>>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<Expression<Func<TEntity, bool>>>().Compile();
+                return Task.FromResult(store.Values.FirstOrDefault(predicate));
+            });
+
+        repo.InsertAsync(Arg.Any<TEntity>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var entity = callInfo.Arg<TEntity>();
+                store[entity.Id] = entity;
+                return Task.FromResult(entity);
+            });
+
+        repo.UpdateAsync(Arg.Any<TEntity>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var entity = callInfo.Arg<TEntity>();
+                store[entity.Id] = entity;
+                return Task.FromResult(entity);
+            });
+
+        repo.DeleteAsync(Arg.Any<TKey>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                store.Remove(callInfo.Arg<TKey>());
+                return Task.CompletedTask;
+            });
+
+        repo.DeleteAsync(Arg.Any<TEntity>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                store.Remove(callInfo.Arg<TEntity>().Id);
+                return Task.CompletedTask;
+            });
+
+        return repo;
     }
 }

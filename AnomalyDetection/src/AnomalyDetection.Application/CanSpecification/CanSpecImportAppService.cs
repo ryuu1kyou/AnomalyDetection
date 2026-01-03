@@ -106,9 +106,8 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
             import.MarkAsCompleted(parseResult.MessageCount, parseResult.SignalCount);
 
             // Compare with latest spec
-            var queryable = await _specRepository.GetQueryableAsync();
             var latestSpec = await AsyncExecuter.FirstOrDefaultAsync(
-                queryable
+                (await _specRepository.GetQueryableAsync())
                     .Where(s => s.Status == ImportStatus.Completed)
                     .OrderByDescending(s => s.ImportDate)
             );
@@ -245,7 +244,15 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
     {
         await AuthorizationService.CheckAsync(AnomalyDetectionPermissions.CanSpecification.Diff.View);
         var spec = await _specRepository.GetAsync(specId);
-        var summary = BuildDiffSummary(spec.Diffs);
+
+        // Fix: Handle null Diffs collection safely
+        var diffs = spec.Diffs;
+        if (diffs == null)
+        {
+            return new CanSpecDiffSummaryDto { SummaryText = "No structural changes detected" };
+        }
+        var summary = BuildDiffSummary(diffs);
+
         return ObjectMapper.Map<CanSpecDiffSummary, CanSpecDiffSummaryDto>(summary);
     }
 
@@ -287,7 +294,7 @@ public class CanSpecImportAppService : ApplicationService, ICanSpecImportAppServ
         {
             Results = rows,
             Format = exportFormat,
-            FileNamePrefix = $"can_spec_diffs_{specId}" ,
+            FileNamePrefix = $"can_spec_diffs_{specId}",
             GeneratedBy = CurrentUser.UserName ?? "system",
             CsvOptions = new CsvExportOptions { IncludeHeader = true }
         };

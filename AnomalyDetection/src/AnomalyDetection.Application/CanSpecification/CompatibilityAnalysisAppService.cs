@@ -123,6 +123,13 @@ public class CompatibilityAnalysisAppService : ApplicationService, ICompatibilit
         var oldSpec = await _specRepository.GetAsync(input.OldSpecId);
         var newSpec = await _specRepository.GetAsync(input.NewSpecId);
 
+        // Fix: Add null-safe checks
+        if (oldSpec == null || newSpec == null)
+        {
+            throw new BusinessException("AnomalyDetection:CompatibilityAssessment")
+                .WithData("message", "One or both specifications not found");
+        }
+
         if (oldSpec.Status != ImportStatus.Completed || newSpec.Status != ImportStatus.Completed)
         {
             throw new BusinessException("AnomalyDetection:CompatibilityAssessment")
@@ -227,7 +234,8 @@ public class CompatibilityAnalysisAppService : ApplicationService, ICompatibilit
         {
             foreach (var issue in analysis.Issues)
             {
-                rows.Add(new {
+                rows.Add(new
+                {
                     Section = "Issue",
                     issue.Severity,
                     issue.Category,
@@ -246,7 +254,8 @@ public class CompatibilityAnalysisAppService : ApplicationService, ICompatibilit
         {
             foreach (var impact in analysis.Impacts)
             {
-                rows.Add(new {
+                rows.Add(new
+                {
                     Section = "Impact",
                     impact.AffectedArea,
                     impact.AffectedMessageCount,

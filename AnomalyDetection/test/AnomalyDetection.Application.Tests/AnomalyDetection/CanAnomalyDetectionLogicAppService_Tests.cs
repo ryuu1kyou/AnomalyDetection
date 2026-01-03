@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.AnomalyDetection.Dtos;
+using NSubstitute;
 using Shouldly;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Domain.Repositories;
 using Xunit;
 
 namespace AnomalyDetection.AnomalyDetection;
@@ -11,10 +14,87 @@ namespace AnomalyDetection.AnomalyDetection;
 public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicationTestBase<AnomalyDetectionApplicationTestModule>
 {
     private readonly ICanAnomalyDetectionLogicAppService _detectionLogicAppService;
+    private readonly IRepository<CanAnomalyDetectionLogic, Guid> _logicRepository;
+    private readonly Dictionary<Guid, CanAnomalyDetectionLogic> _logics = new();
 
     public CanAnomalyDetectionLogicAppService_Tests()
     {
         _detectionLogicAppService = GetRequiredService<ICanAnomalyDetectionLogicAppService>();
+        _logicRepository = GetRequiredService<IRepository<CanAnomalyDetectionLogic, Guid>>();
+
+        SetupLogicRepository();
+    }
+
+    private void SetupLogicRepository()
+    {
+        _logicRepository.InsertAsync(Arg.Any<CanAnomalyDetectionLogic>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var logic = callInfo.Arg<CanAnomalyDetectionLogic>();
+                _logics[logic.Id] = logic;
+                return Task.FromResult(logic);
+            });
+
+        _logicRepository.UpdateAsync(Arg.Any<CanAnomalyDetectionLogic>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var logic = callInfo.Arg<CanAnomalyDetectionLogic>();
+                _logics[logic.Id] = logic;
+                return Task.FromResult(logic);
+            });
+
+        _logicRepository.GetAsync(Arg.Any<Guid>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_logics.TryGetValue(id, out var logic))
+                {
+                    return Task.FromResult(logic);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(CanAnomalyDetectionLogic), id);
+            });
+
+        _logicRepository.GetAsync(Arg.Any<Guid>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_logics.TryGetValue(id, out var logic))
+                {
+                    return Task.FromResult(logic);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(CanAnomalyDetectionLogic), id);
+            });
+
+        _logicRepository.GetListAsync(includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_logics.Values.ToList()));
+
+        _logicRepository.GetListAsync(Arg.Any<System.Linq.Expressions.Expression<Func<CanAnomalyDetectionLogic, bool>>>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<CanAnomalyDetectionLogic, bool>>>().Compile();
+                return Task.FromResult(_logics.Values.AsQueryable().Where(predicate).ToList());
+            });
+
+        _logicRepository.FirstOrDefaultAsync(Arg.Any<System.Linq.Expressions.Expression<Func<CanAnomalyDetectionLogic, bool>>>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<CanAnomalyDetectionLogic, bool>>>().Compile();
+                return Task.FromResult(_logics.Values.AsQueryable().FirstOrDefault(predicate));
+            });
+
+        _logicRepository.GetListAsync()
+            .Returns(callInfo => Task.FromResult(_logics.Values.ToList()));
+
+        _logicRepository.GetQueryableAsync()
+            .Returns(callInfo => Task.FromResult(_logics.Values.AsQueryable()));
+
+        _logicRepository.DeleteAsync(Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                _logics.Remove(id);
+                return Task.CompletedTask;
+            });
     }
 
     [Fact]
@@ -267,7 +347,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SafetyGoalId = "GOAL-001",
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
             Algorithm = "JSON",
-            Parameters = []
+            Parameters = [],
+            SignalMappings = new List<CreateCanSignalMappingDto>
+            {
+                new CreateCanSignalMappingDto { CanSignalId = Guid.NewGuid(), SignalRole = "Target" }
+            }
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -295,7 +379,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SafetyGoalId = "GOAL-002",
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
             Algorithm = "JSON",
-            Parameters = []
+            Parameters = [],
+            SignalMappings = new List<CreateCanSignalMappingDto>
+            {
+                new CreateCanSignalMappingDto { CanSignalId = Guid.NewGuid(), SignalRole = "Target" }
+            }
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);
@@ -324,7 +412,11 @@ public class CanAnomalyDetectionLogicAppService_Tests : AnomalyDetectionApplicat
             SafetyGoalId = "GOAL-003",
             LogicContent = "{ \"type\": \"range\", \"min\": 0, \"max\": 100 }",
             Algorithm = "JSON",
-            Parameters = []
+            Parameters = [],
+            SignalMappings = new List<CreateCanSignalMappingDto>
+            {
+                new CreateCanSignalMappingDto { CanSignalId = Guid.NewGuid(), SignalRole = "Target" }
+            }
         };
 
         var created = await _detectionLogicAppService.CreateAsync(createInput);

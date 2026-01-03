@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AnomalyDetection.CanSpecification;
+using NSubstitute;
 using Shouldly;
 using Volo.Abp.Domain.Repositories;
 using Xunit;
@@ -11,11 +14,47 @@ public class CanSpecImportAppServiceTests : AnomalyDetectionApplicationTestBase<
 {
     private readonly ICanSpecImportAppService _appService;
     private readonly IRepository<CanSpecImport, Guid> _specRepository;
+    private readonly Dictionary<Guid, CanSpecImport> _imports = new();
 
     public CanSpecImportAppServiceTests()
     {
         _appService = GetRequiredService<ICanSpecImportAppService>();
         _specRepository = GetRequiredService<IRepository<CanSpecImport, Guid>>();
+
+        SetupSpecRepository();
+    }
+
+    private void SetupSpecRepository()
+    {
+        _specRepository.InsertAsync(Arg.Any<CanSpecImport>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var import = callInfo.Arg<CanSpecImport>();
+                _imports[import.Id] = import;
+                return Task.FromResult(import);
+            });
+
+        _specRepository.GetAsync(Arg.Any<Guid>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_imports.TryGetValue(id, out var entity))
+                {
+                    return Task.FromResult(entity);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(CanSpecImport), id);
+            });
+
+        _specRepository.GetAsync(Arg.Any<Guid>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_imports.TryGetValue(id, out var entity))
+                {
+                    return Task.FromResult(entity);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(CanSpecImport), id);
+            });
     }
 
     [Fact]

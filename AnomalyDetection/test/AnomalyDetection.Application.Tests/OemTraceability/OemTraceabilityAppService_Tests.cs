@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AnomalyDetection.Application.Contracts.OemTraceability;
 using AnomalyDetection.Application.Contracts.OemTraceability.Dtos;
+using NSubstitute;
 using Shouldly;
 using Volo.Abp;
+using Volo.Abp.Domain.Repositories;
 using Xunit;
 
 namespace AnomalyDetection.OemTraceability;
@@ -16,11 +19,185 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
     private readonly IOemCustomizationRepository _customizationRepository;
     private readonly IOemApprovalRepository _approvalRepository;
 
+    private readonly Dictionary<Guid, OemCustomization> _customizations = new();
+    private readonly Dictionary<Guid, OemApproval> _approvals = new();
+
     public OemTraceabilityAppService_Tests()
     {
         _oemTraceabilityAppService = GetRequiredService<IOemTraceabilityAppService>();
         _customizationRepository = GetRequiredService<IOemCustomizationRepository>();
         _approvalRepository = GetRequiredService<IOemApprovalRepository>();
+
+        SetupCustomizationRepository();
+        SetupApprovalRepository();
+    }
+
+    private void SetupCustomizationRepository()
+    {
+        _customizationRepository.InsertAsync(Arg.Any<OemCustomization>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var entity = callInfo.Arg<OemCustomization>();
+                _customizations[entity.Id] = entity;
+                return Task.FromResult(entity);
+            });
+
+        _customizationRepository.UpdateAsync(Arg.Any<OemCustomization>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var entity = callInfo.Arg<OemCustomization>();
+                _customizations[entity.Id] = entity;
+                return Task.FromResult(entity);
+            });
+
+        _customizationRepository.GetAsync(Arg.Any<Guid>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_customizations.TryGetValue(id, out var entity))
+                {
+                    return Task.FromResult(entity);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(OemCustomization), id);
+            });
+
+        _customizationRepository.GetAsync(Arg.Any<Guid>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_customizations.TryGetValue(id, out var entity))
+                {
+                    return Task.FromResult(entity);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(OemCustomization), id);
+            });
+
+        _customizationRepository.GetListAsync(includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_customizations.Values.ToList()));
+
+        _customizationRepository.GetListAsync(Arg.Any<System.Linq.Expressions.Expression<Func<OemCustomization, bool>>>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<OemCustomization, bool>>>().Compile();
+                return Task.FromResult(_customizations.Values.AsQueryable().Where(predicate).ToList());
+            });
+
+        _customizationRepository.FirstOrDefaultAsync(Arg.Any<System.Linq.Expressions.Expression<Func<OemCustomization, bool>>>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<OemCustomization, bool>>>().Compile();
+                return Task.FromResult(_customizations.Values.AsQueryable().FirstOrDefault(predicate));
+            });
+
+        _customizationRepository.GetListAsync()
+            .Returns(callInfo => Task.FromResult(_customizations.Values.ToList()));
+
+        _customizationRepository.GetQueryableAsync()
+            .Returns(callInfo => Task.FromResult(_customizations.Values.AsQueryable()));
+
+        _customizationRepository.DeleteAsync(Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                _customizations.Remove(id);
+                return Task.CompletedTask;
+            });
+
+        _customizationRepository.GetCustomizationStatisticsAsync(Arg.Any<string>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var stats = _customizations.Values
+                    .GroupBy(c => c.Type)
+                    .ToDictionary(g => g.Key, g => g.Count());
+                return Task.FromResult(stats);
+            });
+    }
+
+    private void SetupApprovalRepository()
+    {
+        _approvalRepository.InsertAsync(Arg.Any<OemApproval>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var entity = callInfo.Arg<OemApproval>();
+                _approvals[entity.Id] = entity;
+                return Task.FromResult(entity);
+            });
+
+        _approvalRepository.UpdateAsync(Arg.Any<OemApproval>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var entity = callInfo.Arg<OemApproval>();
+                _approvals[entity.Id] = entity;
+                return Task.FromResult(entity);
+            });
+
+        _approvalRepository.GetAsync(Arg.Any<Guid>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_approvals.TryGetValue(id, out var entity))
+                {
+                    return Task.FromResult(entity);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(OemApproval), id);
+            });
+
+        _approvalRepository.GetAsync(Arg.Any<Guid>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_approvals.TryGetValue(id, out var entity))
+                {
+                    return Task.FromResult(entity);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(OemApproval), id);
+            });
+
+        _approvalRepository.GetListAsync(includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_approvals.Values.ToList()));
+
+        _approvalRepository.GetListAsync(Arg.Any<System.Linq.Expressions.Expression<Func<OemApproval, bool>>>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<OemApproval, bool>>>().Compile();
+                return Task.FromResult(_approvals.Values.AsQueryable().Where(predicate).ToList());
+            });
+
+        _approvalRepository.FirstOrDefaultAsync(Arg.Any<System.Linq.Expressions.Expression<Func<OemApproval, bool>>>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<OemApproval, bool>>>().Compile();
+                return Task.FromResult(_approvals.Values.AsQueryable().FirstOrDefault(predicate));
+            });
+
+        _approvalRepository.GetListAsync()
+            .Returns(callInfo => Task.FromResult(_approvals.Values.ToList()));
+
+        _approvalRepository.GetQueryableAsync()
+            .Returns(callInfo => Task.FromResult(_approvals.Values.AsQueryable()));
+
+        _approvalRepository.DeleteAsync(Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                _approvals.Remove(id);
+                return Task.CompletedTask;
+            });
+
+        _approvalRepository.GetUrgentApprovalsAsync(Arg.Any<string>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_approvals.Values.Where(a => a.IsUrgent()).ToList()));
+
+        _approvalRepository.GetOverdueApprovalsAsync(Arg.Any<string>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_approvals.Values.Where(a => a.IsOverdue()).ToList()));
+
+        _approvalRepository.GetApprovalStatisticsAsync(Arg.Any<string>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var stats = _approvals.Values
+                    .GroupBy(a => a.Status)
+                    .ToDictionary(g => g.Key, g => g.Count());
+                return Task.FromResult(stats);
+            });
     }
 
     [Fact]
@@ -43,7 +220,7 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
 
         // Assert
         customizationId.ShouldNotBe(Guid.Empty);
-        
+
         var customization = await _customizationRepository.GetAsync(customizationId);
         customization.ShouldNotBeNull();
         customization.EntityId.ShouldBe(input.EntityId);
@@ -155,7 +332,7 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
         // Assert
         draftCustomizations.ShouldNotBeNull();
         draftCustomizations.Any(c => c.Id == customizationId2).ShouldBeTrue();
-        
+
         pendingCustomizations.ShouldNotBeNull();
         pendingCustomizations.Any(c => c.Id == customizationId1).ShouldBeTrue();
     }
@@ -181,7 +358,7 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
 
         // Assert
         approvalId.ShouldNotBe(Guid.Empty);
-        
+
         var approval = await _approvalRepository.GetAsync(approvalId);
         approval.ShouldNotBeNull();
         approval.EntityId.ShouldBe(input.EntityId);
@@ -281,24 +458,24 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
     {
         // Arrange - Create customization
         var customizationId = await CreateTestCustomizationAsync();
-        
+
         // Act & Assert - Submit for approval
         var submitted = await _oemTraceabilityAppService.SubmitForApprovalAsync(customizationId);
         submitted.Status.ShouldBe(CustomizationStatus.PendingApproval);
-        
+
         // Act & Assert - Approve customization
         var approved = await _oemTraceabilityAppService.ApproveCustomizationAsync(customizationId, "Approved after review");
         approved.Status.ShouldBe(CustomizationStatus.Approved);
         approved.ApprovedBy.ShouldNotBeNull();
         approved.ApprovedAt.ShouldNotBeNull();
-        
+
         // Verify cannot update after approval
         var updateInput = new UpdateOemCustomizationDto
         {
             CustomParameters = new Dictionary<string, object> { { "threshold", 150 } },
             CustomizationReason = "Try to update after approval"
         };
-        
+
         await Should.ThrowAsync<BusinessException>(async () =>
         {
             await _oemTraceabilityAppService.UpdateOemCustomizationAsync(customizationId, updateInput);
@@ -310,17 +487,17 @@ public class OemTraceabilityAppService_Tests : AnomalyDetectionApplicationTestBa
     {
         // Arrange - Create approval request
         var approvalId = await CreateTestApprovalAsync();
-        
+
         // Verify initial state
         var initial = await _oemTraceabilityAppService.GetOemApprovalAsync(approvalId);
         initial.Status.ShouldBe(ApprovalStatus.Pending);
-        
+
         // Act & Assert - Approve request
         var approved = await _oemTraceabilityAppService.ApproveAsync(approvalId, "Approved after review");
         approved.Status.ShouldBe(ApprovalStatus.Approved);
         approved.ApprovedBy.ShouldNotBeNull();
         approved.ApprovedAt.ShouldNotBeNull();
-        
+
         // Verify cannot approve again
         await Should.ThrowAsync<BusinessException>(async () =>
         {

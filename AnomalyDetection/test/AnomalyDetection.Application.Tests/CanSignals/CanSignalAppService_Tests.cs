@@ -18,18 +18,93 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
 {
     private readonly ICanSignalAppService _canSignalAppService;
     private readonly IRepository<CanSignal, Guid> _canSignalRepository;
+    private readonly Dictionary<Guid, CanSignal> _signals = new();
 
     public CanSignalAppService_Tests()
     {
         _canSignalAppService = GetRequiredService<ICanSignalAppService>();
         _canSignalRepository = GetRequiredService<IRepository<CanSignal, Guid>>();
 
-        // Configure repository to support basic CRUD flow
-        _canSignalRepository.GetListAsync(Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-           .Returns(Task.FromResult(new List<CanSignal>()));
+        SetupSignalRepository();
+    }
 
+    private void SetupSignalRepository()
+    {
         _canSignalRepository.InsertAsync(Arg.Any<CanSignal>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
-            .Returns(callInfo => Task.FromResult(callInfo.Arg<CanSignal>()));
+            .Returns(callInfo =>
+            {
+                var signal = callInfo.Arg<CanSignal>();
+                _signals[signal.Id] = signal;
+                return Task.FromResult(signal);
+            });
+
+        _canSignalRepository.UpdateAsync(Arg.Any<CanSignal>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var signal = callInfo.Arg<CanSignal>();
+                _signals[signal.Id] = signal;
+                return Task.FromResult(signal);
+            });
+
+        _canSignalRepository.GetAsync(Arg.Any<Guid>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_signals.TryGetValue(id, out var signal))
+                {
+                    return Task.FromResult(signal);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(CanSignal), id);
+            });
+
+        _canSignalRepository.GetAsync(Arg.Any<Guid>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                if (_signals.TryGetValue(id, out var signal))
+                {
+                    return Task.FromResult(signal);
+                }
+                throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(CanSignal), id);
+            });
+
+        _canSignalRepository.GetListAsync(includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo => Task.FromResult(_signals.Values.ToList()));
+
+        _canSignalRepository.GetListAsync(Arg.Any<System.Linq.Expressions.Expression<Func<CanSignal, bool>>>(), includeDetails: Arg.Any<bool>(), cancellationToken: Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<CanSignal, bool>>>().Compile();
+                return Task.FromResult(_signals.Values.AsQueryable().Where(predicate).ToList());
+            });
+
+        _canSignalRepository.FirstOrDefaultAsync(Arg.Any<System.Linq.Expressions.Expression<Func<CanSignal, bool>>>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<System.Linq.Expressions.Expression<Func<CanSignal, bool>>>().Compile();
+                return Task.FromResult(_signals.Values.AsQueryable().FirstOrDefault(predicate));
+            });
+
+        _canSignalRepository.GetListAsync()
+            .Returns(callInfo => Task.FromResult(_signals.Values.ToList()));
+
+        _canSignalRepository.GetQueryableAsync()
+            .Returns(callInfo => Task.FromResult(_signals.Values.AsQueryable()));
+
+        _canSignalRepository.FirstOrDefaultAsync(Arg.Any<Expression<Func<CanSignal, bool>>>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var predicate = callInfo.Arg<Expression<Func<CanSignal, bool>>>().Compile();
+                return Task.FromResult(_signals.Values.FirstOrDefault(predicate));
+            });
+
+        _canSignalRepository.DeleteAsync(Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<System.Threading.CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var id = callInfo.Arg<Guid>();
+                _signals.Remove(id);
+                return Task.CompletedTask;
+            });
     }
 
     [Fact]
@@ -153,35 +228,10 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
             OemCode = new OemCode("TEST", "Test OEM")
         };
 
-        // Arrange specific mock behavior for this test
-        // First CreateAsync: no existing signal (returns null)
-        // Second CreateAsync: existing signal found (returns a signal)
-        var existingSignal = new CanSignal(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            new SignalIdentifier("ExistingSignal", canId),
-            new SignalSpecification(0, 8, SignalDataType.Unsigned, new SignalValueRange(0, 255)),
-            CanSystemType.Body,
-            new OemCode("TEST", "Test OEM"),
-            "Existing signal");
-
-        // Configure the mock to return null first, then the existing signal
-        var callCount = 0;
-        _canSignalRepository.FirstOrDefaultAsync(
-            Arg.Any<Expression<Func<CanSignal, bool>>>(),
-            Arg.Any<System.Threading.CancellationToken>())
-            .Returns(callInfo =>
-            {
-                callCount++;
-                return callCount == 1
-                    ? Task.FromResult((CanSignal)null!)
-                    : Task.FromResult(existingSignal);
-            });
-
         // Act & Assert
         await _canSignalAppService.CreateAsync(firstInput);
 
-        var exception = await Should.ThrowAsync<Exception>(async () =>
+        var exception = await Should.ThrowAsync<Volo.Abp.BusinessException>(async () =>
         {
             await _canSignalAppService.CreateAsync(secondInput);
         });
@@ -372,7 +422,7 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         var createInput = new CreateCanSignalDto
         {
             SignalName = "ConflictTestSignal",
-            CanId = "CONF123",
+            CanId = "C011F123",
             Description = "Signal for conflict test",
             SystemType = CanSystemType.Engine,
             StartBit = 0,
@@ -392,12 +442,12 @@ public class CanSignalAppService_Tests : AnomalyDetectionApplicationTestBase<Ano
         var created = await _canSignalAppService.CreateAsync(createInput);
 
         // Act
-        var result = await _canSignalAppService.CheckCanIdConflictsAsync("CONF123");
+        var result = await _canSignalAppService.CheckCanIdConflictsAsync("C011F123");
 
         // Assert
         result.ShouldNotBeNull();
         result.Items.ShouldNotBeNull();
         result.Items.Count.ShouldBeGreaterThan(0);
-        result.Items[0].CanId.ShouldBe("CONF123");
+        result.Items[0].CanId.ShouldBe("C011F123");
     }
 }

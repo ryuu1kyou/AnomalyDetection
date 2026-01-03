@@ -218,9 +218,23 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
                 var inputData = new DetectionInputData(src.SignalValue, src.InputTimestamp, src.AdditionalInputData);
                 var details = new DetectionDetails(src.DetectionType, src.TriggerCondition, src.DetectionParameters, src.ExecutionTimeMs);
 
+                Guid? tenantId = null;
+                Guid currentUserId = Guid.Empty;
+
+                try
+                {
+                    if (context.Items.ContainsKey("TenantId")) tenantId = (Guid?)context.Items["TenantId"];
+                    if (context.Items.ContainsKey("CurrentUserId")) currentUserId = (Guid)context.Items["CurrentUserId"];
+                }
+                catch (InvalidOperationException)
+                {
+                    // Items are only available when using a Map overload that takes Action<IMappingOperationOptions>
+                    // Fallback to defaults
+                }
+
                 var result = new AnomalyDetectionResult(
                     Guid.NewGuid(),
-                    context.Items.ContainsKey("TenantId") ? (Guid?)context.Items["TenantId"] : null,
+                    tenantId,
                     src.DetectionLogicId,
                     src.CanSignalId,
                     src.AnomalyLevel,
@@ -231,7 +245,6 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
 
                 if (src.SharingLevel != SharingLevel.Private)
                 {
-                    var currentUserId = context.Items.ContainsKey("CurrentUserId") ? (Guid)context.Items["CurrentUserId"] : Guid.Empty;
                     result.ShareResult(src.SharingLevel, currentUserId);
                 }
 
