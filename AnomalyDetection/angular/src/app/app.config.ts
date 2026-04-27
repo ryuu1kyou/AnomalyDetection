@@ -2,16 +2,14 @@ import { provideAbpCore, withOptions } from '@abp/ng.core';
 import { provideAbpOAuth } from '@abp/ng.oauth';
 import { provideSettingManagementConfig } from '@abp/ng.setting-management/config';
 import { provideFeatureManagementConfig } from '@abp/ng.feature-management';
-import { provideAbpThemeShared } from '@abp/ng.theme.shared';
+import { provideAbpThemeShared, provideLogo, withEnvironmentOptions } from '@abp/ng.theme.shared';
 import { provideIdentityConfig } from '@abp/ng.identity/config';
 import { provideAccountConfig } from '@abp/ng.account/config';
 import { provideTenantManagementConfig } from '@abp/ng.tenant-management/config';
-import { registerLocaleForEsBuild } from '@abp/ng.core/locale';
+import { registerLocale } from '@abp/ng.core/locale';
 import { provideThemeLeptonX } from '@abp/ng.theme.lepton-x';
 import { provideSideMenuLayout } from '@abp/ng.theme.lepton-x/layouts';
-import { provideLogo, withEnvironmentOptions } from '@volo/ngx-lepton-x.core';
-import { ApplicationConfig, APP_INITIALIZER, LOCALE_ID } from '@angular/core';
-import { AuthService } from '@abp/ng.core';
+import { ApplicationConfig, LOCALE_ID } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeJa from '@angular/common/locales/ja';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
@@ -26,14 +24,7 @@ import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { APP_ROUTES } from './app.routes';
 import { APP_ROUTE_PROVIDER } from './route.provider';
 
-// Ensure we return a stable async function; wrap to avoid accidental undefined.
-// Register Angular built-in Japanese locale data for pipes (DecimalPipe, DatePipe, etc.)
 registerLocaleData(localeJa);
-const localeLoaderInner = registerLocaleForEsBuild();
-const localeLoaderFn = async (locale: string) => {
-  console.debug('[LocaleLoader] loading locale', locale);
-  return localeLoaderInner(locale);
-};
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -44,9 +35,7 @@ export const appConfig: ApplicationConfig = {
     provideAbpCore(
       withOptions({
         environment,
-        // Provide correct locale loader function (ABP expects (locale: string) => Promise<any>).
-        // Fixes runtime TypeError: Cannot read properties of undefined (reading 'then').
-        registerLocaleFn: localeLoaderFn,
+        registerLocaleFn: registerLocale(),
       })
     ),
     provideAbpOAuth(),

@@ -16,7 +16,6 @@ using OpenIddict.Server.AspNetCore;
 using AnomalyDetection.EntityFrameworkCore;
 using AnomalyDetection.MultiTenancy;
 using AnomalyDetection.HealthChecks;
-using Microsoft.OpenApi.Models;
 using Volo.Abp;
 using Volo.Abp.Studio;
 using Volo.Abp.Account;
@@ -226,7 +225,6 @@ public class AnomalyDetectionHttpApiHostModule : AbpModule
             null,
             options =>
             {
-                options.SwaggerDoc("v1", new OpenApiInfo { Title = "AnomalyDetection API", Version = "v1" });
                 options.DocInclusionPredicate((docName, description) => true);
                 options.CustomSchemaIds(type => type.FullName);
             });

@@ -129,6 +129,13 @@ public class AnomalyDetectionDbMigrationService : ITransientDependency
         {
             Logger.LogWarning("Skipping data seed: connection string not configured ({Message})", ex.Message);
         }
+        catch (Exception ex) when (ex.GetType().FullName == "Microsoft.Data.SqlClient.SqlException")
+        {
+            // Schema mismatch (missing columns) can cause seeding to fail; seeding is optional.
+            Logger.LogWarning(ex,
+                "Skipping data seed due to SQL error (likely schema mismatch). {Message}",
+                ex.Message);
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Data seeding failed.");

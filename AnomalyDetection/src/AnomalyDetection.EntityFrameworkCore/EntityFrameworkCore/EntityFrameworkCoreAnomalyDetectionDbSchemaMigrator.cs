@@ -32,7 +32,9 @@ public class EntityFrameworkCoreAnomalyDetectionDbSchemaMigrator
         var connectionString = context.Database.GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            _logger.LogWarning("Skipping migration: connection string is not configured.");
+            _logger.LogWarning(
+                "Skipping migration: connection string is not configured. CurrentTenant: {TenantId}",
+                context.CurrentTenant?.Id);
             return;
         }
 

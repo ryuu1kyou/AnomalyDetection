@@ -25,7 +25,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AsyncPipe, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil, tap } from 'rxjs';
 import {
@@ -60,7 +60,6 @@ interface DetectionTypeOption {
     MatProgressSpinnerModule,
     NgIf,
     NgFor,
-    AsyncPipe,
   ],
   templateUrl: './detection-logic-create.component.html',
   styleUrls: ['./detection-logic-create.component.scss'],

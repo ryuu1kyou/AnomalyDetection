@@ -146,7 +146,7 @@ export interface OemTraceabilityReport {
   reportId: string;
   fileName: string;
   contentType: string;
-  content: Uint8Array;
+  content: Uint8Array<ArrayBuffer>;
   generatedAt: Date;
   generatedBy: string;
 }

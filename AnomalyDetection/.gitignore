@@ -272,3 +272,8 @@ src/AnomalyDetection.Blazor.Server.Tiered/Logs/*
 # IdentityServer temp files
 tempkey.rsa
 tempkey.jwk
+# Runtime logs
+Logs/*
+
+# Claude Code session files
+../.claude/

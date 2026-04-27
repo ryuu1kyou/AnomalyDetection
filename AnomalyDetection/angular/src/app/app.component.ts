@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { DynamicLayoutComponent, AuthService } from '@abp/ng.core';
 import { LoaderBarComponent } from '@abp/ng.theme.shared';
 import { Router, NavigationEnd } from '@angular/router';
@@ -15,10 +15,9 @@ import { filter, take } from 'rxjs/operators';
 export class AppComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
-    // Clean up OAuth callback parameters from URL after successful login
-    // This prevents "wrong state/nonce" errors on page reload
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),
@@ -26,15 +25,16 @@ export class AppComponent implements OnInit {
       )
       .subscribe(() => {
         const url = this.router.url;
-        // If URL contains OAuth callback parameters and user is authenticated
         if (
           this.authService.isAuthenticated &&
           (url.includes('?code=') || url.includes('&state=') || url.includes('&iss='))
         ) {
-          console.log('[AppComponent] Cleaning OAuth callback parameters from URL');
-          // Navigate to root without parameters
           this.router.navigate(['/'], { replaceUrl: true });
         }
+        // DynamicLayoutComponent.getLayout() runs in another NavigationEnd subscription.
+        // setTimeout defers detectChanges until after all NavigationEnd callbacks complete,
+        // ensuring the layout signal is set before CD runs.
+        setTimeout(() => this.cdr.detectChanges(), 0);
       });
   }
 }
