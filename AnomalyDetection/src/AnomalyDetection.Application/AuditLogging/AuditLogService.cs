@@ -41,7 +41,10 @@ public class AuditLogService : IAuditLogService, ITransientDependency
         AuditLogLevel level = AuditLogLevel.Information,
         object? oldValues = null,
         object? newValues = null,
-        Dictionary<string, object>? metadata = null)
+        Dictionary<string, object>? metadata = null,
+        string? featureId = null,
+        string? decisionId = null,
+        AuditChangeType changeType = AuditChangeType.NotApplicable)
     {
         var httpContext = _httpContextAccessor.HttpContext;
 
@@ -57,7 +60,10 @@ public class AuditLogService : IAuditLogService, ITransientDependency
             metadata: metadata,
             ipAddress: httpContext?.Connection?.RemoteIpAddress?.ToString(),
             userAgent: httpContext?.Request?.Headers["User-Agent"].ToString(),
-            sessionId: httpContext?.Session?.Id
+            sessionId: httpContext?.Session?.Id,
+            featureId: featureId,
+            decisionId: decisionId,
+            changeType: changeType
         );
 
         // ユーザー情報をメタデータに追加
@@ -101,7 +107,10 @@ public class AuditLogService : IAuditLogService, ITransientDependency
         string entityType,
         object oldEntity,
         object newEntity,
-        Dictionary<string, object>? metadata = null)
+        Dictionary<string, object>? metadata = null,
+        string? featureId = null,
+        string? decisionId = null,
+        AuditChangeType changeType = AuditChangeType.NotApplicable)
     {
         return await LogAsync(
             entityId: entityId,
@@ -111,7 +120,10 @@ public class AuditLogService : IAuditLogService, ITransientDependency
             level: AuditLogLevel.Information,
             oldValues: oldEntity,
             newValues: newEntity,
-            metadata: metadata
+            metadata: metadata,
+            featureId: featureId,
+            decisionId: decisionId,
+            changeType: changeType
         );
     }
 

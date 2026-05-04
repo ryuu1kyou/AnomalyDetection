@@ -1,4 +1,5 @@
 using System;
+using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.CanSignals;
 using AnomalyDetection.MultiTenancy;
 using Volo.Abp.Application.Dtos;
@@ -42,4 +43,12 @@ public class CanSignalDto : FullAuditedEntityDto<Guid>
     // Metadata
     public string SourceDocument { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+
+    // トレサビ
+    public string? FeatureId { get; set; }
+    public string? DecisionId { get; set; }
+
+    // 資産共通化分類
+    public CommonalityStatus CommonalityStatus { get; set; }
+    public DateTime? UnknownResolutionDueDate { get; set; }
 }

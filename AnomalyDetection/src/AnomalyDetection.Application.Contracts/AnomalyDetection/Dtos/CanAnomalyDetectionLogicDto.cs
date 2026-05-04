@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AnomalyDetection.AnomalyDetection;
+using AnomalyDetection.AuditLogging;
 using AnomalyDetection.MultiTenancy;
 using Volo.Abp.Application.Dtos;
 
@@ -49,4 +50,22 @@ public class CanAnomalyDetectionLogicDto : FullAuditedEntityDto<Guid>
     // Related Entities
     public List<DetectionParameterDto> Parameters { get; set; } = new();
     public List<CanSignalMappingDto> SignalMappings { get; set; } = new();
+
+    // トレサビ
+    public string? FeatureId { get; set; }
+    public string? DecisionId { get; set; }
+
+    // 資産共通化分類
+    public CommonalityStatus CommonalityStatus { get; set; }
+    public DateTime? UnknownResolutionDueDate { get; set; }
+
+    // 設計意図
+    public string? DesignRationale { get; set; }
+    public string? Assumptions { get; set; }
+    public string? Constraints { get; set; }
+    public string? PurposeShort { get; set; }
+
+    // 文書同期
+    public DocSyncStatus DocSyncStatus { get; set; }
+    public string? DocVersion { get; set; }
 }

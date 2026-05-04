@@ -77,7 +77,22 @@ public class AnomalyDetectionAuditLog : CreationAuditedEntity<Guid>, IMultiTenan
     /// </summary>
     public string? Exception { get; private set; }
 
-    protected AnomalyDetectionAuditLog() 
+    /// <summary>
+    /// 機能単位の識別子（例: "ANOM-FEAT-017"）。横断追跡に使用する。
+    /// </summary>
+    public string? FeatureId { get; private set; }
+
+    /// <summary>
+    /// 設計判断の識別子（例: "DR-2026-0501-02"）。意思決定の起点を追う。
+    /// </summary>
+    public string? DecisionId { get; private set; }
+
+    /// <summary>
+    /// 変更の性質分類。IF変更の見落とし防止に使用する。
+    /// </summary>
+    public AuditChangeType ChangeType { get; private set; }
+
+    protected AnomalyDetectionAuditLog()
     {
         Metadata = [];
     }
@@ -96,7 +111,10 @@ public class AnomalyDetectionAuditLog : CreationAuditedEntity<Guid>, IMultiTenan
         string? userAgent = null,
         string? sessionId = null,
         long? executionDuration = null,
-        string? exception = null)
+        string? exception = null,
+        string? featureId = null,
+        string? decisionId = null,
+        AuditChangeType changeType = AuditChangeType.NotApplicable)
     {
         Id = Guid.NewGuid();
         TenantId = tenantId;
@@ -113,6 +131,9 @@ public class AnomalyDetectionAuditLog : CreationAuditedEntity<Guid>, IMultiTenan
         SessionId = sessionId;
         ExecutionDuration = executionDuration;
         Exception = exception;
+        FeatureId = featureId?.Trim();
+        DecisionId = decisionId?.Trim();
+        ChangeType = changeType;
     }
 
     /// <summary>

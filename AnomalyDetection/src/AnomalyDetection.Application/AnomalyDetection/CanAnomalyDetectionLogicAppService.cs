@@ -203,6 +203,25 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
             }
         }
 
+        // トレサビ更新
+        logic.UpdateTraceability(input.FeatureId, input.DecisionId);
+
+        // 設計意図更新
+        if (input.DesignRationale != null || input.Assumptions != null ||
+            input.Constraints != null || input.PurposeShort != null)
+        {
+            logic.UpdateDesignIntent(input.DesignRationale, input.Assumptions,
+                input.Constraints, input.PurposeShort);
+        }
+
+        // 資産共通化分類更新
+        if (input.CommonalityStatus.HasValue)
+            logic.UpdateCommonalityStatus(input.CommonalityStatus.Value, input.UnknownResolutionDueDate);
+
+        // 文書同期更新
+        if (input.DocSyncStatus.HasValue)
+            logic.UpdateDocSync(input.DocSyncStatus.Value, input.DocVersion);
+
         logic = await _detectionLogicRepository.UpdateAsync(logic, autoSave: true);
         return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);
     }

@@ -94,4 +94,19 @@ public class AuditLogDto : EntityDto<Guid>
     /// 作成者名
     /// </summary>
     public string? CreatorName { get; set; }
+
+    /// <summary>
+    /// 機能単位の識別子（例: "ANOM-FEAT-017"）
+    /// </summary>
+    public string? FeatureId { get; set; }
+
+    /// <summary>
+    /// 設計判断の識別子（例: "DR-2026-0501-02"）
+    /// </summary>
+    public string? DecisionId { get; set; }
+
+    /// <summary>
+    /// 変更の性質分類
+    /// </summary>
+    public AuditChangeType ChangeType { get; set; }
 }

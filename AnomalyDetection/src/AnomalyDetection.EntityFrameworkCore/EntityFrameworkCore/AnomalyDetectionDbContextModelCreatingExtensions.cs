@@ -258,11 +258,19 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.IsStandard).IsRequired();
             b.Property(x => x.EffectiveDate);
 
+            // トレサビ
+            b.Property(x => x.FeatureId).HasMaxLength(50);
+            b.Property(x => x.DecisionId).HasMaxLength(50);
+            b.Property(x => x.CommonalityStatus).IsRequired().HasDefaultValue(CommonalityStatus.Unknown);
+            b.Property(x => x.UnknownResolutionDueDate);
+
             // Indexes - Performance Optimized
             b.HasIndex(x => x.SystemType);
             b.HasIndex(x => x.Status);
             b.HasIndex(x => x.IsStandard);
             b.HasIndex(x => x.EffectiveDate);
+            b.HasIndex(x => x.FeatureId);
+            b.HasIndex(x => x.CommonalityStatus);
 
             // Composite indexes for common query patterns
             b.HasIndex(x => new { x.SystemType, x.Status });
@@ -407,6 +415,26 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.LastExecutedAt);
             b.Property(x => x.LastExecutionTimeMs);
 
+            // トレサビ
+            b.Property(x => x.FeatureId).HasMaxLength(50);
+            b.Property(x => x.DecisionId).HasMaxLength(50);
+
+            // 資産共通化分類
+            b.Property(x => x.CommonalityStatus).IsRequired()
+                .HasDefaultValue(CommonalityStatus.Unknown);
+            b.Property(x => x.UnknownResolutionDueDate);
+
+            // 設計意図
+            b.Property(x => x.DesignRationale).HasMaxLength(2000);
+            b.Property(x => x.Assumptions).HasMaxLength(2000);
+            b.Property(x => x.Constraints).HasMaxLength(2000);
+            b.Property(x => x.PurposeShort).HasMaxLength(200);
+
+            // 文書同期
+            b.Property(x => x.DocSyncStatus).IsRequired()
+                .HasDefaultValue(DocSyncStatus.NotRequired);
+            b.Property(x => x.DocVersion).HasMaxLength(100);
+
             // Relationships with child entities
             b.HasMany<DetectionParameter>()
                 .WithOne()
@@ -437,6 +465,12 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.ExecutionCount);
             b.HasIndex(x => x.LastExecutedAt);
             b.HasIndex(x => new { x.LastExecutedAt, x.ExecutionCount });
+
+            // トレサビインデックス
+            b.HasIndex(x => x.FeatureId);
+            b.HasIndex(x => x.DecisionId);
+            b.HasIndex(x => x.CommonalityStatus);
+            b.HasIndex(x => x.DocSyncStatus);
         });
 
         #endregion
@@ -1017,6 +1051,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.ApprovedAt);
             b.Property(x => x.Status).IsRequired();
             b.Property(x => x.ApprovalNotes).HasMaxLength(2000);
+            b.Property(x => x.DocSyncStatus).IsRequired().HasDefaultValue(DocSyncStatus.NotRequired);
+            b.Property(x => x.DocVersion).HasMaxLength(100);
 
             // Indexes - Performance Optimized
             b.HasIndex(x => new { x.EntityType, x.EntityId });
@@ -1128,6 +1164,10 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.Property(x => x.SessionId).HasMaxLength(100);
             b.Property(x => x.ExecutionDuration);
             b.Property(x => x.Exception).HasMaxLength(4000);
+            b.Property(x => x.FeatureId).HasMaxLength(50);
+            b.Property(x => x.DecisionId).HasMaxLength(50);
+            b.Property(x => x.ChangeType).IsRequired()
+                .HasDefaultValue(AuditChangeType.NotApplicable);
 
             // Indexes
             b.HasIndex(x => x.EntityId);
@@ -1137,6 +1177,8 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => x.CreationTime);
             b.HasIndex(x => x.CreatorId);
             b.HasIndex(x => x.TenantId);
+            b.HasIndex(x => x.FeatureId);
+            b.HasIndex(x => x.DecisionId);
             b.HasIndex(x => new { x.EntityType, x.EntityId });
             b.HasIndex(x => new { x.Action, x.CreationTime });
             b.HasIndex(x => new { x.Level, x.CreationTime });

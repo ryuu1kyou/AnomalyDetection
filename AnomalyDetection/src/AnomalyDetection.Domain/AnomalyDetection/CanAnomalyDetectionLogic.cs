@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using AnomalyDetection.AuditLogging;
 using AnomalyDetection.MultiTenancy;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 using Volo.Abp.MultiTenancy;
 
@@ -37,6 +39,24 @@ public class CanAnomalyDetectionLogic : FullAuditedAggregateRoot<Guid>, IMultiTe
     public int ExecutionCount { get; private set; }
     public DateTime? LastExecutedAt { get; private set; }
     public double? LastExecutionTimeMs { get; private set; }
+
+    // トレサビ（06_loophole-rating TOP1: feature_id なし防止）
+    public string? FeatureId { get; private set; }
+    public string? DecisionId { get; private set; }
+
+    // 資産共通化分類（06 TOP3: Unknown 無期限放置防止）
+    public CommonalityStatus CommonalityStatus { get; private set; } = CommonalityStatus.Unknown;
+    public DateTime? UnknownResolutionDueDate { get; private set; }
+
+    // 設計意図台帳（01_traceability-guidance: 設計意図台帳相当）
+    public string? DesignRationale { get; private set; }
+    public string? Assumptions { get; private set; }
+    public string? Constraints { get; private set; }
+    public string? PurposeShort { get; private set; }
+
+    // 文書同期
+    public DocSyncStatus DocSyncStatus { get; private set; } = DocSyncStatus.NotRequired;
+    public string? DocVersion { get; private set; }
 
     protected CanAnomalyDetectionLogic() { }
 
@@ -139,6 +159,35 @@ public class CanAnomalyDetectionLogic : FullAuditedAggregateRoot<Guid>, IMultiTe
         }
     }
 
+    public void UpdateTraceability(string? featureId, string? decisionId)
+    {
+        FeatureId = featureId?.Trim();
+        DecisionId = decisionId?.Trim();
+    }
+
+    public void UpdateDesignIntent(string? rationale, string? assumptions, string? constraints, string? purposeShort)
+    {
+        DesignRationale = rationale;
+        Assumptions = assumptions;
+        Constraints = constraints;
+        PurposeShort = purposeShort;
+    }
+
+    public void UpdateCommonalityStatus(CommonalityStatus status, DateTime? resolutionDueDate = null)
+    {
+        if (status == CommonalityStatus.Unknown && resolutionDueDate == null)
+            throw new BusinessException("AnomalyDetection:UnknownRequiresDueDate")
+                .WithData("message", "Unknown classification requires a resolution due date.");
+        CommonalityStatus = status;
+        UnknownResolutionDueDate = status == CommonalityStatus.Unknown ? resolutionDueDate : null;
+    }
+
+    public void UpdateDocSync(DocSyncStatus status, string? docVersion = null)
+    {
+        DocSyncStatus = status;
+        DocVersion = docVersion;
+    }
+
     public void UpdateSharingLevel(SharingLevel newSharingLevel)
     {
         if (Status == DetectionLogicStatus.Approved && Safety.RequiresApproval())
@@ -174,6 +223,11 @@ public class CanAnomalyDetectionLogic : FullAuditedAggregateRoot<Guid>, IMultiTe
         {
             ValidateHighAsilRequirements();
         }
+
+        // Unknown 分類のまま承認不可（06_loophole-rating TOP3 対応）
+        if (CommonalityStatus == CommonalityStatus.Unknown)
+            throw new BusinessException("AnomalyDetection:UnknownCommonalityCannotApprove")
+                .WithData("message", "Cannot approve logic with unresolved Unknown commonality classification. Set CommonalityStatus before approval.");
 
         Status = DetectionLogicStatus.Approved;
         ApprovedAt = DateTime.UtcNow;

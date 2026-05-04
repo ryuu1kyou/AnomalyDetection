@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using AnomalyDetection.AnomalyDetection;
 using AnomalyDetection.CanSignals;
 using AnomalyDetection.MultiTenancy;
 
@@ -61,4 +62,15 @@ public class UpdateCanSignalDto
     
     [StringLength(500)]
     public string ChangeReason { get; set; } = string.Empty;
+
+    // トレサビ
+    [StringLength(50)]
+    public string? FeatureId { get; set; }
+
+    [StringLength(50)]
+    public string? DecisionId { get; set; }
+
+    // 資産共通化分類
+    public CommonalityStatus? CommonalityStatus { get; set; }
+    public DateTime? UnknownResolutionDueDate { get; set; }
 }

@@ -58,7 +58,11 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
             .ForMember(dest => dest.Unit, opt => opt.MapFrom(src => src.Conversion.Unit))
             .ForMember(dest => dest.CycleTime, opt => opt.MapFrom(src => src.Timing.CycleTimeMs))
             .ForMember(dest => dest.TimeoutTime, opt => opt.MapFrom(src => src.Timing.TimeoutMs))
-            .ForMember(dest => dest.Version, opt => opt.MapFrom(src => src.Version.ToString()));
+            .ForMember(dest => dest.Version, opt => opt.MapFrom(src => src.Version.ToString()))
+            .ForMember(dest => dest.FeatureId, opt => opt.MapFrom(src => src.FeatureId))
+            .ForMember(dest => dest.DecisionId, opt => opt.MapFrom(src => src.DecisionId))
+            .ForMember(dest => dest.CommonalityStatus, opt => opt.MapFrom(src => src.CommonalityStatus))
+            .ForMember(dest => dest.UnknownResolutionDueDate, opt => opt.MapFrom(src => src.UnknownResolutionDueDate));
 
         CreateMap<CreateCanSignalDto, CanSignal>()
             .ConvertUsing((src, dest, context) =>
@@ -109,7 +113,17 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
             .ForMember(dest => dest.IsExecutable, opt => opt.MapFrom(src => src.Implementation != null && src.Implementation.IsExecutable()))
             .ForMember(dest => dest.AsilLevel, opt => opt.MapFrom(src => src.Safety.AsilLevel))
             .ForMember(dest => dest.SafetyRequirementId, opt => opt.MapFrom(src => src.Safety.SafetyRequirementId ?? string.Empty))
-            .ForMember(dest => dest.SafetyGoalId, opt => opt.MapFrom(src => src.Safety.SafetyGoalId ?? string.Empty));
+            .ForMember(dest => dest.SafetyGoalId, opt => opt.MapFrom(src => src.Safety.SafetyGoalId ?? string.Empty))
+            .ForMember(dest => dest.FeatureId, opt => opt.MapFrom(src => src.FeatureId))
+            .ForMember(dest => dest.DecisionId, opt => opt.MapFrom(src => src.DecisionId))
+            .ForMember(dest => dest.CommonalityStatus, opt => opt.MapFrom(src => src.CommonalityStatus))
+            .ForMember(dest => dest.UnknownResolutionDueDate, opt => opt.MapFrom(src => src.UnknownResolutionDueDate))
+            .ForMember(dest => dest.DesignRationale, opt => opt.MapFrom(src => src.DesignRationale))
+            .ForMember(dest => dest.Assumptions, opt => opt.MapFrom(src => src.Assumptions))
+            .ForMember(dest => dest.Constraints, opt => opt.MapFrom(src => src.Constraints))
+            .ForMember(dest => dest.PurposeShort, opt => opt.MapFrom(src => src.PurposeShort))
+            .ForMember(dest => dest.DocSyncStatus, opt => opt.MapFrom(src => src.DocSyncStatus))
+            .ForMember(dest => dest.DocVersion, opt => opt.MapFrom(src => src.DocVersion));
 
         CreateMap<DetectionParameter, DetectionParameterDto>()
             .ForMember(dest => dest.MinValue, opt => opt.MapFrom(src => src.Constraints != null ? src.Constraints.MinValue : null))
@@ -391,7 +405,9 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
 
         // OEM Customization mappings
         CreateMap<OemCustomization, OemCustomizationDto>()
-            .ForMember(dest => dest.OemCode, opt => opt.MapFrom(src => src.OemCode.Code));
+            .ForMember(dest => dest.OemCode, opt => opt.MapFrom(src => src.OemCode.Code))
+            .ForMember(dest => dest.DocSyncStatus, opt => opt.MapFrom(src => src.DocSyncStatus))
+            .ForMember(dest => dest.DocVersion, opt => opt.MapFrom(src => src.DocVersion));
 
         // OEM Approval mappings
         CreateMap<OemApproval, OemApprovalDto>()

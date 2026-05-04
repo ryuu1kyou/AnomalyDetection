@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using AnomalyDetection.AuditLogging;
+using AnomalyDetection.AnomalyDetection;
 
 namespace AnomalyDetection.AnomalyDetection.Dtos;
 
@@ -42,6 +44,36 @@ public class UpdateDetectionLogicDto
     
     // Parameters and Signal Mappings
     public List<UpdateDetectionParameterDto> Parameters { get; set; } = new();
-    
+
     public List<UpdateCanSignalMappingDto> SignalMappings { get; set; } = new();
+
+    // トレサビ
+    [StringLength(50)]
+    public string? FeatureId { get; set; }
+
+    [StringLength(50)]
+    public string? DecisionId { get; set; }
+
+    // 資産共通化分類
+    public CommonalityStatus? CommonalityStatus { get; set; }
+    public DateTime? UnknownResolutionDueDate { get; set; }
+
+    // 設計意図
+    [StringLength(2000)]
+    public string? DesignRationale { get; set; }
+
+    [StringLength(2000)]
+    public string? Assumptions { get; set; }
+
+    [StringLength(2000)]
+    public string? Constraints { get; set; }
+
+    [StringLength(200)]
+    public string? PurposeShort { get; set; }
+
+    // 文書同期
+    public DocSyncStatus? DocSyncStatus { get; set; }
+
+    [StringLength(100)]
+    public string? DocVersion { get; set; }
 }

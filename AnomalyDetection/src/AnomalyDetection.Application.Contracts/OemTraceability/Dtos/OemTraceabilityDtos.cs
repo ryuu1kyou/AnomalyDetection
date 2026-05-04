@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using AnomalyDetection.AuditLogging;
 using AnomalyDetection.OemTraceability;
 using Volo.Abp.Application.Dtos;
 
@@ -109,6 +111,8 @@ public class UpdateOemCustomizationDto
 {
     public Dictionary<string, object> CustomParameters { get; set; } = new();
     public string CustomizationReason { get; set; } = string.Empty;
+    public DocSyncStatus? DocSyncStatus { get; set; }
+    [StringLength(100)] public string? DocVersion { get; set; }
 }
 
 /// <summary>
@@ -128,6 +132,8 @@ public class OemCustomizationDto : EntityDto<Guid>
     public CustomizationStatus Status { get; set; }
     public string? ApprovalNotes { get; set; }
     public DateTime CreationTime { get; set; }
+    public DocSyncStatus DocSyncStatus { get; set; }
+    public string? DocVersion { get; set; }
 }
 
 /// <summary>

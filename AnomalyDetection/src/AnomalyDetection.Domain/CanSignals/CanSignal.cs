@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using AnomalyDetection.AnomalyDetection;
+using AnomalyDetection.AuditLogging;
 using AnomalyDetection.MultiTenancy;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 using Volo.Abp.Domain.Values;
 using Volo.Abp.MultiTenancy;
@@ -29,6 +32,14 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     // メタデータ
     public string? SourceDocument { get; private set; }
     public string? Notes { get; private set; }
+
+    // トレサビ（06_loophole-rating TOP1: feature_id なし防止）
+    public string? FeatureId { get; private set; }
+    public string? DecisionId { get; private set; }
+
+    // 資産共通化分類（06 TOP3: Unknown 無期限放置防止）
+    public CommonalityStatus CommonalityStatus { get; private set; } = CommonalityStatus.Unknown;
+    public DateTime? UnknownResolutionDueDate { get; private set; }
 
     protected CanSignal() { }
 
@@ -208,6 +219,21 @@ public class CanSignal : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public bool IsDeprecated()
     {
         return Status == SignalStatus.Deprecated;
+    }
+
+    public void UpdateTraceability(string? featureId, string? decisionId)
+    {
+        FeatureId = featureId?.Trim();
+        DecisionId = decisionId?.Trim();
+    }
+
+    public void UpdateCommonalityStatus(CommonalityStatus status, DateTime? resolutionDueDate = null)
+    {
+        if (status == CommonalityStatus.Unknown && resolutionDueDate == null)
+            throw new BusinessException("AnomalyDetection:UnknownRequiresDueDate")
+                .WithData("message", "Unknown classification requires a resolution due date.");
+        CommonalityStatus = status;
+        UnknownResolutionDueDate = status == CommonalityStatus.Unknown ? resolutionDueDate : null;
     }
 
     private static string? ValidateDescription(string? description)

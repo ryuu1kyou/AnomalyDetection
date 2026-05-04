@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AnomalyDetection.AuditLogging;
 using AnomalyDetection.MultiTenancy;
 using AnomalyDetection.OemTraceability.Events;
 using Volo.Abp;
@@ -70,6 +71,10 @@ public class OemCustomization : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public string? ApprovalNotes { get; private set; }
 
+    // 文書同期状態
+    public DocSyncStatus DocSyncStatus { get; private set; } = DocSyncStatus.NotRequired;
+    public string? DocVersion { get; private set; }
+
     protected OemCustomization() { }
 
     public OemCustomization(
@@ -120,6 +125,10 @@ public class OemCustomization : FullAuditedAggregateRoot<Guid>, IMultiTenant
         ApprovedAt = DateTime.UtcNow;
         ApprovalNotes = approvalNotes;
         Status = CustomizationStatus.Approved;
+
+        // 承認時に文書同期が必要な状態に遷移
+        if (DocSyncStatus == DocSyncStatus.NotRequired)
+            DocSyncStatus = DocSyncStatus.Pending;
 
         // 監査ログ用のイベントを発行
         AddLocalEvent(new OemCustomizationApprovedEvent(this, approvedBy, approvalNotes));
@@ -176,5 +185,11 @@ public class OemCustomization : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public void MarkAsObsolete()
     {
         Status = CustomizationStatus.Obsolete;
+    }
+
+    public void UpdateDocSync(DocSyncStatus status, string? docVersion = null)
+    {
+        DocSyncStatus = status;
+        DocVersion = docVersion;
     }
 }

@@ -30,7 +30,10 @@ public interface IAuditLogService : ITransientDependency
         AuditLogLevel level = AuditLogLevel.Information,
         object? oldValues = null,
         object? newValues = null,
-        Dictionary<string, object>? metadata = null);
+        Dictionary<string, object>? metadata = null,
+        string? featureId = null,
+        string? decisionId = null,
+        AuditChangeType changeType = AuditChangeType.NotApplicable);
 
     /// <summary>
     /// エンティティ作成の監査ログを記録する
@@ -60,7 +63,10 @@ public interface IAuditLogService : ITransientDependency
         string entityType,
         object oldEntity,
         object newEntity,
-        Dictionary<string, object>? metadata = null);
+        Dictionary<string, object>? metadata = null,
+        string? featureId = null,
+        string? decisionId = null,
+        AuditChangeType changeType = AuditChangeType.NotApplicable);
 
     /// <summary>
     /// エンティティ削除の監査ログを記録する

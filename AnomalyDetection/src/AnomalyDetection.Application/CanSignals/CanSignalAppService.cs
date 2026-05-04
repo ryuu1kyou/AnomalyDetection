@@ -212,6 +212,10 @@ public class CanSignalAppService : ApplicationService, ICanSignalAppService
             canSignal.AddNote(input.Notes);
         }
 
+        canSignal.UpdateTraceability(input.FeatureId, input.DecisionId);
+        if (input.CommonalityStatus.HasValue)
+            canSignal.UpdateCommonalityStatus(input.CommonalityStatus.Value, input.UnknownResolutionDueDate);
+
         canSignal = await _canSignalRepository.UpdateAsync(canSignal, autoSave: true);
         return _mapper.Map(canSignal);
     }

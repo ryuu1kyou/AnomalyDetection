@@ -92,6 +92,9 @@ public class OemTraceabilityAppService : ApplicationService, IOemTraceabilityApp
 
         customization.UpdateCustomParameters(input.CustomParameters, input.CustomizationReason);
 
+        if (input.DocSyncStatus.HasValue)
+            customization.UpdateDocSync(input.DocSyncStatus.Value, input.DocVersion);
+
         await _customizationRepository.UpdateAsync(customization);
         return ObjectMapper.Map<OemCustomization, OemCustomizationDto>(customization);
     }

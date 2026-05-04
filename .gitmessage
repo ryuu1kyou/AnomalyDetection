@@ -1,0 +1,20 @@
+# [Feature]  ANOM-FEAT-XXX
+# [Module]   CanAnomalyDetectionLogic / CanSignal / OemCustomization / AuditLog / ...
+# [Decision] DR-YYYY-MMDD-NN
+# [Reason]   (変更の理由・目的)
+# [Impact]   (影響範囲: parameter range / approval flow / IF / ...)
+# [IF]       changed / unchanged
+# [DOC]      pending / not_required / updated
+#
+# --- 上記コメントを消去して実際のコミットメッセージを書いてください ---
+#
+# 例:
+#   feat(CanSignal): add CommonalityStatus and traceability fields
+#
+#   [Feature]  ANOM-FEAT-017
+#   [Module]   CanSignal
+#   [Decision] DR-2026-0504-01
+#   [Reason]   資産共通化分類の判断保留（Unknown）を期限付きで管理するため
+#   [Impact]   CanSignal UpdateAsync, EF migration
+#   [IF]       unchanged
+#   [DOC]      pending
