@@ -12,7 +12,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Subject, distinctUntilChanged, map, takeUntil } from 'rxjs';
+import { Subject, TimeoutError, distinctUntilChanged, map, takeUntil, timeout } from 'rxjs';
 import { DetectionLogicService } from '../services/detection-logic.service';
 import {
   CanAnomalyDetectionLogicDto,
@@ -145,7 +145,7 @@ export class DetectionLogicListComponent implements OnInit, OnDestroy {
         maxResultCount: this.pageSize,
         sorting: 'CreationTime DESC',
       })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(30000), takeUntil(this.destroy$))
       .subscribe({
         next: response => {
           this.detectionLogics = response.items;
@@ -159,7 +159,10 @@ export class DetectionLogicListComponent implements OnInit, OnDestroy {
           this.detectionLogics = [];
           this.isLoading = false;
           this.hasLoadedOnce = true;
-          this.errorMessage = error?.error?.message ?? '検出ロジック一覧の取得に失敗しました。';
+          this.errorMessage =
+            error instanceof TimeoutError
+              ? 'サーバーからの応答がありません（タイムアウト）。バックエンドが起動しているか確認してください。'
+              : (error?.error?.message ?? '検出ロジック一覧の取得に失敗しました。');
           this.cdr.markForCheck();
         },
       });

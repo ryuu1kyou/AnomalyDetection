@@ -5,6 +5,7 @@ using System.Linq.Dynamic.Core;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AnomalyDetection.AnomalyDetection.Dtos;
+using AnomalyDetection.AnomalyDetection.Mappers;
 using AnomalyDetection.DetectionTemplates;
 using AnomalyDetection.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -22,13 +23,16 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
 {
     private readonly IRepository<CanAnomalyDetectionLogic, Guid> _detectionLogicRepository;
     private readonly IDetectionTemplateAppService _detectionTemplateAppService;
+    private readonly CanAnomalyDetectionLogicMapper _logicMapper;
 
     public CanAnomalyDetectionLogicAppService(
         IRepository<CanAnomalyDetectionLogic, Guid> detectionLogicRepository,
-        IDetectionTemplateAppService detectionTemplateAppService)
+        IDetectionTemplateAppService detectionTemplateAppService,
+        CanAnomalyDetectionLogicMapper logicMapper)
     {
         _detectionLogicRepository = detectionLogicRepository;
         _detectionTemplateAppService = detectionTemplateAppService;
+        _logicMapper = logicMapper;
     }
 
     public async Task<PagedResultDto<CanAnomalyDetectionLogicDto>> GetListAsync(GetDetectionLogicsInput input)
@@ -84,7 +88,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         var items = await AsyncExecuter.ToListAsync(
             queryable.Skip(input.SkipCount).Take(input.MaxResultCount));
 
-        var dtos = items.Select(item => ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(item)).ToList();
+        var dtos = items.Select(item => _logicMapper.Map(item)).ToList();
 
         return new PagedResultDto<CanAnomalyDetectionLogicDto>(totalCount, dtos);
     }
@@ -92,7 +96,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
     public async Task<CanAnomalyDetectionLogicDto> GetAsync(Guid id)
     {
         var logic = await _detectionLogicRepository.GetAsync(id);
-        return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);
+        return _logicMapper.Map(logic);
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Create)]
@@ -101,7 +105,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         var logic = ObjectMapper.Map<CreateDetectionLogicDto, CanAnomalyDetectionLogic>(input);
 
         logic = await _detectionLogicRepository.InsertAsync(logic, autoSave: true);
-        return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);
+        return _logicMapper.Map(logic);
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Edit)]
@@ -223,7 +227,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
             logic.UpdateDocSync(input.DocSyncStatus.Value, input.DocVersion);
 
         logic = await _detectionLogicRepository.UpdateAsync(logic, autoSave: true);
-        return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(logic);
+        return _logicMapper.Map(logic);
     }
 
     [Authorize(AnomalyDetectionPermissions.DetectionLogics.Delete)]
@@ -243,21 +247,21 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         // Map DetectionType to AnomalyType
         var anomalyType = (AnomalyType)(int)detectionType;
         var logics = await _detectionLogicRepository.GetListAsync(x => x.Specification.DetectionType == anomalyType);
-        var dtos = logics.Select(item => ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(item)).ToList();
+        var dtos = logics.Select(item => _logicMapper.Map(item)).ToList();
         return new ListResultDto<CanAnomalyDetectionLogicDto>(dtos);
     }
 
     public async Task<ListResultDto<CanAnomalyDetectionLogicDto>> GetByShareLevelAsync(SharingLevel sharingLevel)
     {
         var logics = await _detectionLogicRepository.GetListAsync(x => x.SharingLevel == sharingLevel);
-        var dtos = logics.Select(item => ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(item)).ToList();
+        var dtos = logics.Select(item => _logicMapper.Map(item)).ToList();
         return new ListResultDto<CanAnomalyDetectionLogicDto>(dtos);
     }
 
     public async Task<ListResultDto<CanAnomalyDetectionLogicDto>> GetByAsilLevelAsync(AsilLevel asilLevel)
     {
         var logics = await _detectionLogicRepository.GetListAsync(x => x.Safety.AsilLevel == asilLevel);
-        var dtos = logics.Select(item => ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(item)).ToList();
+        var dtos = logics.Select(item => _logicMapper.Map(item)).ToList();
         return new ListResultDto<CanAnomalyDetectionLogicDto>(dtos);
     }
 
@@ -372,7 +376,7 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         var created = await _detectionTemplateAppService.CreateFromTemplateAsync(createInput);
         var createdEntity = await _detectionLogicRepository.GetAsync(created.Id);
 
-        return ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(createdEntity);
+        return _logicMapper.Map(createdEntity);
     }
 
     public async Task<List<Dictionary<string, object>>> GetTemplatesAsync(DetectionType detectionType)
@@ -684,14 +688,14 @@ public class CanAnomalyDetectionLogicAppService : ApplicationService, ICanAnomal
         var logics = await AsyncExecuter.ToListAsync(
             queryable.Where(x => x.SignalMappings.Any(m => m.CanSignalId == canSignalId)));
 
-        var dtos = logics.Select(item => ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(item)).ToList();
+        var dtos = logics.Select(item => _logicMapper.Map(item)).ToList();
         return new ListResultDto<CanAnomalyDetectionLogicDto>(dtos);
     }
 
     public async Task<ListResultDto<CanAnomalyDetectionLogicDto>> GetByVehiclePhaseAsync(Guid vehiclePhaseId)
     {
         var logics = await _detectionLogicRepository.GetListAsync(x => x.VehiclePhaseId == vehiclePhaseId);
-        var dtos = logics.Select(item => ObjectMapper.Map<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>(item)).ToList();
+        var dtos = logics.Select(item => _logicMapper.Map(item)).ToList();
         return new ListResultDto<CanAnomalyDetectionLogicDto>(dtos);
     }
 }

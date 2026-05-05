@@ -20,8 +20,8 @@
 
   <!-- Security vulnerability fixes for transitive dependencies -->
   <ItemGroup>
-	<!-- Upgrade AutoMapper to fix GHSA-rvv3-g6hj-g44x (used by Volo.Abp.AutoMapper) -->
-	<PackageReference Include="AutoMapper" Version="16.1.1" PrivateAssets="All" />
+	<!-- Pin AutoMapper to 14.0.0 for ABP 10.3.0 compatibility (16.x removed MapperConfiguration(Action<>) ctor used by ABP) -->
+	<PackageReference Include="AutoMapper" Version="14.0.0" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

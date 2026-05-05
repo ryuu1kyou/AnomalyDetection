@@ -25,6 +25,7 @@ namespace AnomalyDetection;
     typeof(AbpAccountApplicationModule),
     typeof(AbpTenantManagementApplicationModule),
     typeof(AbpSettingManagementApplicationModule),
+    typeof(AbpAutoMapperModule),
     typeof(AbpMapperlyModule)
     // typeof(AbpCachingStackExchangeRedisModule) // Redisを無効化
     )]

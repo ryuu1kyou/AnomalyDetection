@@ -1,0 +1,83 @@
+name: Dependency Update
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 毎週月曜日午前9時
+  workflow_dispatch:
+
+jobs:
+  update-dotnet:
+    name: Update .NET Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET 10.0.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install dotnet-outdated
+        run: dotnet tool install --global dotnet-outdated-tool
+
+      - name: Update minor/patch versions
+        working-directory: AnomalyDetection
+        run: dotnet outdated --upgrade --version-lock Major
+
+      - name: Build after update
+        working-directory: AnomalyDetection
+        run: |
+          dotnet restore AnomalyDetection.sln
+          dotnet build AnomalyDetection.sln --configuration Release --no-restore
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update .NET dependencies'
+          title: 'chore: update .NET dependencies'
+          body: |
+            Auto-generated: updates .NET NuGet packages to latest compatible minor versions.
+            - Build verified after update
+          branch: update/dotnet-dependencies
+          delete-branch: true
+
+  update-node:
+    name: Update Node.js Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Update and audit
+        working-directory: AnomalyDetection/angular
+        run: |
+          yarn install --frozen-lockfile
+          yarn upgrade --pattern "*" --latest --exact || true
+          yarn audit fix || true
+
+      - name: Build after update
+        working-directory: AnomalyDetection/angular
+        run: yarn build:prod
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update Node.js dependencies'
+          title: 'chore: update Node.js dependencies'
+          body: |
+            Auto-generated: updates Angular/Node packages and applies security audit fixes.
+            - Build verified after update
+          branch: update/node-dependencies
+          delete-branch: true

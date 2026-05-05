@@ -54,6 +54,22 @@ public partial class CanAnomalyDetectionLogicMapper :
             Parameters = MapParameters(source.Parameters),
             SignalMappings = MapSignalMappings(source.SignalMappings),
 
+            // トレサビ
+            FeatureId = source.FeatureId,
+            DecisionId = source.DecisionId,
+            CommonalityStatus = source.CommonalityStatus,
+            UnknownResolutionDueDate = source.UnknownResolutionDueDate,
+
+            // 設計意図
+            DesignRationale = source.DesignRationale,
+            Assumptions = source.Assumptions,
+            Constraints = source.Constraints,
+            PurposeShort = source.PurposeShort,
+
+            // 文書同期
+            DocSyncStatus = source.DocSyncStatus,
+            DocVersion = source.DocVersion,
+
             // Audit properties
             CreationTime = source.CreationTime,
             CreatorId = source.CreatorId,
@@ -108,6 +124,22 @@ public partial class CanAnomalyDetectionLogicMapper :
         // Collections
         destination.Parameters = MapParameters(source.Parameters);
         destination.SignalMappings = MapSignalMappings(source.SignalMappings);
+
+        // トレサビ
+        destination.FeatureId = source.FeatureId;
+        destination.DecisionId = source.DecisionId;
+        destination.CommonalityStatus = source.CommonalityStatus;
+        destination.UnknownResolutionDueDate = source.UnknownResolutionDueDate;
+
+        // 設計意図
+        destination.DesignRationale = source.DesignRationale;
+        destination.Assumptions = source.Assumptions;
+        destination.Constraints = source.Constraints;
+        destination.PurposeShort = source.PurposeShort;
+
+        // 文書同期
+        destination.DocSyncStatus = source.DocSyncStatus;
+        destination.DocVersion = source.DocVersion;
 
         // Audit properties
         destination.CreationTime = source.CreationTime;

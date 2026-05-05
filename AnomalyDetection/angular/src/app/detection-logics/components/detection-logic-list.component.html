@@ -3,7 +3,10 @@
     <div>
       <h2 class="page-title">異常検出ロジック一覧</h2>
       <p class="page-subtitle">
-        全 {{ totalCount | number }} 件中 最新 {{ detectionLogics.length | number }} 件を表示
+        <ng-container *ngIf="!isLoading; else loadingSubtitle">
+          全 {{ totalCount | number }} 件中 最新 {{ detectionLogics.length | number }} 件を表示
+        </ng-container>
+        <ng-template #loadingSubtitle>データを取得中...</ng-template>
       </p>
     </div>
     <button mat-raised-button color="primary" (click)="createLogic()" type="button">

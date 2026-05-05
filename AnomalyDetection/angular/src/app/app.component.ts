@@ -1,8 +1,11 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { DynamicLayoutComponent, AuthService } from '@abp/ng.core';
+import { DynamicLayoutComponent, AuthService, ReplaceableComponentsService } from '@abp/ng.core';
 import { LoaderBarComponent } from '@abp/ng.theme.shared';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter, take } from 'rxjs/operators';
+
+@Component({ selector: 'app-empty-footer', template: '' })
+class EmptyFooterComponent {}
 
 @Component({
   selector: 'app-root',
@@ -16,8 +19,14 @@ export class AppComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private replaceableComponents = inject(ReplaceableComponentsService);
 
   ngOnInit() {
+    this.replaceableComponents.add({
+      component: EmptyFooterComponent,
+      key: 'Theme.FooterComponent',
+    });
+
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),

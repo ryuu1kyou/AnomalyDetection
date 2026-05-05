@@ -13,6 +13,7 @@ using AnomalyDetection.ValueObjects;
 using AnomalyDetection.AuditLogging;
 using AnomalyDetection.KnowledgeBase;
 using AnomalyDetection.Safety;
+using AnomalyDetection.ChangeTracking;
 using System.Text.Json;
 
 namespace AnomalyDetection.EntityFrameworkCore;
@@ -1182,6 +1183,50 @@ public static class AnomalyDetectionDbContextModelCreatingExtensions
             b.HasIndex(x => new { x.EntityType, x.EntityId });
             b.HasIndex(x => new { x.Action, x.CreationTime });
             b.HasIndex(x => new { x.Level, x.CreationTime });
+        });
+
+        #endregion
+
+        // ============================================================================
+        // ChangeTracking
+        // ============================================================================
+
+        #region ChangeBundle (Aggregate Root)
+
+        builder.Entity<ChangeBundle>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "ChangeBundles", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.FeatureId).IsRequired().HasMaxLength(50);
+            b.Property(x => x.DecisionId).HasMaxLength(50);
+            b.Property(x => x.ChangeType).IsRequired().HasDefaultValue(AuditChangeType.NotApplicable);
+            b.Property(x => x.ChangeReason).IsRequired().HasMaxLength(1000);
+            b.Property(x => x.DocSyncStatus).IsRequired().HasDefaultValue(DocSyncStatus.NotRequired);
+            b.Property(x => x.DocVersion).HasMaxLength(100);
+
+            b.HasMany(x => x.Items)
+             .WithOne()
+             .HasForeignKey(x => x.ChangeBundleId)
+             .IsRequired()
+             .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasIndex(x => x.FeatureId);
+            b.HasIndex(x => x.DecisionId);
+            b.HasIndex(x => x.ChangeType);
+            b.HasIndex(x => new { x.TenantId, x.FeatureId });
+        });
+
+        builder.Entity<ChangeBundleItem>(b =>
+        {
+            b.ToTable(AnomalyDetectionConsts.DbTablePrefix + "ChangeBundleItems", AnomalyDetectionConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.EntityType).IsRequired().HasMaxLength(100);
+            b.Property(x => x.LinkedAt).IsRequired();
+
+            b.HasIndex(x => x.ChangeBundleId);
+            b.HasIndex(x => new { x.EntityId, x.EntityType });
         });
 
         #endregion

@@ -23,6 +23,7 @@ using AnomalyDetection.KnowledgeBase;
 using AnomalyDetection.Safety;
 using AnomalyDetection.CanSpecification;
 using AnomalyDetection.Integration;
+using AnomalyDetection.ChangeTracking;
 
 namespace AnomalyDetection.EntityFrameworkCore;
 
@@ -105,6 +106,10 @@ public class AnomalyDetectionDbContext :
 
     // Integration
     public DbSet<IntegrationEndpoint> IntegrationEndpoints { get; set; }
+
+    // Change Tracking
+    public DbSet<ChangeBundle> ChangeBundles { get; set; }
+    public DbSet<ChangeBundleItem> ChangeBundleItems { get; set; }
 
     #endregion
 

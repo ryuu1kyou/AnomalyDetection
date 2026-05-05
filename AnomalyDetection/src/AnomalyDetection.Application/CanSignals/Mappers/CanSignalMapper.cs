@@ -51,6 +51,12 @@ public partial class CanSignalMapper : MapperBase<CanSignal, CanSignalDto>
             SourceDocument = source.SourceDocument ?? string.Empty,
             Notes = source.Notes ?? string.Empty,
 
+            // トレサビ
+            FeatureId = source.FeatureId,
+            DecisionId = source.DecisionId,
+            CommonalityStatus = source.CommonalityStatus,
+            UnknownResolutionDueDate = source.UnknownResolutionDueDate,
+
             // Audit fields
             CreationTime = source.CreationTime,
             CreatorId = source.CreatorId,
@@ -60,7 +66,6 @@ public partial class CanSignalMapper : MapperBase<CanSignal, CanSignalDto>
             DeleterId = source.DeleterId,
             DeletionTime = source.DeletionTime
         };
-
 
         return dto;
     }
@@ -105,6 +110,12 @@ public partial class CanSignalMapper : MapperBase<CanSignal, CanSignalDto>
         // Metadata
         destination.SourceDocument = source.SourceDocument ?? string.Empty;
         destination.Notes = source.Notes ?? string.Empty;
+
+        // トレサビ
+        destination.FeatureId = source.FeatureId;
+        destination.DecisionId = source.DecisionId;
+        destination.CommonalityStatus = source.CommonalityStatus;
+        destination.UnknownResolutionDueDate = source.UnknownResolutionDueDate;
 
         // Audit fields
         destination.CreationTime = source.CreationTime;

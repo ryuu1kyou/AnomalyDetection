@@ -1,0 +1,121 @@
+name: Performance Test
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # 毎週日曜日午前3時
+  workflow_dispatch:
+    inputs:
+      test_duration:
+        description: 'Test duration (minutes)'
+        required: false
+        default: '10'
+      concurrent_users:
+        description: 'Concurrent users'
+        required: false
+        default: '50'
+
+jobs:
+  performance:
+    name: k6 Load Test
+    runs-on: ubuntu-latest
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: TestPass@123
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P TestPass@123 -Q 'SELECT 1' -No"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: AnomalyDetection
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10.0.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore and build
+        run: |
+          dotnet restore AnomalyDetection.sln
+          dotnet build AnomalyDetection.sln --configuration Release --no-restore
+
+      - name: Apply migrations
+        run: cd src/AnomalyDetection.DbMigrator && dotnet run --configuration Release
+        env:
+          ConnectionStrings__Default: >-
+            Server=localhost;Database=AnomalyDetection_Perf;
+            User Id=sa;Password=TestPass@123;TrustServerCertificate=true
+
+      - name: Start API in background
+        run: |
+          dotnet run --project src/AnomalyDetection.HttpApi.Host \
+            --configuration Release &
+          timeout 120 bash -c 'until curl -sf http://localhost:44318/health-status; do sleep 3; done'
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
+          ConnectionStrings__Default: >-
+            Server=localhost;Database=AnomalyDetection_Perf;
+            User Id=sa;Password=TestPass@123;TrustServerCertificate=true
+
+      - name: Install k6
+        working-directory: /tmp
+        run: |
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -q && sudo apt-get install -qy k6
+
+      - name: Run k6 load test
+        run: |
+          cat > /tmp/load-test.js << 'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+
+          export const options = {
+            stages: [
+              { duration: '1m', target: 10 },
+              { duration: `${__ENV.DURATION || 10}m`, target: parseInt(__ENV.USERS || 50) },
+              { duration: '1m', target: 0 },
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<2000'],
+              http_req_failed: ['rate<0.1'],
+            },
+          };
+
+          export default function () {
+            const res = http.get('http://localhost:44318/health-status');
+            check(res, { 'status 200': (r) => r.status === 200 });
+
+            const api = http.get('http://localhost:44318/api/app/can-signal?MaxResultCount=10');
+            check(api, {
+              'api status 200 or 401': (r) => r.status === 200 || r.status === 401,
+              'response time < 2s': (r) => r.timings.duration < 2000,
+            });
+
+            sleep(1);
+          }
+          EOF
+          k6 run --out json=/tmp/k6-results.json /tmp/load-test.js
+        env:
+          DURATION: ${{ github.event.inputs.test_duration || '10' }}
+          USERS: ${{ github.event.inputs.concurrent_users || '50' }}
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-results
+          path: /tmp/k6-results.json

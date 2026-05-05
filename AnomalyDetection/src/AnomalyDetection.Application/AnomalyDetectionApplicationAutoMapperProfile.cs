@@ -18,6 +18,8 @@ using AnomalyDetection.KnowledgeBase;
 using AnomalyDetection.Safety;
 using AnomalyDetection.CanSpecification;
 using AnomalyDetection.Integration;
+using AnomalyDetection.ChangeTracking;
+using AnomalyDetection.ChangeTracking.Dtos;
 
 namespace AnomalyDetection;
 
@@ -30,6 +32,7 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
          * into multiple profile classes for a better organization. */
 
         CreateCanSignalMappings();
+        CreateChangeBundleMappings();
         CreateDetectionLogicMappings();
         CreateDetectionResultMappings();
         CreateProjectMappings();
@@ -42,27 +45,16 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
         CreateIntegrationMappings();
     }
 
+    private void CreateChangeBundleMappings()
+    {
+        CreateMap<ChangeBundle, ChangeBundleDto>()
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
+        CreateMap<ChangeBundleItem, ChangeBundleItemDto>();
+    }
+
     private void CreateCanSignalMappings()
     {
-        CreateMap<CanSignal, CanSignalDto>()
-            .ForMember(dest => dest.SignalName, opt => opt.MapFrom(src => src.Identifier.SignalName))
-            .ForMember(dest => dest.CanId, opt => opt.MapFrom(src => src.Identifier.CanId))
-            .ForMember(dest => dest.StartBit, opt => opt.MapFrom(src => src.Specification.StartBit))
-            .ForMember(dest => dest.Length, opt => opt.MapFrom(src => src.Specification.Length))
-            .ForMember(dest => dest.DataType, opt => opt.MapFrom(src => src.Specification.DataType))
-            .ForMember(dest => dest.MinValue, opt => opt.MapFrom(src => src.Specification.ValueRange.MinValue))
-            .ForMember(dest => dest.MaxValue, opt => opt.MapFrom(src => src.Specification.ValueRange.MaxValue))
-            .ForMember(dest => dest.ByteOrder, opt => opt.MapFrom(src => src.Specification.ByteOrder))
-            .ForMember(dest => dest.Factor, opt => opt.MapFrom(src => src.Conversion.Factor))
-            .ForMember(dest => dest.Offset, opt => opt.MapFrom(src => src.Conversion.Offset))
-            .ForMember(dest => dest.Unit, opt => opt.MapFrom(src => src.Conversion.Unit))
-            .ForMember(dest => dest.CycleTime, opt => opt.MapFrom(src => src.Timing.CycleTimeMs))
-            .ForMember(dest => dest.TimeoutTime, opt => opt.MapFrom(src => src.Timing.TimeoutMs))
-            .ForMember(dest => dest.Version, opt => opt.MapFrom(src => src.Version.ToString()))
-            .ForMember(dest => dest.FeatureId, opt => opt.MapFrom(src => src.FeatureId))
-            .ForMember(dest => dest.DecisionId, opt => opt.MapFrom(src => src.DecisionId))
-            .ForMember(dest => dest.CommonalityStatus, opt => opt.MapFrom(src => src.CommonalityStatus))
-            .ForMember(dest => dest.UnknownResolutionDueDate, opt => opt.MapFrom(src => src.UnknownResolutionDueDate));
+        // CanSignal → CanSignalDto is handled by Mapperly (CanSignalMapper); no AutoMapper map needed.
 
         CreateMap<CreateCanSignalDto, CanSignal>()
             .ConvertUsing((src, dest, context) =>
@@ -101,29 +93,8 @@ public class AnomalyDetectionApplicationAutoMapperProfile : Profile
 
     private void CreateDetectionLogicMappings()
     {
-        CreateMap<CanAnomalyDetectionLogic, CanAnomalyDetectionLogicDto>()
-            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Identity.Name))
-            .ForMember(dest => dest.Version, opt => opt.MapFrom(src => src.Identity.Version.ToString()))
-            .ForMember(dest => dest.OemCode, opt => opt.MapFrom(src => src.Identity.OemCode))
-            .ForMember(dest => dest.DetectionType, opt => opt.MapFrom(src => (DetectionType)(int)src.Specification.DetectionType))
-            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Specification.Description))
-            .ForMember(dest => dest.Purpose, opt => opt.MapFrom(src => src.Specification.TargetSystemType.ToString()))
-            .ForMember(dest => dest.LogicContent, opt => opt.MapFrom(src => src.Implementation != null ? src.Implementation.Content : string.Empty))
-            .ForMember(dest => dest.Algorithm, opt => opt.MapFrom(src => src.Implementation != null ? src.Implementation.Language : string.Empty))
-            .ForMember(dest => dest.IsExecutable, opt => opt.MapFrom(src => src.Implementation != null && src.Implementation.IsExecutable()))
-            .ForMember(dest => dest.AsilLevel, opt => opt.MapFrom(src => src.Safety.AsilLevel))
-            .ForMember(dest => dest.SafetyRequirementId, opt => opt.MapFrom(src => src.Safety.SafetyRequirementId ?? string.Empty))
-            .ForMember(dest => dest.SafetyGoalId, opt => opt.MapFrom(src => src.Safety.SafetyGoalId ?? string.Empty))
-            .ForMember(dest => dest.FeatureId, opt => opt.MapFrom(src => src.FeatureId))
-            .ForMember(dest => dest.DecisionId, opt => opt.MapFrom(src => src.DecisionId))
-            .ForMember(dest => dest.CommonalityStatus, opt => opt.MapFrom(src => src.CommonalityStatus))
-            .ForMember(dest => dest.UnknownResolutionDueDate, opt => opt.MapFrom(src => src.UnknownResolutionDueDate))
-            .ForMember(dest => dest.DesignRationale, opt => opt.MapFrom(src => src.DesignRationale))
-            .ForMember(dest => dest.Assumptions, opt => opt.MapFrom(src => src.Assumptions))
-            .ForMember(dest => dest.Constraints, opt => opt.MapFrom(src => src.Constraints))
-            .ForMember(dest => dest.PurposeShort, opt => opt.MapFrom(src => src.PurposeShort))
-            .ForMember(dest => dest.DocSyncStatus, opt => opt.MapFrom(src => src.DocSyncStatus))
-            .ForMember(dest => dest.DocVersion, opt => opt.MapFrom(src => src.DocVersion));
+        // CanAnomalyDetectionLogic → CanAnomalyDetectionLogicDto is handled by Mapperly
+        // (CanAnomalyDetectionLogicMapper); no AutoMapper map needed here.
 
         CreateMap<DetectionParameter, DetectionParameterDto>()
             .ForMember(dest => dest.MinValue, opt => opt.MapFrom(src => src.Constraints != null ? src.Constraints.MinValue : null))
