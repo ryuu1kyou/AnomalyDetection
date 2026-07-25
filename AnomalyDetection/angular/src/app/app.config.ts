@@ -16,9 +16,6 @@ import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { provideStore } from '@ngrx/store';
-import { provideEffects } from '@ngrx/effects';
-import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { environment } from '../environments/environment';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { APP_ROUTES } from './app.routes';
@@ -48,13 +45,6 @@ export const appConfig: ApplicationConfig = {
     provideAccountConfig(),
     provideTenantManagementConfig(),
     provideAbpThemeShared(),
-    // NgRx Store configuration
-    provideStore(),
-    provideEffects(),
-    provideStoreDevtools({
-      maxAge: 25,
-      logOnly: environment.production,
-    }),
     // Locale providers for Japanese formatting
     { provide: LOCALE_ID, useValue: 'ja' },
     { provide: MAT_DATE_LOCALE, useValue: 'ja-JP' },
