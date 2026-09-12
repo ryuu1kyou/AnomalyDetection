@@ -17,17 +17,20 @@
     "e2e:open": "cypress open"
   },
   "private": true,
+  "engines": {
+    "node": ">=26"
+  },
   "dependencies": {
-    "@abp/ng.account": "~10.3.0",
-    "@abp/ng.components": "~10.3.0",
-    "@abp/ng.core": "~10.3.0",
-    "@abp/ng.feature-management": "~10.3.0",
-    "@abp/ng.identity": "~10.3.0",
-    "@abp/ng.oauth": "~10.3.0",
-    "@abp/ng.setting-management": "~10.3.0",
-    "@abp/ng.tenant-management": "~10.3.0",
-    "@abp/ng.theme.lepton-x": "~5.3.0",
-    "@abp/ng.theme.shared": "~10.3.0",
+    "@abp/ng.account": "~10.6.0",
+    "@abp/ng.components": "~10.6.0",
+    "@abp/ng.core": "~10.6.0",
+    "@abp/ng.feature-management": "~10.6.0",
+    "@abp/ng.identity": "~10.6.0",
+    "@abp/ng.oauth": "~10.6.0",
+    "@abp/ng.setting-management": "~10.6.0",
+    "@abp/ng.tenant-management": "~10.6.0",
+    "@abp/ng.theme.lepton-x": "~5.6.0",
+    "@abp/ng.theme.shared": "~10.6.0",
     "@angular/animations": "~21.2.0",
     "@angular/aria": "~21.2.0",
     "@angular/cdk": "^21.2.0",
@@ -48,7 +51,7 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@abp/ng.schematics": "~10.3.0",
+    "@abp/ng.schematics": "~10.6.0",
     "@angular-eslint/builder": "~21.0.0",
     "@angular-eslint/eslint-plugin": "~21.0.0",
     "@angular-eslint/eslint-plugin-template": "~21.0.0",
@@ -70,5 +73,12 @@
     "karma-jasmine": "~4.0.0",
     "karma-jasmine-html-reporter": "^1.0.0",
     "typescript": "~5.9.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "cypress": true,
+    "lmdb": true,
+    "msgpackr-extract": true,
+    "@parcel/watcher": true
   }
 }

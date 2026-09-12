@@ -344,7 +344,7 @@ az webapp create \
   --name anomalydetection-web \
   --resource-group anomalydetection-rg \
   --plan anomalydetection-plan \
-  --runtime "NODE:18-lts"
+  --runtime "NODE:26-lts"
 ```
 
 #### 2. 環境変数設定

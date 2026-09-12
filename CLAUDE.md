@@ -210,4 +210,4 @@ cd AnomalyDetection/src/AnomalyDetection.DbMigrator && dotnet run
 ```
 
 ### ABP Version
-- Currently on **ABP 10.3.0** (.NET 10)
+- Currently on **ABP 10.6.0** (.NET 10)

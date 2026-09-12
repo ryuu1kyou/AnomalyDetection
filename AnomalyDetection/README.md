@@ -20,7 +20,7 @@ This is a multi-tenant web application for managing CAN signal anomaly detection
 
 #### バックエンド (Backend)
 - **.NET 10.0**: 最新の.NETフレームワーク（LTS版）
-- **ABP vNext 9.3.5**: マルチテナント・DDD対応フレームワーク
+- **ABP vNext 10.6.0**: マルチテナント・DDD対応フレームワーク
 - **Entity Framework Core**: ORM・データベースアクセス
 - **SQL Server**: データベース
 - **OpenIddict**: 認証・認可

@@ -11,7 +11,7 @@ on:
 
 env:
   DOTNET_VERSION: '10.0.x'
-  NODE_VERSION: '20.x'
+  NODE_VERSION: '26.x'
 
 jobs:
   backend:
@@ -72,7 +72,7 @@ jobs:
             --configuration Release --no-build \
             --logger trx --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
-        # Known pre-existing: IOpenIddictApplicationRepository cannot be resolved in ABP 10.3
+        # Known pre-existing: IOpenIddictApplicationRepository cannot be resolved in ABP 10.6
         # test DI container (52 failures exist on main branch before any changes).
         continue-on-error: true
 

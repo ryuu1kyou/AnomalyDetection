@@ -3,9 +3,9 @@
   "creationTime": "10/26/2025 14:36:33 +00:00",
   "template": "app",
   "versions": {
-    "AbpFramework": "9.3.5",
-    "AbpStudio": "1.4.1",
-    "TargetDotnetFramework": "net9.0"
+    "AbpFramework": "10.6.0",
+    "AbpStudio": "3.1.1",
+    "TargetDotnetFramework": "net10.0"
   },
   "modules": {
     "AnomalyDetection": {
@@ -26,7 +26,7 @@
   },
   "creatingStudioConfiguration": {
     "template": "app",
-    "createdAbpStudioVersion": "1.4.1",
+    "createdAbpStudioVersion": "3.1.1",
     "tiered": "false",
     "runInstallLibs": "true",
     "useLocalReferences": "false",
